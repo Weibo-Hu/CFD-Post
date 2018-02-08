@@ -26,10 +26,36 @@ class DataPost(object):
     def __init__(self):
         pass
         self._DataMat = [None]*13
+        self._DataTab = pd.DataFrame()
 #        self._DataMat = self._DataMat.astype(np.float64)
 
-    
     def LoadData(self, Infile, HeadLine, TimeMode):
+        start_time = time.clock()
+        assert isinstance(Infile, str), "Infile:{} is not a string".format(Infile.__class__.__name__)
+        self._DataTab = pd.read_csv(Infile, sep="\t", skiprows=HeadLine, \
+                                    skipinitialspace=True)
+        self._DataTab = self._DataTab.dropna(axis=1, how='all')
+        self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
+        if TimeMode == 'time':
+            self._DataMat = self._DataTab.values
+            #self._DataMat = self._DataMat[\
+            #    np.lexsort((self._DataMat[:,3], self._DataMat[:,2], self._DataMat[:,1], self._DataMat[:,0]))]
+        else:
+            m, n = self._DataTab.shape
+#            try:
+#                n == 9
+#            except IOError:
+#                print ("The data format does not match! It should be")
+            time_normalized = np.full ((m,1), TimeMode)
+            self._DataMat = np.concatenate ((time_normalized, self._DataTab.values), axis =1)
+            #self._DataMat = np.unique (self._DataMat, axis = 0)
+            del time_normalized
+            #self._DataMat = self._DataMat[\
+            #   np.lexsort((self._DataMat[:,3], self._DataMat[:,2], self._DataMat[:,1]))]
+        print("The cost time of reading: ", Infile, time.clock()-start_time)
+
+    def LoadData1(self, Infile, HeadLine, TimeMode):
+        start_time = time.clock()
         assert isinstance(Infile, str), "Infile:{} is not a string".format(Infile.__class__.__name__)
         if TimeMode == 'time':
             self._DataMat = np.loadtxt(Infile, skiprows = HeadLine)
@@ -52,6 +78,7 @@ class DataPost(object):
             del Data, time_normalized
             self._DataMat = self._DataMat[\
                 np.lexsort((self._DataMat[:,3], self._DataMat[:,2], self._DataMat[:,1]))]
+        print("The cost time of reading: ", Infile, time.clock()-start_time)
         #self._DataMat = np.unique (self._DataMat, axis = 0)
 #        if uni_row is not None:    # delete repetitive rows
 #            unique_rows (infile, "UniqueData.txt")
@@ -60,8 +87,15 @@ class DataPost(object):
 #            self._DataMat = np.loadtxt (Infile, skiprows = 2)
     #   Obtain Nondimensional Dynaimc Viscosity
     def UserData(self, VarName, Infile, HeadLine):
-        RawData = np.loadtxt(Infile, skiprows = HeadLine)
+        #RawData = np.loadtxt(Infile, skiprows = HeadLine)
+        start_time = time.clock()
+        self._DataTab = pd.read_csv(Infile, sep = ' ', \
+                                    header = None, names=VarName, \
+                                    skiprows=HeadLine, skipinitialspace=True)
+        self._DataTab = self._DataTab.dropna(axis=1, how='all')
+        RawData = self._DataTab.values
         m, n = RawData.shape
+        print(m, n)
         self._DataMat = np.zeros((m,13))
         if 'time' in VarName:
             ind = VarName.index('time')
@@ -103,66 +137,73 @@ class DataPost(object):
             ind = VarName.index('WallDist')
             self._DataMat[:,12] = RawData[:,ind]
         self._DataMat = np.unique (self._DataMat, axis = 0)
+        print("The cost time of reading: ", Infile, time.clock()-start_time)
 #   Make DataMat unchangable for users
     @property
     def DataMat(self):
         return self._DataMat
+
+    @property
+    def DataTab(self):
+        return self._DataTab
 #    By this method to change the DataMat
 #    @DataMat.setter
 #    def DataMat(self, DataMat):
 #        self._DataMat = DataMat
         
     @property
-    def time(self):
-        return self.DataMat[:,0]
-    
-    @property
     def x(self):
-        return self.DataMat[:,1]
+        #return self.DataMat[:,1]
+        return self.DataTab['x']
     
     @property
     def y(self):
-        return self.DataMat[:,2]
+        #return self.DataMat[:,2]
+        return self.DataTab['y']
     
     @property
     def z(self):
-        return self.DataMat[:,3]
+        return self.DataTab['z']
     
     @property
     def u(self):
-        return self.DataMat[:,4]
+        return self.DataTab['u']
     
     @property
     def v(self):
-        return self.DataMat[:,5]
+        return self.DataTab['v']
     
     @property
     def w(self):
-        return self.DataMat[:,6]
+        return self.DataTab['w']
     
     @property
     def rho(self):
-        return self.DataMat[:,7]
+        return self.DataTab['rho']
     
     @property
     def p(self):
-        return self.DataMat[:,8]
+        return self.DataTab['p']
     
     @property
     def Ma(self):
-        return self.DataMat[:,9]
+        return self.DataTab['Ma']
     
     @property
     def T(self):
-        return self.DataMat[:,10]
+        return self.DataTab['T']
     
     @property
     def mu(self):
-        return self.DataMat[:,11]
+        return self.DataTab['mu']
     
     @property
     def WallDist(self):
-        return self.DataMat[:,12]
+        return self.DataTab['WallDist']
+
+    @property
+    def UGrad(self):
+        return self.DataTab['u']/0.0078125
     
 #   Obtain nondimensional dynamic viscosity
     def GetMu_nondim(self, Re_delta):
@@ -333,9 +374,9 @@ class DataPost(object):
         Ma_inf = 3.4
         varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'WallDist', 'p']
         FileName = self.GetProbeName (xx, yy, zz, path)
-        self.UserData (varname, path + FileName, 1)
-        time_uni, ind = np.unique(self.time, return_index=True)
-        self._DataMat = self._DataMat[ind,:]
+        #self.UserData (varname, path + FileName, 1)
+        #time_uni, ind = np.unique(self.time, return_index=True)
+        #self._DataMat = self._DataMat[ind,:]
         m = np.shape(self._DataMat)[0]
         self._DataMat[:,1] = np.tile(xx, m)
         self._DataMat[:,2] = np.tile(yy, m) #np.full ((m,1), yy)[:,0]
@@ -615,7 +656,7 @@ class DataPost(object):
         return array(maxtab), array(mintab)
     
 #   fit data using sinusoidal functions
-    def fit_sin(tt, yy):
+    def fit_sin(tt, yy, guess_omeg):
         '''Fit sin to the input time sequence, and return fitting parameters
         "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
         tt = np.array(tt)
@@ -623,7 +664,7 @@ class DataPost(object):
         ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
         Fyy = abs(np.fft.fft(yy))
         # w, excluding the zero frequency "peak", which is related to offset
-        guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])   
+        #guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])   
         guess_amp = np.std(yy) * 2.**0.5 # A
         guess_offset = np.mean(yy)   # c
         guess = np.array([guess_amp, guess_freq, 0., guess_offset])  # p=0
@@ -639,7 +680,7 @@ class DataPost(object):
                 "maxcov": np.max(pcov), "rawres": (guess,popt,pcov)}
 
 #   fit data using sinusoidal functions
-    def fit_sin2(tt, yy):
+    def fit_sin2(tt, yy, guess_freq):
         '''Fit sin to the input time sequence, and return fitting parameters
         "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
         tt = np.array(tt)
@@ -647,7 +688,7 @@ class DataPost(object):
         ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
         Fyy = abs(np.fft.fft(yy))
         # w, excluding the zero frequency "peak", which is related to offset
-        guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])   
+        #guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])   
         guess_amp = np.std(yy) * 2.**0.5 # A
         #guess_offset = np.mean(yy)   # c
         guess_phase = 0.0
@@ -687,9 +728,11 @@ class DataPost(object):
         
 if __name__ == "__main__":
     a = DataPost()
-    path = "./probes/"
+    path = "../probes/"
 #    ind = a.LoadProbeData (80.0, 0.0, 0.0, path)
-#    a.LoadData('Baseflowz0.txt', 2, 56.0)
+    a.LoadData('TimeSeriesX0Y0Z0.txt', 0, 800)
+    b = DataPost()
+    b.LoadProbeData(0.0, 0.0, 0.0, path)
 #    #a.GetMu_nondim (3856)
 #    a.GetWallDist (3.0)
 #    a.unique_rows()
