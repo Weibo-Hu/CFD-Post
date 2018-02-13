@@ -17,15 +17,14 @@ from scipy.interpolate import spline
 import sys
 from DataPost import DataPost 
 #import tqdm
-#import LoadData as dt
 
-plt.close ("All")
+plt.close ("all")
 plt.rc('text', usetex=True)
 font0 = {'family' : 'Times New Roman',
-		'color' : 'k',
-		'weight' : 'normal',
-		'size' : 10,
-}
+        'color' : 'k',
+        'weight' : 'normal',
+        'size' : 10,
+        }
 font1 = {'family' : 'Times New Roman',
         'color' : 'k',
         'weight' : 'normal',
@@ -38,39 +37,12 @@ font2 = {'family' : 'Times New Roman',
         }
 
 font3 = {'family' : 'Times New Roman',
-		'color' : 'k',
-		'weight' : 'normal',
-		'size' : 16,
+        'color' : 'k',
+        'weight' : 'normal',
+        'size' : 16,
 }
-# Get Frequency Weighted Power Spectral Density
-def FW_PSD (VarZone, TimeZone, pic = None):
-#    InputData ('x=50.txt')
-    #InputData (xloc)
-    #modify according to needs
-    var = VarZone
-    ave = np.mean (var)
-    var_fluc = var-ave
-    #    fast fourier transform and remove the half
-    var_fft = np.fft.rfft (var_fluc)
-    var_psd = abs(var_fft)**2
-    num = np.size (var_fft)
-    #    sample frequency
-    fre_samp = num/(TimeZone[-1]-TimeZone[0])
-    #f_var = np.linspace (0, f_samp/2, num)
-    fre = np.linspace (fre_samp/2/num, fre_samp/2, num)
-    fre_weighted = var_psd*fre
-    if pic is not None:
-        fig, ax = plt.subplots ()
-        ax.semilogx (fre, fre_weighted)
-        ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
-        ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font2)
-        ax.set_ylabel ('Weighted PSD, unitless', fontdict = font2)
-        ax.grid (b=True, which = 'both', linestyle = '--')
-        fig.savefig (pic, dpi = 600)
-        #plt.show ()
-    return (fre, fre_weighted)
 
-path = "/media/weibo/Data4/Flat_M3.4TraAmpTest/Flat13B_M3.4TraT/DataPost/UGrad/"
+path = "/media/weibo/Data4/Flat_M3.4TraAmpTest/Flat13B_M3.4TraT/DataPost/"
 path1 = "/media/weibo/Data4/Flat_M3.4TraAmpTest/Flat13B_M3.4TraT/probes/"
 path2 = "/media/weibo/Data4/Flat_M3.4TraAmpTest/Flat13_M3.4TraT/BProbes/"
 path3 = "/media/weibo/Data4/Flat_M3.4TraAmpTest/Flat13B_M3.4TraT/DataPost/UGrad/"
@@ -78,15 +50,15 @@ matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
 baseflow = DataPost()
-baseflow.LoadData(path2+'BaseflowZ0Slice.txt', 2, 0.0)
+baseflow.LoadData(path2+'BaseflowZ0Slice.txt', skiprows=[1])
 #baseflow.unique_rows()
-baseflow.AveAtSameXYZ('Part')
-baseflow.GetWallDist(0.0)
+baseflow.TimeAve()
+baseflow.AddWallDist(0.0)
 t0 = 499.07144
 t1 = 1050 #960
 t2 = 1300 #
 
-LSTData = np.loadtxt("LST.dat", skiprows = 1)
+LSTData = np.loadtxt(path + "LST.dat", skiprows = 1)
 LSTx    = LSTData[:,0]
 LSTalpha_r= LSTData[:,1]
 LSTalpha_i= LSTData[:,2]
@@ -94,56 +66,60 @@ LSTbeta= LSTData[:,3]
 LSTomega = LSTData[:,4]
 
 #%% Read data for Streamwise variations of frequency of a specific variable
-VarName = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'WallDist', 'p']
 Probe0 = DataPost()
 Probe0.LoadProbeData (0.0, 0.0, 0.0, path1)
-Probe0.ExtraData('time', t1, t2)
+Probe0.ExtraSeries('time', t1, t2)
 #Probe0.AveAtSameXYZ('All')
 #time1 = Probe0.time
 Probe10 = DataPost()
 Probe10.LoadProbeData (10.0, 0.0, 0.0, path1)
 #Probe10.unique_rows()
-Probe10.ExtraData('time', t1, t2)
+Probe10.ExtraSeries('time', t1, t2)
 #Probe10.AveAtSameXYZ('All')
 Probe20 = DataPost()
 Probe20.LoadProbeData (20.0, 0.0, 0.0, path1)
 #Probe20.unique_rows()
-Probe20.ExtraData('time', t1, t2)
+Probe20.ExtraSeries('time', t1, t2)
 #Probe20.AveAtSameXYZ('All')
 #time2 = Probe20.time
 Probe30 = DataPost()
 Probe30.LoadProbeData (30.0, 0.0, 0.0, path1)
 #Probe30.unique_rows()
-Probe30.ExtraData('time', t1, t2)
+Probe30.ExtraSeries('time', t1, t2)
 #Probe30.AveAtSameXYZ('All')
 
 Probe40 = DataPost()
 Probe40.LoadProbeData (30.0, 0.0, 0.0, path1)
 #Probe40.unique_rows()
-Probe40.ExtraData('time', t1, t2)
+Probe40.ExtraSeries('time', t1, t2)
 #Probe40.AveAtSameXYZ('All')
 time4 = Probe40.time
 
 #%% Read Baseflow Data
 BProbe0 = DataPost ()
 BProbe0.LoadProbeData (0.0, 0.0, 0.0, path2)
-BProbe0.ExtraData ('time', t0, t0)
+BProbe0.ExtraPoint ('time', t0)
+BProbe0.AddUGrad(0.015625)
 #BProbe0P = BProbe0.EquValProfile(t0, BProbe0.time, BProbe0.p, 1)
 BProbe10 = DataPost ()
 BProbe10.LoadProbeData (10.0, 0.0, 0.0, path2)
-BProbe10.ExtraData ('time', t0, t0)
+BProbe10.ExtraPoint ('time', t0)
+BProbe10.AddUGrad(0.015625)
 #BProbe10P = BProbe10.EquValProfile(t0, BProbe10.time, BProbe10.p, 1)
 BProbe20 = DataPost ()
 BProbe20.LoadProbeData (20.0, 0.0, 0.0, path2)
-BProbe20.ExtraData ('time', t0, t0)
+BProbe20.ExtraPoint ('time', t0)
+BProbe20.AddUGrad(0.015625)
 #BProbe20P = BProbe20.EquValProfile(t0, BProbe20.time, BProbe20.p, 1)
 BProbe30 = DataPost ()
 BProbe30.LoadProbeData (30.0, 0.0, 0.0, path2)
-BProbe30.ExtraData ('time', t0, t0)
+BProbe30.ExtraPoint ('time', t0)
+BProbe30.AddUGrad(0.015625)
 #BProbe30P = BProbe30.EquValProfile(t0, BProbe30.time, BProbe30.p, 1)
 BProbe40 = DataPost ()
 BProbe40.LoadProbeData (40.0, 0.0, 0.0, path2)
-BProbe40.ExtraData ('time', t0, t0)
+BProbe40.ExtraPoint ('time', t0)
+BProbe40.AddUGrad(0.015625)
 #BProbe40P = BProbe40.EquValProfile(t0, BProbe40.time, BProbe40.p, 1)
 
 
@@ -164,6 +140,7 @@ ax.grid (b=True, which = 'both', linestyle = ':')
 #Probe0P = Probe0.p-BProbe0P
 #grow0, time0 = Probe0.GrowthRate(Probe0.time, Probe0P)
 #ax.plot (time0, grow0, 'k', linewidth = 1.5)
+Probe0.AddUGrad(0.015625)
 ax.plot (Probe0.time, Probe0.UGrad, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(412)
@@ -176,6 +153,7 @@ ax.grid (b=True, which = 'both', linestyle = ':')
 #Probe10P = Probe10.p-BProbe10P
 #grow10, time10 = Probe10.GrowthRate(Probe10.time, Probe10P)
 #ax.plot (time10, grow10, 'k', linewidth = 1.5)
+Probe10.AddUGrad(0.015625)
 ax.plot (Probe10.time, Probe10.UGrad, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(413)
@@ -188,6 +166,7 @@ ax.grid (b=True, which = 'both', linestyle = ':')
 #Probe20P = Probe20.p-BProbe20P
 #grow20, time20 = Probe20.GrowthRate(Probe20.time, Probe20P)
 #ax.plot (time20, grow20, 'k', linewidth = 1.5)
+Probe20.AddUGrad(0.015625)
 ax.plot (Probe20.time, Probe20.UGrad, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(414)
@@ -201,6 +180,7 @@ ax.set_ylabel (r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
 ax.grid (b=True, which = 'both', linestyle = ':')
 #Probe40P = Probe40.p-BProbe40P
 #grow40, time40 = Probe40.GrowthRate(Probe40.time, Probe40P)
+Probe40.AddUGrad(0.015625)
 ax.plot (Probe40.time, Probe40.UGrad, 'k', linewidth = 1.5)
 #ax.plot (Probe40.time, Probe40.p, 'k', linewidth = 1.5)
 plt.tight_layout (pad = 0.5, w_pad = 0.2, h_pad = 1)
@@ -218,7 +198,7 @@ ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
 ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid (b=True, which = 'both', linestyle = ':')
-Fre0, FPSD0 = FW_PSD (Probe0.UGrad, Probe0.time)
+Fre0, FPSD0 = DataPost.FW_PSD (Probe0.UGrad, Probe0.time)
 ax.semilogx (Fre0, FPSD0, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(222)
@@ -229,7 +209,7 @@ ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
 #ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid (b=True, which = 'both', linestyle = ':')
-Fre10, FPSD10 = FW_PSD (Probe10.UGrad, Probe10.time)
+Fre10, FPSD10 = DataPost.FW_PSD (Probe10.UGrad, Probe10.time)
 ax.semilogx (Fre10, FPSD10, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(223)
@@ -240,7 +220,7 @@ ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
 ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
 ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid (b=True, which = 'both', linestyle = ':')
-Fre20, FPSD20 = FW_PSD (Probe20.UGrad, Probe20.time)
+Fre20, FPSD20 = DataPost.FW_PSD (Probe20.UGrad, Probe20.time)
 ax.semilogx (Fre20, FPSD20, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(224)
@@ -251,7 +231,7 @@ ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
 ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
 #ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid (b=True, which = 'both', linestyle = ':')
-Fre40, FPSD40 = FW_PSD (Probe40.UGrad, Probe40.time)
+Fre40, FPSD40 = DataPost.FW_PSD (Probe40.UGrad, Probe40.time)
 ax.semilogx (Fre40, FPSD40, 'k', linewidth = 1.5)
 
 plt.tight_layout (pad = 0.5, w_pad = 0.2, h_pad = 1)
@@ -339,10 +319,13 @@ t4 = 1300 #
 for jj in range(PointNum):
     BProbeInd = DataPost()
     BProbeInd.LoadProbeData(xpoint[jj], 0.0, 0.0, path2)
-    BaseVar[jj] = BProbeInd.EquValProfile(t0, BProbeInd.time, BProbeInd.UGrad, 1)
+    BProbeInd.AddUGrad(0.015625)
+    BProbeInd.ExtraPoint('time',t0)
+    BaseVar[jj] = BProbeInd.UGrad
     ProbeInd = DataPost()
     ProbeInd.LoadProbeData(xpoint[jj], 0.0, 0.0, path1)
-    ProbeInd.ExtraData('time', t3, t4)
+    ProbeInd.ExtraSeries('time', t3, t4)
+    ProbeInd.AddUGrad(0.015625)
     func = DataPost.fit_sin2(ProbeInd.time, ProbeInd.UGrad-BaseVar[jj], 0.4432)
     MaxVal[jj] = np.max(ProbeInd.UGrad)
     Ampli[jj] = np.fabs(func['amp'])
@@ -374,7 +357,7 @@ ax.plot(xpoint, alpha_i1, 'ko', LSTx, LSTalpha_i, 'k', linewidth=1.5)
 ax.legend(['LES', 'LST'])
 #ax.plot(xpoint, alpha_i, 'ko', xval1, alpha_i1, 'k', linewidth=1.5)
 plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
-plt.savefig (path+'StreamwiseGrowthRateTime.pdf', dpi = 300)
+plt.savefig (path3+'StreamwiseGrowthRateTime.pdf', dpi = 300)
 plt.show ()
 
 #%% Streamwise growth rate with z
@@ -389,11 +372,15 @@ BaseVar = np.zeros(PointNum)
 for jj in range(PointNum):
     BProbeInd = DataPost()
     BProbeInd.LoadProbeData(xpoint[jj], 0.0, 0.0, path2)
-    BaseVar[jj] = BProbeInd.EquValProfile(t0, BProbeInd.time, BProbeInd.UGrad, 1)
+    BProbeInd.ExtraPoint('time', t0)
+    BProbeInd.AddWallDist(0.0)
+    BProbeInd.AddUGrad(0.015625)
+    BaseVar[jj] = BProbeInd.UGrad
     for kk in range(PointNumZ):
         ProbeInd = DataPost()
         ProbeInd.LoadProbeData(xpoint[jj], 0.0, zpoint[kk], path1)
-        ProbeInd.ExtraData('time', t3, t3)
+        ProbeInd.AddUGrad(0.015625)
+        ProbeInd.ExtraPoint('time', t3)
         var_z[kk] = ProbeInd.UGrad
     MaxVar[jj] = np.max(var_z)
     fitfunc = DataPost.fit_sin2(zpoint, var_z-BaseVar[jj], 1.147607)
@@ -422,7 +409,7 @@ ax.plot(xpoint, alpha_i1, 'ko', LSTx, LSTalpha_i, 'k', linewidth=1.5)
 ax.legend(['LES', 'LST'])
 #ax.plot(xval, alpha_i, 'ko', xval1, alpha_i1, 'k', linewidth=1.5)
 plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
-plt.savefig (path+'StreamwiseGrowthRateZ.pdf', dpi = 300)
+plt.savefig (path3+'StreamwiseGrowthRateZ.pdf', dpi = 300)
 plt.show ()
 
 #%% Streamwise growth rate with x
@@ -435,7 +422,8 @@ t3 = 1300
 for jj in range(PointNum):
     ProbeInd = DataPost()
     ProbeInd.LoadProbeData(xpoint[jj], 0.0, 0.0, path1)
-    ProbeInd.ExtraData('time', t3, t3)
+    ProbeInd.ExtraPoint('time', t3)
+    ProbeInd.AddUGrad(0.015625)
     MaxVal[jj] = ProbeInd.UGrad
     BProbeInd = DataPost()
     BProbeInd.LoadProbeData(xpoint[jj], 0.0, 0.0, path2)
@@ -460,5 +448,5 @@ ax.plot(xval, alpha_i*-1, 'ko', LSTx, LSTalpha_i, 'k', linewidth=1.5)
 ax.legend(['LES', 'LST'])
 #ax.plot(xval, alpha_i, 'ko', xval1, alpha_i1, 'k', linewidth=1.5)
 plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
-plt.savefig (path+'StreamwiseGrowthRateX.pdf', dpi = 300)
+plt.savefig (path3+'StreamwiseGrowthRateX.pdf', dpi = 300)
 plt.show ()

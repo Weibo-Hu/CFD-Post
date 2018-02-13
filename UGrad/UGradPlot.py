@@ -44,12 +44,12 @@ matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
 baseflow = DataPost()
-baseflow.LoadData(path+'BaseflowZ0Slice.txt', 2, 0.0)
+baseflow.LoadData(path+'BaseflowZ0Slice.txt', 1, 0.0)
 baseflow.unique_rows()
 #baseflow.AveAtSameXYZ('Part')
 baseflow.GetWallDist(0.0)
 TimePoint = DataPost()
-TimePoint.LoadData(path+"TimeSeriesX0Y0Z0.txt", 2, 'time')
+TimePoint.LoadData(path+"TimeSeriesX0Y0Z0.txt", 1, 'time')
 
 
 LSTData = np.loadtxt("LST.dat", skiprows = 1)
