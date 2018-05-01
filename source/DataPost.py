@@ -20,129 +20,119 @@ from scipy.interpolate import griddata
 from scipy.interpolate import spline
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
+import time
 import sys
 
 class DataPost(object):
     def __init__(self):
         pass
-        self._DataMat = [None]*13
+        #self._DataMat = [None]*13
         self._DataTab = pd.DataFrame()
-#        self._DataMat = self._DataMat.astype(np.float64)
 
-    def LoadData(self, Infile, HeadLine, TimeMode):
+    def LoadData(self, Infile, skiprows = None, \
+                 Sep = None, Uniq = True):
+        # SkipHeader: skip i-th row, zero-based; 0:skip 1st line; 1:skip 2nd line
         start_time = time.clock()
-        assert isinstance(Infile, str), "Infile:{} is not a string".format(Infile.__class__.__name__)
-        self._DataTab = pd.read_csv(Infile, sep="\t", skiprows=HeadLine, \
-                                    skipinitialspace=True)
+        assert isinstance(Infile, str), \
+        "Infile:{} is not a string".format(Infile.__class__.__name__)
+        if Sep is not None:
+            self._DataTab = pd.read_csv(Infile, sep=Sep, \
+                                        skiprows=skiprows,\
+                                        skipinitialspace=True)
+        else:
+            self._DataTab = pd.read_csv(Infile, sep="\t", \
+                                        skiprows=skiprows,\
+                                        skipinitialspace=True)
         self._DataTab = self._DataTab.dropna(axis=1, how='all')
-        self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
-        if TimeMode == 'time':
-            self._DataMat = self._DataTab.values
-            #self._DataMat = self._DataMat[\
-            #    np.lexsort((self._DataMat[:,3], self._DataMat[:,2], self._DataMat[:,1], self._DataMat[:,0]))]
-        else:
-            m, n = self._DataTab.shape
-#            try:
-#                n == 9
-#            except IOError:
-#                print ("The data format does not match! It should be")
-            time_normalized = np.full ((m,1), TimeMode)
-            self._DataMat = np.concatenate ((time_normalized, self._DataTab.values), axis =1)
-            #self._DataMat = np.unique (self._DataMat, axis = 0)
-            del time_normalized
-            #self._DataMat = self._DataMat[\
-            #   np.lexsort((self._DataMat[:,3], self._DataMat[:,2], self._DataMat[:,1]))]
+        VarInd = ('x' in self._DataTab.columns) & \
+                ('y' in self._DataTab.columns) & ('z' in self._DataTab.columns)
+        if VarInd:
+            self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
+        if 'Solution Time' in self._DataTab.columns:
+            self._DataTab = \
+            self._DataTab.rename(columns = {'Solution Time':'time'})
+            self._DataTab = \
+            self._DataTab.sort_values(by=['time'])
+        if Uniq == True:
+            self._DataTab = self._DataTab.drop_duplicates(keep = 'last')
         print("The cost time of reading: ", Infile, time.clock()-start_time)
 
-    def LoadData1(self, Infile, HeadLine, TimeMode):
-        start_time = time.clock()
-        assert isinstance(Infile, str), "Infile:{} is not a string".format(Infile.__class__.__name__)
-        if TimeMode == 'time':
-            self._DataMat = np.loadtxt(Infile, skiprows = HeadLine)
-            #self._DataMat = np.unique (self._DataMat, axis = 0)
-#            assert isinstance(np.shape(self._DataMat)[1] != 11), \
-#            "The data format does not match! It should be \n" + \
-#            "time, x, y, z, u, v, w, rho, p, Ma, T"
-            self._DataMat = self._DataMat[\
-                np.lexsort((self._DataMat[:,3], self._DataMat[:,2], self._DataMat[:,1], self._DataMat[:,0]))]
+    def AddVariable(self, VarName, VarVal):
+        self._DataTab[VarName] = VarVal
+
+    def AddSolutionTime(self, SolutionTime):
+        mt = np.shape(SolutionTime)[0]
+        m  = np.shape(self._DataTab)[0]
+        #assert isinstance(m/mt, int), "Infile:{} is not a string".format(Infile.__class__.__name__)
+        time = np.tile(SolutionTime, int(m/mt))
+        # tile: copy as a block; repeat: copy every single row separately
+        self._DataTab['time'] = time
+        
+    def AddWallDist(self, StepHeight):
+        self._DataTab['walldist'] = self._DataTab['y']
+        self._DataTab.loc[self._DataTab['x'] > 0.0, 'walldist'] += StepHeight
+    
+    def AddMu(self, Re_delta):
+        mu_unitless = 1.0/Re_delta*np.power(self.T, 0.75)
+        self._DataTab['mu'] = mu_unitless
+    
+    def AddUGrad(self, WallSpace):
+        self._DataTab['UGrad'] = self._DataTab['u']/(0.5*WallSpace)
+    
+    @classmethod
+    def SutherlandLaw (cls, T, T_inf = None, UnitMode = True):
+        if UnitMode is True:
+            T_inf = 1.0
         else:
-            Data = np.loadtxt(Infile, skiprows = HeadLine)
-            m, n = Data.shape
-#            try:
-#                n == 9
-#            except IOError:
-#                print ("The data format does not match! It should be")
-            time_normalized = np.full ((m,1), TimeMode)
-            self._DataMat = np.concatenate ((time_normalized, Data), axis =1)
-            #self._DataMat = np.unique (self._DataMat, axis = 0)
-            del Data, time_normalized
-            self._DataMat = self._DataMat[\
-                np.lexsort((self._DataMat[:,3], self._DataMat[:,2], self._DataMat[:,1]))]
-        print("The cost time of reading: ", Infile, time.clock()-start_time)
-        #self._DataMat = np.unique (self._DataMat, axis = 0)
-#        if uni_row is not None:    # delete repetitive rows
-#            unique_rows (infile, "UniqueData.txt")
-#            self._DataMat = np.loadtxt(Infile, skiprows = 2)
-#        else:  # default: nothing, i.e. keep repetitive rows
-#            self._DataMat = np.loadtxt (Infile, skiprows = 2)
-    #   Obtain Nondimensional Dynaimc Viscosity
-    def UserData(self, VarName, Infile, HeadLine):
-        #RawData = np.loadtxt(Infile, skiprows = HeadLine)
+            if T_inf is None:
+                print("Must specify temperature of the free stream")
+        T = T*T_inf
+        T0 = 273.15
+        C = 110.4
+        mu0 = 1.716e-6
+        a = (T0+C)/(T+C)
+        b = np.power(T/T0, 1.5)
+        mu_unit = mu0*a*b
+        return (mu_unit)
+    
+    def AddMu_unit(self, T_inf):
+        mu_unit = self.SutherlandLaw (self.T, T_inf, UnitMode = False)
+        self._DataTab['mu'] = mu_unit
+        return (mu_unit)
+        
+    def UserData(self, VarName, Infile, SkipHeader):
         start_time = time.clock()
         self._DataTab = pd.read_csv(Infile, sep = ' ', \
                                     header = None, names=VarName, \
-                                    skiprows=HeadLine, skipinitialspace=True)
+                                    skiprows=SkipHeader, skipinitialspace=True)
         self._DataTab = self._DataTab.dropna(axis=1, how='all')
-        RawData = self._DataTab.values
-        m, n = RawData.shape
-        print(m, n)
-        self._DataMat = np.zeros((m,13))
-        if 'time' in VarName:
-            ind = VarName.index('time')
-            self._DataMat[:,0] = RawData[:,ind]
-        if 'x' in VarName:
-            ind = VarName.index('x')
-            self._DataMat[:,1] = RawData[:,ind]
-        if 'y' in VarName:
-            ind = VarName.index('y')
-            self._DataMat[:,2] = RawData[:,ind]
-        if 'z' in VarName:
-            ind = VarName.index('z')
-            self._DataMat[:,3] = RawData[:,ind]
-        if 'u' in VarName:
-            ind = VarName.index('u')
-            self._DataMat[:,4] = RawData[:,ind]
-        if 'v' in VarName:
-            ind = VarName.index('v')
-            self._DataMat[:,5] = RawData[:,ind]
-        if 'w' in VarName:
-            ind = VarName.index('w')
-            self._DataMat[:,6] = RawData[:,ind]
-        if 'rho' in VarName:
-            ind = VarName.index('rho')
-            self._DataMat[:,7] = RawData[:,ind]
-        if 'p' in VarName:
-            ind = VarName.index('p')
-            self._DataMat[:,8] = RawData[:,ind]
-        if 'Ma' in VarName:
-            ind = VarName.index('Ma')
-            self._DataMat[:,9] = RawData[:,ind]
-        if 'T' in VarName:
-            ind = VarName.index('T')
-            self._DataMat[:,10] = RawData[:,ind]
-        if 'mu' in VarName:
-            ind = VarName.index('mu')
-            self._DataMat[:,11] = RawData[:,ind]
-        if 'WallDist' in VarName:
-            ind = VarName.index('WallDist')
-            self._DataMat[:,12] = RawData[:,ind]
-        self._DataMat = np.unique (self._DataMat, axis = 0)
         print("The cost time of reading: ", Infile, time.clock()-start_time)
-#   Make DataMat unchangable for users
-    @property
-    def DataMat(self):
-        return self._DataMat
+    
+#   Obtain the filename of the probe at a specific location
+    def GetProbeName (self, xx, yy, zz, path):
+        Prob = np.loadtxt (path+'inca_probes.inp', skiprows = 6, \
+                                usecols = (1,2,3,4))
+        xarr = np.around(Prob[:,1], 6)
+        yarr = np.around(Prob[:,2], 6)
+        zarr = np.around(Prob[:,3], 6)
+        ProbIndArr = np.where((xarr[:]==np.around(xx,6))\
+                              & (yarr[:]==np.around(yy,6)) \
+                              & (zarr[:]==np.around(zz,6)))
+        if len(ProbIndArr[0]) == 0:
+            print ("The probe you input is not found in the probe files!!!")
+        ProbInd = ProbIndArr[0][-1] + 1
+        FileName = 'probe_'+format(ProbInd, '05d')+'.dat'
+        return (FileName)
 
+#%% Read probe data from the INCA results
+    def LoadProbeData (self, xx, yy, zz, path, Uniq = True):
+        varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'walldist', 'p']
+        FileName = self.GetProbeName (xx, yy, zz, path)
+        self.UserData (varname, path + FileName, 1)
+        if Uniq == True:
+            self._DataTab = self._DataTab.drop_duplicates(keep='last')
+        
+#   Make DataTab unchangable for users
     @property
     def DataTab(self):
         return self._DataTab
@@ -150,89 +140,241 @@ class DataPost(object):
 #    @DataMat.setter
 #    def DataMat(self, DataMat):
 #        self._DataMat = DataMat
-        
+    @property
+    def time(self):
+        return self._DataTab['time'].values
+
     @property
     def x(self):
         #return self.DataMat[:,1]
-        return self.DataTab['x']
+        return self._DataTab['x'].values
     
     @property
     def y(self):
         #return self.DataMat[:,2]
-        return self.DataTab['y']
+        return self._DataTab['y'].values
     
     @property
     def z(self):
-        return self.DataTab['z']
+        return self._DataTab['z'].values
     
     @property
     def u(self):
-        return self.DataTab['u']
+        return self._DataTab['u'].values
     
     @property
     def v(self):
-        return self.DataTab['v']
+        return self._DataTab['v'].values
     
     @property
     def w(self):
-        return self.DataTab['w']
+        return self._DataTab['w'].values
     
     @property
     def rho(self):
-        return self.DataTab['rho']
+        return self._DataTab['rho'].values
     
     @property
     def p(self):
-        return self.DataTab['p']
+        return self._DataTab['p'].values
     
     @property
-    def Ma(self):
-        return self.DataTab['Ma']
+    def Mach(self):
+        return self._DataTab['Mach'].values
     
     @property
     def T(self):
-        return self.DataTab['T']
+        return self._DataTab['T'].values
     
     @property
     def mu(self):
-        return self.DataTab['mu']
+        return self._DataTab['mu'].values
     
     @property
-    def WallDist(self):
-        return self.DataTab['WallDist']
+    def walldist(self):
+        return self._DataTab['walldist'].values
 
     @property
     def UGrad(self):
-        return self.DataTab['u']/0.0078125
-    
-#   Obtain nondimensional dynamic viscosity
-    def GetMu_nondim(self, Re_delta):
-        mu_nondim = 1.0/Re_delta*np.power (self.T, 0.75)
-        mu_nondim = np.reshape (mu_nondim, (np.size (mu_nondim), 1))
-        self._DataMat = np.hstack ((self._DataMat, mu_nondim))
+        return self._DataTab['UGrad'].values
 
-#   Obtain nondimensional wall distance
-    def GetWallDist(self, StepHeight):
-        m = np.shape(self._DataMat)[0]
-        WallDist = np.zeros(shape = (m,1))
-        for j in range (m):
-            if self.x[j] <= 0.0:
-                WallDist[j] = self.y[j]
+#   Obtain variables profile with an equal value (x, y, or z)
+    def IsoProfile2D (self, qx, Iso_qx, qy):
+        assert isinstance(qx, str), \
+            "qx:{} is not a string".format(qx.__class__.__name__)
+        assert isinstance(qy, str), \
+            "qy:{} is not a string".format(qy.__class__.__name__)
+        start_time = time.clock()
+        qval = self._DataTab.loc[self._DataTab[qx] == Iso_qx, qy]
+        xval = self._DataTab.loc[self._DataTab[qx] == Iso_qx, qx]
+        print("The cost time of extracting data: ", time.clock()-start_time)
+        return (xval, qval)
+
+    #   Obtain variables profile with an equal array (x,y)
+    def IsoProfile3D (self, qx, Iso_qx, qz, Iso_qz, qy):
+        assert isinstance(qx, str), \
+            "qx:{} is not a string".format(qx.__class__.__name__)
+        assert isinstance(qz, str), \
+            "qz:{} is not a string".format(qz.__class__.__name__)
+        assert isinstance(qy, str), \
+            "qy:{} is not a string".format(qy.__class__.__name__)
+        start_time = time.clock()
+        DataTab1  = self._DataTab.loc[self._DataTab[qx] == Iso_qx]
+        xval  = DataTab1.loc[DataTab1[qz] == Iso_qz, qx]
+        zval  = DataTab1.loc[DataTab1[qz] == Iso_qz, qz]
+        qval  = DataTab1.loc[DataTab1[qz] == Iso_qz, qy]
+        print("The cost time of extracting data: ", time.clock()-start_time)
+        return (xval, zval, qval)
+#        index = np.where (qx[:] == EquVal)
+#        if (np.size(index) == 0):    # xval does not exist
+#            yy = np.unique (qx)
+#            index = np.where (yy[:] > EquVal)    # return index whose value > xval
+#            y1 = yy[index[0][0]-1]    # obtain the last value  < xval
+#            y2 = yy[index[0][0]]    # obtain the first value > xval
+#            index1 = np.where (qx[:] == y1)    # get their index
+#            index2 = np.where (qx[:] == y2)
+#            qval = (qx[index1] + qx[index2])/2.0
+#            xval = (qy[index1] + qy[index2])/2.0
+#        else:
+#            qval = qy[index]
+#            xval = qx[index]
+#        if mode is None:
+#            return (xval, qval)
+#        else:
+#            return (qval)
+
+#   Lagrange Interpolation
+    @classmethod
+    def InterpLagra (cls, xval, x1, x2, q1, q2):
+        a1 = (xval-x2)/(x1-x2)
+        a2 = (xval-x1)/(x2-x1)
+        qval = q1*a1 + q2*a2
+        return (qval)
+
+#            a1 = (xval - x1)/(x2 - x1)
+#            a2 = (x2 - xval)/(x2 - x1)
+#            qval = qy[index1]*a1 + qy[index2]*a2
+#   Obtan BL Profile at a Certain X or Z Valude
+#   q: the desired quantity; mode 2: return qy and walldist, or only return qy
+    def BLProfile (self, qx, Iso_qx, qy):
+        qval  = self.IsoProfile2D(qx, Iso_qx, qy)[1]
+        WDval = self.IsoProfile2D(qx, Iso_qx, 'walldist')[1]
+        if (np.size(qval) == 0 or np.size(WDval) == 0):
+            x1 = self._DataTab.loc[self._DataTab[qx] < Iso_qx, \
+                                   qx].tail(1).values[0]
+            x2 = self._DataTab.loc[self._DataTab[qx] > Iso_qx, \
+                                   qx].head(1).values[0]
+            DataTab1 = self._DataTab.loc[self._DataTab[qx] == x1]
+            DataTab2 = self._DataTab.loc[self._DataTab[qx] == x2]
+            wd1   = DataTab1['walldist'].values
+            qval1 = DataTab1[qy].values
+            wd2   = DataTab2['walldist'].values
+            qval2 = DataTab2[qy].values
+            del WDval, qval
+            if (np.max(wd1) < np.max(wd2) or np.size(wd1) < np.size(wd2)):
+                qval1 = np.interp(wd2, wd1, qval1)
+                WDval = wd2
+            elif(np.max(wd1) > np.max(wd2) or np.size(wd1) > np.size(wd2)):
+                qval2 = np.interp(wd1, wd2, qval2)
+                WDval = wd1
             else:
-                WallDist[j] = self.y[j] + StepHeight
-        mu_nondim = np.zeros(shape = (m,1))
-        self._DataMat = np.hstack((self._DataMat, mu_nondim, WallDist))
+                WDval = wd1
+            qval = self.InterpLagra(Iso_qx, x1, x2, qval1, qval2)
+        return (WDval, qval)
+#        index = np.where (qx[:] == xval)
+#        if (np.size(index) == 0):    # xval does not exist, need to interpolate
+#            xx = np.unique (qx)
+#            index = np.where (xx[:] > xval)    # return index whose value > xval
+#            x1 = xx[index[0]-1]    # obtain the last value  < xval
+#            x2 = xx[index[0]]    # obtain the first value > xval        
+#            index1 = np.where (qx[:] == x1)    # get their index
+#            index2 = np.where (qx[:] == x2)
+#            a1 = (xval - x1)/(x2 - x1)
+#            a2 = (x2 - xval)/(x2 - x1)
+#            qval = qy[index1]*a1 + qy[index2]*a2
+#            #yval = (y[index1] + y[index2])/2.0
+#            WDval = (self.walldist[index1] + self.walldist[index2])/2.0
+#        else:
+#            qval = qy[index]
+#            #yval = y[index]
+#            WDval = self.walldist[index]
+#            
+#            return qval, WDval
+#        if (WDval[-1] < 6.0):    # y points is not enough to get profile
+#            l = locals ()
+#            j = 0
+#            xvalF = xval
+#            while True:
+#                xvalF = xvalF - 0.25
+#                l['indexF%s' % j] = np.where (qx[:] == xvalF)
+#                l['WDvalF%s' % j] = (self.walldist[l['indexF%s' % j]])
+#                if (l['WDvalF%s' % j][-1] >= 8.0):
+#                    break
+#                j = j + 1
+#            xvalB = xval
+#            i = 0
+#            while True:
+#                xvalB = xvalB + 0.25
+#                l['indexB%s' % i] = np.where (qx[:] == xvalB)
+#                l['WDvalB%s' % i] = (self.walldist[l['indexB%s' % i]])
+#                if (l['WDvalB%s' % i][-1] >= 8.0):
+#                    break
+#                i = i + 1
+#            indexF = l['indexF%s' % j]
+#            indexB = l['indexB%s' % i]
+#            qvalF = qy[indexF]
+#            qvalB = qy[indexB]
+#            WDF = self.walldist[indexF]
+#            WDB = self.walldist[indexB]
+#            # interpolate walldist to get the same length of array
+#            WDval = np.arange (0, 8, 0.02)
+#            qval1 = np.interp (WDval, WDF, qvalF)
+#            qval2 = np.interp (WDval, WDB, qvalB)
+#            #func1 = interp1d (WDF, qvalF, kind = 'linear', fill_value = 'extrapolate')
+#            #qval1 = func1 (WDval)
+#            a1 = (xval - xvalF)/(xvalB - xvalF)
+#            a2 = (xvalB - xval)/(xvalB - xvalF)
+#            qval = qval1*a1 + qval2*a2
+#        return (WDval, qval)
+
+#   Obtain Average Value of Data with Same Coordinates (time-averaged)
+    def TimeAve (self):
+        grouped = self._DataTab.groupby([self._DataTab['x'], \
+                                        self._DataTab['y'], self._DataTab['z']])
+        self._DataTab = grouped.mean().reset_index()
         
-#   Obatin solution time
-    def GetSolutionTime(self, SolutionTime):
-        mt = np.shape(SolutionTime)[0]
-        m  = np.shape(self._DataMat)[0]
-        #assert isinstance(m/mt, int), "Infile:{} is not a string".format(Infile.__class__.__name__)
-        time = np.tile(SolutionTime, int(m/mt))
-        #time = np.repeat(SolutionTime, int(m/mt))
-        #print (np.shape(time))
-        self._DataMat[:,0] = time
-        
+
+#   Extract interesting part of the data
+    def ExtraPoint (self, Mode, Val):
+        start_time = time.clock()
+        self._DataTab = self._DataTab.loc[self._DataTab[Mode] >= Val]
+        self._DataTab = self._DataTab.head(1)
+        print("The cost time of extract data: ", time.clock()-start_time)
+    
+    def ExtraSeries (self, Mode, Min, Max):
+        start_time = time.clock()
+        self._DataTab = self._DataTab.loc[self._DataTab[Mode] >= Min]
+        self._DataTab = self._DataTab.loc[self._DataTab[Mode] <= Max]
+        print("The cost time of extract data series: ",time.clock()-start_time)
+
+#   Obtain finite differential derivatives of a variable (2nd order)
+    @classmethod
+    def SecOrdFDD (cls, xarr, var):
+        dvar = np.zeros(np.size(xarr))
+        for jj in range (1,np.size(xarr)):
+            if jj == 1:
+                dvar[jj-1]=(var[jj]-var[jj-1])/(xarr[jj]-xarr[jj-1])
+            elif jj == np.size(xarr):
+                dvar[jj-1]=(var[jj-1]-var[jj-2])/(xarr[jj-1]-xarr[jj-2])
+            else:
+                dy12 = xarr[jj-1] - xarr[jj-2];
+                dy23 = xarr[jj] - xarr[jj-1];
+                dvar1 = -dy23/dy12/(dy23+dy12)*var[jj-2];
+                dvar2 = (dy23-dy12)/dy23/dy12*var[jj-1];
+                dvar3 = dy12/dy23/(dy23+dy12)*var[jj];
+                dvar[jj-1] = dvar1 + dvar2 + dvar3;
+        return (dvar)
+
 #   Show Progress of code loop
     def progress(count, total, status=''):
         bar_len = 60
@@ -243,147 +385,6 @@ class DataPost(object):
 
         sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
         sys.stdout.flush()
-#   Remove Duplicated Rows
-    def unique_rows(self):
-        self._DataMat = np.unique (self._DataMat, axis = 0)
-        
-#   Obtain variables profile with an equal array (x,y)
-    def EquValProfile3D (self, var, x=None, y=None):
-        if (x is not None) & (y is not None):
-            ind = np.where(self.x[:] == x)
-            yval = self.y[ind]
-            zval = self.z[ind]
-            q    = var[ind]
-            ind1 = np.where(yval[:] == y)
-            q0   = q[ind1]
-            z0   = zval[ind1]
-        return (z0, q0)
-#   Obtain variables profile with an equal value (x, y, or z)
-    def EquValProfile (self, EquVal, qx, qy, mode = None):
-        index = np.where (qx[:] == EquVal)
-        if (np.size(index) == 0):    # xval does not exist
-            yy = np.unique (qx)
-            index = np.where (yy[:] > EquVal)    # return index whose value > xval
-            y1 = yy[index[0][0]-1]    # obtain the last value  < xval
-            y2 = yy[index[0][0]]    # obtain the first value > xval
-            index1 = np.where (qx[:] == y1)    # get their index
-            index2 = np.where (qx[:] == y2)
-            qval = (qx[index1] + qx[index2])/2.0
-            xval = (qy[index1] + qy[index2])/2.0
-        else:
-            qval = qy[index]
-            xval = qx[index]
-        if mode is None:
-            return (xval, qval)
-        else:
-            return (qval)
-#   Obtan BL Profile at a Certain X or Z Valude
-#   q: the desired quantity; mode 2: return qy and walldist, or only return qy
-    def BLProfile (self, xval, qx, qy, mode = None):
-        index = np.where (qx[:] == xval)
-        if (np.size(index) == 0):    # xval does not exist, need to interpolate
-            xx = np.unique (qx)
-            index = np.where (xx[:] > xval)    # return index whose value > xval
-            x1 = xx[index[0]-1]    # obtain the last value  < xval
-            x2 = xx[index[0]]    # obtain the first value > xval        
-            index1 = np.where (qx[:] == x1)    # get their index
-            index2 = np.where (qx[:] == x2)
-            a1 = (xval - x1)/(x2 - x1)
-            a2 = (x2 - xval)/(x2 - x1)
-            qval = qy[index1]*a1 + qy[index2]*a2
-            #yval = (y[index1] + y[index2])/2.0
-            WDval = (self.WallDist[index1] + self.WallDist[index2])/2.0
-        else:
-            qval = qy[index]
-            #yval = y[index]
-            WDval = self.WallDist[index]
-            
-            return qval, WDval
-            
-        if (WDval[-1] < 6.0):    # y points is not enough to get profile
-            l = locals ()
-            j = 0
-            xvalF = xval
-            while True:
-                xvalF = xvalF - 0.25
-                l['indexF%s' % j] = np.where (qx[:] == xvalF)
-                l['WDvalF%s' % j] = (self.WallDist[l['indexF%s' % j]])
-                if (l['WDvalF%s' % j][-1] >= 8.0):
-                    break
-                j = j + 1
-            xvalB = xval
-            i = 0
-            while True:
-                xvalB = xvalB + 0.25
-                l['indexB%s' % i] = np.where (qx[:] == xvalB)
-                l['WDvalB%s' % i] = (self.WallDist[l['indexB%s' % i]])
-                if (l['WDvalB%s' % i][-1] >= 8.0):
-                    break
-                i = i + 1
-            indexF = l['indexF%s' % j]
-            indexB = l['indexB%s' % i]
-            qvalF = qy[indexF]
-            qvalB = qy[indexB]
-            WDF = self.WallDist[indexF]
-            WDB = self.WallDist[indexB]
-            # interpolate WallDist to get the same length of array
-            WDval = np.arange (0, 8, 0.02)
-            qval1 = np.interp (WDval, WDF, qvalF)
-            qval2 = np.interp (WDval, WDB, qvalB)
-            #func1 = interp1d (WDF, qvalF, kind = 'linear', fill_value = 'extrapolate')
-            #qval1 = func1 (WDval)
-            a1 = (xval - xvalF)/(xvalB - xvalF)
-            a2 = (xvalB - xval)/(xvalB - xvalF)
-            qval = qval1*a1 + qval2*a2
-            
-        if mode is None:
-            return qval, WDval
-        else:
-            return (qval)
-        
-#   Obtain Real Dynamic Viscoisty
-    def GetMu (T, T_inf):
-        T = T * T_inf
-        g = globals ()
-        T0   = 273.15
-        C    = 110.4
-        mu0 = 1.716e-6
-        a = (T0+C)/(T+C)
-        b = np.power (T/T0, 1.5)
-        g['mu'] = mu0*a*b
-        return (mu)
-    
-
-#   Obtain the filename of the probe at a specific location
-    def GetProbeName (self, xx, yy, zz, path):
-        Prob = np.loadtxt (path+'inca_probes.inp', skiprows = 6, \
-                                usecols = (1,2,3,4))
-        xarr = Prob[:,1]
-        yarr = Prob[:,2]
-        zarr = Prob[:,3]
-        ProbIndArr = np.where((xarr[:]==xx) & (yarr[:]==yy) & (zarr[:]==zz))
-        if len(ProbIndArr[0]) == 0:
-            print ("The probe you input is not found in the probe files!!!")
-        ProbInd = ProbIndArr[0][-1] + 1
-        FileName = 'probe_'+format(ProbInd, '05d')+'.dat'
-        return (FileName)
-#   Read probe data from the INCA results
-    def LoadProbeData (self, xx, yy, zz, path):
-        R = 287.05
-        gamma = 1.4
-        Ma_inf = 3.4
-        varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'WallDist', 'p']
-        FileName = self.GetProbeName (xx, yy, zz, path)
-        #self.UserData (varname, path + FileName, 1)
-        #time_uni, ind = np.unique(self.time, return_index=True)
-        #self._DataMat = self._DataMat[ind,:]
-        m = np.shape(self._DataMat)[0]
-        self._DataMat[:,1] = np.tile(xx, m)
-        self._DataMat[:,2] = np.tile(yy, m) #np.full ((m,1), yy)[:,0]
-        self._DataMat[:,3] = np.tile(zz, m)
-        self._DataMat[:,10]= Ma_inf*Ma_inf*gamma*self._DataMat[:, 8]/self._DataMat[:,7]
-        #np.full ((m,1), zz)[:,0]
-        #self._DataMat = self._DataMat[np.lexsort(self._DataMat[:,0])]
 
 # Merge Several Files into One
 # Files must have same data structure
@@ -406,30 +407,12 @@ class DataPost(object):
             Data = np.concatenate ([Data, l['Data'+str(j)] ])
         np.savetxt (path2+FinalFile, Data, \
                     fmt='%1.6e', delimiter = "\t", header = str(title))
-        print ("Congratulations! Successfully obtain <" +FinalFile+ "> by merging files:")
+        print ("Congratulations! Successfully obtain <" \
+               +FinalFile+ "> by merging files:")
         print (NameStr)
 
-#   Obtain Average Value of Data with Same Coordinates
-    def AveAtSameXYZ (self, Mode):
-        if Mode == 'All':
-            Variables = ['time', 'x', 'y', 'z', 'u', 'v', 'w', \
-                     'rho', 'p', 'Mach', 'T', 'mu', 'WallDist']
-        else:
-            Variables = ['time', 'x', 'y', 'z', 'u', 'v', 'w', \
-                     'rho', 'p', 'Mach', 'T']
-        dataframe = pd.DataFrame(self._DataMat, columns=Variables)
-        grouped = dataframe.groupby([ dataframe['time'], dataframe['x'], \
-                                     dataframe['y'], dataframe['z'] ])
-        AveGroup = grouped.mean().reset_index()
-        self._DataMat = AveGroup.values
-        
-#   Extract interesting part of the data
-    def ExtraData (self, Mode, Min, Max):
-        if (Mode == 'time'):
-            ind = np.where ((self.time >= Min) & (self.time <= Max))
-            self._DataMat = self._DataMat[ind,:][0]
 #   Obtain Spanwise Average Value of Data
-    def SpanAve (self,infile, outfile):
+    def SpanAve (self, infile, outfile):
         var = open (path2+infile).readline ().split()
         DataMat = pd.read_table (path2+infile, sep = '\t', index_col = False)
         grouped = DataMat.groupby([ DataMat['# x'], DataMat['y'] ])
@@ -437,28 +420,10 @@ class DataPost(object):
         #FinalData = AveGroup.reset_index()
         np.savetxt (path2+outfile, AveGroup.values, \
                     fmt='%1.6e', delimiter = '\t', header = str(var))
-        
-#   Obtain finite differential derivatives of a variable (2nd order)
-    def SecOrdFDD (self, yarr, var):
-        dvar = np.zeros(np.size(yarr))
-        for jj in range (1,np.size(yarr)):
-            if jj == 1:
-                dvar[jj-1]=(var[jj]-var[jj-1])/(yarr[jj]-yarr[jj-1])
-            elif jj == np.size(yarr):
-                dvar[jj-1]=(var[jj-1]-var[jj-2])/(yarr[jj-1]-yarr[jj-2])
-            else:
-                dy12 = yarr[jj-1] - yarr[jj-2];
-                dy23 = yarr[jj] - yarr[jj-1];
-                dvar1 = -dy23/dy12/(dy23+dy12)*var[jj-2];
-                dvar2 = (dy23-dy12)/dy23/dy12*var[jj-1];
-                dvar3 = dy12/dy23/(dy23+dy12)*var[jj];
-                dvar[jj-1] = dvar1 + dvar2 + dvar3;
-        return (dvar)
-    
-
-
+           
 #   Detect peaks in data based on their amplitude and other features.
-    def FindPeaks(self, x, mph=None, mpd=1, threshold=0, edge='rising',
+    @classmethod
+    def FindPeaks(cls, x, mph=None, mpd=1, threshold=0, edge='rising',
                      kpsh=False, valley=False, show=False, ax=None):
     
         """Detect peaks in data based on their amplitude and other features.
@@ -552,32 +517,34 @@ class DataPost(object):
                 x[indnan] = np.nan
             if valley:
                 x = -x
-            _plot(x, mph, mpd, threshold, edge, valley, ax, ind)
-    
+            plot(x, mph, mpd, threshold, edge, valley, ax, ind)
         return ind
 
 #   Obtain growth rate of variables in a specific drection (x, y, z or time)
-    def GrowthRate (self, xarr, var, Mode = None):
+#   both var and Ampli are 0-based, means that their average are zero
+    @classmethod
+    def GrowthRate (cls, xarr, var, Mode = None):
         if Mode is None:
         # xarr is x-coordinates, var is corresponding value of variable
         # this part is to calculate the growth rate according to 
         # exact value of variable with the x value
-            AmpInd = self.FindPeaks(var)
+            AmpInd = cls.FindPeaks(var)
             AmpVal = var[AmpInd]
             xval   = xarr[AmpInd]
-            dAmpdx = self.SecOrdFDD(xval, AmpVal)
+            dAmpdx = cls.SecOrdFDD(xval, AmpVal)
             growthrate = dAmpdx/AmpVal
             return (xval, growthrate)
         else:
         # this part is to calculate the growth rate according to 
         # amplitude of variable with the x value
-            dAmpli = self.SecOrdFDD(xarr, var)
+            dAmpli = cls.SecOrdFDD(xarr, var)
             growthrate = dAmpli/var
             xval = xarr
             return growthrate
 
 #   Get Frequency Weighted Power Spectral Density
-    def FW_PSD (VarZone, TimeZone, pic = None):
+    @classmethod
+    def FW_PSD (cls, VarZone, TimeZone, pic = None):
         var = VarZone
         ave = np.mean (var)
         var_fluc = var-ave
@@ -602,7 +569,8 @@ class DataPost(object):
         return (fre, fre_weighted)
 
 #   Detect local peaks in a vector
-    def peakdet (self, v, delta, x = None):
+    @classmethod
+    def peakdet (cls, v, delta, x = None):
         """
         Returns two arrays [MAXTAB, MINTAB] 
         MAXTAB and MINTAB consists of two columns. (1:indices, 2:values).
@@ -656,7 +624,7 @@ class DataPost(object):
         return array(maxtab), array(mintab)
     
 #   fit data using sinusoidal functions
-    def fit_sin(tt, yy, guess_omeg):
+    def fit_sin(cls, tt, yy, guess_omeg):
         '''Fit sin to the input time sequence, and return fitting parameters
         "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
         tt = np.array(tt)
@@ -679,14 +647,20 @@ class DataPost(object):
                 "freq": w/2/np.pi, "period": 2*np.pi/w, "fitfunc": fitfunc, \
                 "maxcov": np.max(pcov), "rawres": (guess,popt,pcov)}
 
+#   fit data using a specific functions
+    def fit_func(cls, function, guess, tt, yy):
+        popt, pcov = scipy.optimize.curve_fit(function, tt, yy, p0 = guess)
+        return{"coeff": popt, "rawres": (guess, popt, pcov)}
+        
 #   fit data using sinusoidal functions
-    def fit_sin2(tt, yy, guess_freq):
+    @classmethod
+    def fit_sin2(cls, tt, yy, guess_freq):
         '''Fit sin to the input time sequence, and return fitting parameters
         "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
         tt = np.array(tt)
         yy = np.array(yy)
-        ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
-        Fyy = abs(np.fft.fft(yy))
+#        ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
+#        Fyy = abs(np.fft.fft(yy))
         # w, excluding the zero frequency "peak", which is related to offset
         #guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])   
         guess_amp = np.std(yy) * 2.**0.5 # A
@@ -728,14 +702,22 @@ class DataPost(object):
         
 if __name__ == "__main__":
     a = DataPost()
-    path = "../probes/"
+    path = "../../TestData/"
 #    ind = a.LoadProbeData (80.0, 0.0, 0.0, path)
-    a.LoadData('TimeSeriesX0Y0Z0.txt', 0, 800)
+    a.LoadData(path + 'TimeSeries2X0Y0Z0.txt')
     b = DataPost()
-    b.LoadProbeData(0.0, 0.0, 0.0, path)
+    b.LoadData(path + 'Time1600Z0Slice.txt', skiprows = [1])
+    b.AddWallDist(3.0)
+    bl = b.BLProfile('x', 0.3, 'u')
+    plt.plot(bl[1], bl[0])
+    plt.show()
+#    qval = b.IsoProfile3D('x', 0.0, 'z', 0.0, 'Mach')
+    qval = b.IsoProfile2D('x', 0.0, 'u')
+    c = DataPost()
+    c.LoadProbeData(0.0, 0.0, -2.7, path, Uniq = False)
 #    #a.GetMu_nondim (3856)
-#    a.GetWallDist (3.0)
+#    a.Getwalldist (3.0)
 #    a.unique_rows()
 #    z, var = a.EquValProfile(0.0, a.y, a.p)
-#    VarName = ['NO', 'time', 'u', 'v', 'w', 'rho', 'E', 'WallDist', 'p']
+#    VarName = ['NO', 'time', 'u', 'v', 'w', 'rho', 'E', 'walldist', 'p']
 #    a.UserData(VarName, 'probe_00068.dat', 1)

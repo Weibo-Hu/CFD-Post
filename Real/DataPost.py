@@ -129,6 +129,7 @@ class DataPost(object):
         varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'walldist', 'p']
         FileName = self.GetProbeName (xx, yy, zz, path)
         self.UserData (varname, path + FileName, 1)
+        self._DataTab = self._DataTab.sort_values(by=['time'])
         if Uniq == True:
             self._DataTab = self._DataTab.drop_duplicates(keep='last')
         
@@ -243,11 +244,43 @@ class DataPost(object):
 #        else:
 #            return (qval)
 
+#   Lagrange Interpolation
+    @classmethod
+    def InterpLagra (cls, xval, x1, x2, q1, q2):
+        a1 = (xval-x2)/(x1-x2)
+        a2 = (xval-x1)/(x2-x1)
+        qval = q1*a1 + q2*a2
+        return (qval)
+
+#            a1 = (xval - x1)/(x2 - x1)
+#            a2 = (x2 - xval)/(x2 - x1)
+#            qval = qy[index1]*a1 + qy[index2]*a2
 #   Obtan BL Profile at a Certain X or Z Valude
 #   q: the desired quantity; mode 2: return qy and walldist, or only return qy
     def BLProfile (self, qx, Iso_qx, qy):
-        qval  = self.IsoProfile2D(qx, Iso_qx, qy)
-        WDval = self.IsoProfile2D(qx, Iso_qx, 'walldist')
+        qval  = self.IsoProfile2D(qx, Iso_qx, qy)[1]
+        WDval = self.IsoProfile2D(qx, Iso_qx, 'walldist')[1]
+        if (np.size(qval) == 0 or np.size(WDval) == 0):
+            x1 = self._DataTab.loc[self._DataTab[qx] < Iso_qx, \
+                                   qx].tail(1).values[0]
+            x2 = self._DataTab.loc[self._DataTab[qx] > Iso_qx, \
+                                   qx].head(1).values[0]
+            DataTab1 = self._DataTab.loc[self._DataTab[qx] == x1]
+            DataTab2 = self._DataTab.loc[self._DataTab[qx] == x2]
+            wd1   = DataTab1['walldist'].values
+            qval1 = DataTab1[qy].values
+            wd2   = DataTab2['walldist'].values
+            qval2 = DataTab2[qy].values
+            del WDval, qval
+            if (np.max(wd1) < np.max(wd2) or np.size(wd1) < np.size(wd2)):
+                qval1 = np.interp(wd2, wd1, qval1)
+                WDval = wd2
+            elif(np.max(wd1) > np.max(wd2) or np.size(wd1) > np.size(wd2)):
+                qval2 = np.interp(wd1, wd2, qval2)
+                WDval = wd1
+            else:
+                WDval = wd1
+            qval = self.InterpLagra(Iso_qx, x1, x2, qval1, qval2)
         return (WDval, qval)
 #        index = np.where (qx[:] == xval)
 #        if (np.size(index) == 0):    # xval does not exist, need to interpolate
@@ -675,6 +708,10 @@ if __name__ == "__main__":
     a.LoadData(path + 'TimeSeries2X0Y0Z0.txt')
     b = DataPost()
     b.LoadData(path + 'Time1600Z0Slice.txt', skiprows = [1])
+    b.AddWallDist(3.0)
+    bl = b.BLProfile('x', 0.3, 'u')
+    plt.plot(bl[1], bl[0])
+    plt.show()
 #    qval = b.IsoProfile3D('x', 0.0, 'z', 0.0, 'Mach')
     qval = b.IsoProfile2D('x', 0.0, 'u')
     c = DataPost()
