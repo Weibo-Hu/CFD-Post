@@ -100,17 +100,24 @@ class DataPost(object):
         self._DataTab['mu'] = mu_unit
         return (mu_unit)
         
-    def UserData(self, VarName, Infile, SkipHeader):
+    def UserData(self, VarName, Infile, SkipHeader, Sep = None):
         start_time = time.clock()
-        self._DataTab = pd.read_csv(Infile, sep = ' ', \
+        self._DataTab = pd.read_csv(Infile, sep = ' ', index_col = False, \
                                     header = None, names=VarName, \
                                     skiprows=SkipHeader, skipinitialspace=True)
+        if Sep is not None:
+            self._DataTab = pd.read_csv(Infile, sep = Sep, index_col = False,\
+                                header = None, names=VarName, \
+                                skiprows=SkipHeader, skipinitialspace=True)
+            
         self._DataTab = self._DataTab.dropna(axis=1, how='all')
+        if ('x' in VarName) & ('y' in VarName) & ('z' in VarName):
+            self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
         print("The cost time of reading: ", Infile, time.clock()-start_time)
     
 #   Obtain the filename of the probe at a specific location
     def GetProbeName (self, xx, yy, zz, path):
-        Prob = np.loadtxt (path+'inca_probes.inp', skiprows = 6, \
+        Prob = np.loadtxt(path+'inca_probes.inp', skiprows = 6, \
                                 usecols = (1,2,3,4))
         xarr = np.around(Prob[:,1], 6)
         yarr = np.around(Prob[:,2], 6)
@@ -413,14 +420,12 @@ class DataPost(object):
         print (NameStr)
 
 #   Obtain Spanwise Average Value of Data
-    def SpanAve (self, infile, outfile):
-        var = open (path2+infile).readline ().split()
-        DataMat = pd.read_table (path2+infile, sep = '\t', index_col = False)
-        grouped = DataMat.groupby([ DataMat['# x'], DataMat['y'] ])
+    def SpanAve(self, outfile):
+        grouped = self._DataTab.groupby(['x', 'y'])
         AveGroup = grouped.mean().reset_index()
-        #FinalData = AveGroup.reset_index()
-        np.savetxt (path2+outfile, AveGroup.values, \
-                    fmt='%1.6e', delimiter = '\t', header = str(var))
+        AveGroup.to_csv(outfile, \
+                    index=False, sep = '\t')
+        return AveGroup
            
 #   Detect peaks in data based on their amplitude and other features.
     @classmethod

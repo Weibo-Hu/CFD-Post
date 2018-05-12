@@ -24,21 +24,18 @@ import time
 import sys
 
 # Obtain intermittency factor from an undisturbed and specific wall pressure
-def Intermittency(WallPre0, WallPre, TimeZone):
+def Intermittency(sigma, WallPre, TimeZone):
+    AvePre    = np.mean(WallPre)
     # wall pressure standard deviation of undisturbed BL
-    AvePre0 = np.mean(WallPre0)
-    n       = np.size(WallPre0)
-    p1      = (WallPre0-AvePre0)**2
-    sigma   = np.sqrt(np.sum(p1)/(n-1))
+    threshold = AvePre+3*sigma
     # Alternative approximate method
     # DynamicP = 0.5*0.371304*469.852**2, ratio = 0.006/(1+0.13*1.7**2)**0.64
     # sigma1 = DynamicP*ratio
     # threshold value for turbulence
-    threshold = AvePre0+3*sigma
     sign      = (WallPre-threshold)/abs(WallPre-threshold)
     sign      = np.maximum(0, sign[:])
-    gama      = np.trapz(sign, TimeZone)/(TimeZone[-1]-TimeZone[0])
-    return gama
+    gamma      = np.trapz(sign, TimeZone)/(TimeZone[-1]-TimeZone[0])
+    return gamma
 
 # Obtain Frequency-Weighted Power Spectral Density 
 def FW_PSD (VarZone, TimeZone, pic = None):

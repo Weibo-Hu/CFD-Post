@@ -193,19 +193,24 @@ plt.savefig (path3+'StreawiseFWPSD.pdf', dpi = 300)
 plt.show()
 
 #%% Compute intermittency factor
-gama = fv.Intermittency(Probe0.p, Probe20.p, Probe20.time)
-pw0 = Probe0.p
-AveP0 = np.mean(pw0)
-n = np.size(pw0)
-p1 = (pw0-AveP0)**2
-# wall pressure standard deviation
-sigma = np.sqrt(np.sum(p1)/(n-1))
+xzone = np.linspace(-40.0, 40.0, 41)
+gamma = np.zeros(np.size(xzone))
+sigma = np.std(Probe0.p)
+ProbeID = DataPost()
+for j in range(np.size(xzone)):
+    if xzone[j] <= 0.0:
+        ProbeID.LoadProbeData(xzone[j], 0.0, 0.0, path1)
+    else:
+        ProbeID.LoadProbeData(xzone[j], -3.0, 0.0, path1)
+    ProbeID.ExtraSeries('time', t1, t2)
+    gamma[j] = fv.Intermittency(sigma, ProbeID.p, ProbeID.time)
 
-threshold = AveP0+3*sigma
-pw = Probe20.p
-time = Probe20.time
-#p1 = np.multiply((pw-AveP), (pw-AveP))
+fig3, ax3 = plt.subplots()
+ax3.plot(xzone, gamma, 'ko')
+ax3.set_xlabel (r'$x/\delta_0$', fontdict = font1)
+ax3.set_ylabel (r'$\gamma$', fontdict = font1)
+ax3.grid (b=True, which = 'both', linestyle = ':')
+plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 1)
+plt.savefig (path3+'IntermittencyFactor.svg', dpi = 300)
+plt.show()
 
-sign = (pw-threshold)/abs(pw-threshold)
-sign = np.maximum(0, sign[:])
-gama = np.trapz(sign, time)/(time[-1]-time[0])
