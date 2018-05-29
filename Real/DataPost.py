@@ -22,6 +22,7 @@ import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
 import time
 import sys
+import re
 
 class DataPost(object):
     def __init__(self):
@@ -29,12 +30,13 @@ class DataPost(object):
         #self._DataMat = [None]*13
         self._DataTab = pd.DataFrame()
 
-    def LoadData(self, Infile, skiprows = None, \
+    def LoadData(self, InputFile, skiprows = None, \
                  Sep = None, Uniq = True):
         # SkipHeader: skip i-th row, zero-based; 0:skip 1st line; 1:skip 2nd line
         start_time = time.clock()
-        assert isinstance(Infile, str), \
-        "Infile:{} is not a string".format(Infile.__class__.__name__)
+        assert isinstance(InputFile, str), \
+        "InputFile:{} is not a string".format(InputFile.__class__.__name__)
+        Infile = open(InputFile)
         if Sep is not None:
             self._DataTab = pd.read_csv(Infile, sep=Sep, \
                                         skiprows=skiprows,\
@@ -55,7 +57,9 @@ class DataPost(object):
             self._DataTab.sort_values(by=['time'])
         if Uniq == True:
             self._DataTab = self._DataTab.drop_duplicates(keep = 'last')
-        print("The cost time of reading: ", Infile, time.clock()-start_time)
+        Infile.close()
+        print("The cost time of reading: ", \
+            InputFile, time.clock()-start_time)
 
     def AddVariable(self, VarName, VarVal):
         self._DataTab[VarName] = VarVal
@@ -67,18 +71,22 @@ class DataPost(object):
         time = np.tile(SolutionTime, int(m/mt))
         # tile: copy as a block; repeat: copy every single row separately
         self._DataTab['time'] = time
-        
+
     def AddWallDist(self, StepHeight):
         self._DataTab['walldist'] = self._DataTab['y']
         self._DataTab.loc[self._DataTab['x'] > 0.0, 'walldist'] += StepHeight
-    
+
     def AddMu(self, Re_delta):
         mu_unitless = 1.0/Re_delta*np.power(self.T, 0.75)
         self._DataTab['mu'] = mu_unitless
-    
+
     def AddUGrad(self, WallSpace):
         self._DataTab['UGrad'] = self._DataTab['u']/(0.5*WallSpace)
-    
+
+    def AddMach(self):
+        c = self._DataTab['u']**2+self._DataTab['v']**2+self._DataTab['w']**2
+        self._DataTab['Mach'] = np.sqrt(c/self._DataTab['T'])
+
     @classmethod
     def SutherlandLaw (cls, T, T_inf = None, UnitMode = True):
         if UnitMode is True:
@@ -94,14 +102,15 @@ class DataPost(object):
         b = np.power(T/T0, 1.5)
         mu_unit = mu0*a*b
         return (mu_unit)
-    
+
     def AddMu_unit(self, T_inf):
         mu_unit = self.SutherlandLaw (self.T, T_inf, UnitMode = False)
         self._DataTab['mu'] = mu_unit
         return (mu_unit)
-        
-    def UserData(self, VarName, Infile, SkipHeader, Sep = None):
+
+    def UserData(self, VarName, InputFile, SkipHeader, Sep = None):
         start_time = time.clock()
+        Infile = open(InputFile)
         self._DataTab = pd.read_csv(Infile, sep = ' ', index_col = False, \
                                     header = None, names=VarName, \
                                     skiprows=SkipHeader, skipinitialspace=True)
@@ -109,16 +118,21 @@ class DataPost(object):
             self._DataTab = pd.read_csv(Infile, sep = Sep, index_col = False,\
                                 header = None, names=VarName, \
                                 skiprows=SkipHeader, skipinitialspace=True)
-            
+
         self._DataTab = self._DataTab.dropna(axis=1, how='all')
+        if ('x' in VarName) & ('y' in VarName):
+            self._DataTab = self._DataTab.sort_values(by=['x', 'y'])
         if ('x' in VarName) & ('y' in VarName) & ('z' in VarName):
             self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
+        Infile.close()
         print("The cost time of reading: ", Infile, time.clock()-start_time)
-    
+
 #   Obtain the filename of the probe at a specific location
     def GetProbeName (self, xx, yy, zz, path):
-        Prob = np.loadtxt(path+'inca_probes.inp', skiprows = 6, \
+        Infile = open(path + 'inca_probes.inp')
+        Prob = np.loadtxt(Infile, skiprows = 6, \
                                 usecols = (1,2,3,4))
+        Infile.close()
         xarr = np.around(Prob[:,1], 6)
         yarr = np.around(Prob[:,2], 6)
         zarr = np.around(Prob[:,3], 6)
@@ -134,12 +148,12 @@ class DataPost(object):
 #%% Read probe data from the INCA results
     def LoadProbeData (self, xx, yy, zz, path, Uniq = True):
         varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'walldist', 'p']
-        FileName = self.GetProbeName (xx, yy, zz, path)
-        self.UserData (varname, path + FileName, 1)
+        FileName = self.GetProbeName(xx, yy, zz, path)
+        self.UserData(varname, path + FileName, 1)
         self._DataTab = self._DataTab.sort_values(by=['time'])
         if Uniq == True:
             self._DataTab = self._DataTab.drop_duplicates(keep='last')
-        
+
 #   Make DataTab unchangable for users
     @property
     def DataTab(self):
@@ -156,48 +170,48 @@ class DataPost(object):
     def x(self):
         #return self.DataMat[:,1]
         return self._DataTab['x'].values
-    
+
     @property
     def y(self):
         #return self.DataMat[:,2]
         return self._DataTab['y'].values
-    
+
     @property
     def z(self):
         return self._DataTab['z'].values
-    
+
     @property
     def u(self):
         return self._DataTab['u'].values
-    
+
     @property
     def v(self):
         return self._DataTab['v'].values
-    
+
     @property
     def w(self):
         return self._DataTab['w'].values
-    
+
     @property
     def rho(self):
         return self._DataTab['rho'].values
-    
+
     @property
     def p(self):
         return self._DataTab['p'].values
-    
+
     @property
     def Mach(self):
         return self._DataTab['Mach'].values
-    
+
     @property
     def T(self):
         return self._DataTab['T'].values
-    
+
     @property
     def mu(self):
         return self._DataTab['mu'].values
-    
+
     @property
     def walldist(self):
         return self._DataTab['walldist'].values
@@ -294,7 +308,7 @@ class DataPost(object):
 #            xx = np.unique (qx)
 #            index = np.where (xx[:] > xval)    # return index whose value > xval
 #            x1 = xx[index[0]-1]    # obtain the last value  < xval
-#            x2 = xx[index[0]]    # obtain the first value > xval        
+#            x2 = xx[index[0]]    # obtain the first value > xval
 #            index1 = np.where (qx[:] == x1)    # get their index
 #            index2 = np.where (qx[:] == x2)
 #            a1 = (xval - x1)/(x2 - x1)
@@ -306,7 +320,7 @@ class DataPost(object):
 #            qval = qy[index]
 #            #yval = y[index]
 #            WDval = self.walldist[index]
-#            
+#
 #            return qval, WDval
 #        if (WDval[-1] < 6.0):    # y points is not enough to get profile
 #            l = locals ()
@@ -350,7 +364,7 @@ class DataPost(object):
         grouped = self._DataTab.groupby([self._DataTab['x'], \
                                         self._DataTab['y'], self._DataTab['z']])
         self._DataTab = grouped.mean().reset_index()
-        
+
 
 #   Extract interesting part of the data
     def ExtraPoint (self, Mode, Val):
@@ -358,7 +372,7 @@ class DataPost(object):
         self._DataTab = self._DataTab.loc[self._DataTab[Mode] >= Val]
         self._DataTab = self._DataTab.head(1)
         print("The cost time of extract data: ", time.clock()-start_time)
-    
+
     def ExtraSeries (self, Mode, Min, Max):
         start_time = time.clock()
         self._DataTab = self._DataTab.loc[self._DataTab[Mode] >= Min]
@@ -397,41 +411,52 @@ class DataPost(object):
 # Merge Several Files into One
 # Files must have same data structure
 # NameStr: name of files waiting for being merged, FinalFile: merged file name
-    def MergeFile (self,NameStr, FinalFile):
+    def MergeFile (self, path, NameStr, FinalFile):
         l = locals ()
         #read data header/title and save
-        with open (path1+NameStr[0]) as f:
+        with open (path + NameStr[0]) as f:
             title1 = f.readline ().split ('\t')
             title2 = f.readline ().split ()
         title = '\n'.join([str(title1), str(title2)])
+        f.close()
         #read data
         unique_rows (NameStr[0], FinalFile)
-        Data = np.loadtxt (path2+FinalFile, skiprows = 2)
+        Infile = open(path + FinalFile)
+        Data = np.loadtxt (Infile, skiprows = 2)
+        Infile.close()
         n = len(NameStr)
         #merge the rest of files
         for j in range (1, n):
             unique_rows (NameStr[j], FinalFile)
-            l['Data'+str(j)] = np.loadtxt (path2+FinalFile, skiprows = 2)
+            Infile = open(path + FinalFile)
+            l['Data'+str(j)] = np.loadtxt (Infile, skiprows = 2)
+            Infile.close()
             Data = np.concatenate ([Data, l['Data'+str(j)] ])
-        np.savetxt (path2+FinalFile, Data, \
+        Outfile = open(path+FinalFilw)
+        np.savetxt (Outfile, Data, \
                     fmt='%1.6e', delimiter = "\t", header = str(title))
+        Outfile.close()
         print ("Congratulations! Successfully obtain <" \
                +FinalFile+ "> by merging files:")
         print (NameStr)
 
 #   Obtain Spanwise Average Value of Data
-    def SpanAve(self, outfile):
+    def SpanAve(self, OutputFile):
+        start_time = time.clock()
         grouped = self._DataTab.groupby(['x', 'y'])
         AveGroup = grouped.mean().reset_index()
+        outfile  = open(OutputFile, 'x')
         AveGroup.to_csv(outfile, \
                     index=False, sep = '\t')
+        outfile.close()
+        print("The computational time is ", time.clock()-start_time)
         return AveGroup
-           
+
 #   Detect peaks in data based on their amplitude and other features.
     @classmethod
     def FindPeaks(cls, x, mph=None, mpd=1, threshold=0, edge='rising',
                      kpsh=False, valley=False, show=False, ax=None):
-    
+
         """Detect peaks in data based on their amplitude and other features.
     
         Parameters
@@ -467,7 +492,7 @@ class DataPost(object):
         The detection of valleys instead of peaks is performed internally by simply
         negating the data: `ind_valleys = detect_peaks(-x)`
         """
-    
+
         x = np.atleast_1d(x).astype('float64')
         if x.size < 3:
             return np.array([], dtype=int)
@@ -517,7 +542,7 @@ class DataPost(object):
                     idel[i] = 0  # Keep current peak
             # remove the small peaks and sort back the indices by their occurrence
             ind = np.sort(ind[~idel])
-    
+
         if show:
             if indnan.size:
                 x[indnan] = np.nan
@@ -531,9 +556,9 @@ class DataPost(object):
     @classmethod
     def GrowthRate (cls, xarr, var, Mode = None):
         if Mode is None:
-        # xarr is x-coordinates, var is corresponding value of variable
-        # this part is to calculate the growth rate according to 
-        # exact value of variable with the x value
+            # xarr is x-coordinates, var is corresponding value of variable
+            # this part is to calculate the growth rate according to
+            # exact value of variable with the x value
             AmpInd = cls.FindPeaks(var)
             AmpVal = var[AmpInd]
             xval   = xarr[AmpInd]
@@ -541,8 +566,8 @@ class DataPost(object):
             growthrate = dAmpdx/AmpVal
             return (xval, growthrate)
         else:
-        # this part is to calculate the growth rate according to 
-        # amplitude of variable with the x value
+            # this part is to calculate the growth rate according to
+            # amplitude of variable with the x value
             dAmpli = cls.SecOrdFDD(xarr, var)
             growthrate = dAmpli/var
             xval = xarr
@@ -585,26 +610,26 @@ class DataPost(object):
         """
         maxtab = []
         mintab = []
-           
+
         if x is None:
             x = arange(len(v))
-        
+
         v = asarray(v)
-        
+
         if len(v) != len(x):
             sys.exit('Input vectors v and x must have same length')
-        
+
         if not isscalar(delta):
             sys.exit('Input argument delta must be a scalar')
-        
+
         if delta <= 0:
             sys.exit('Input argument delta must be positive')
-        
+
         mn, mx = Inf, -Inf
         mnpos, mxpos = NaN, NaN
-        
+
         lookformax = True
-        
+
         for i in arange(len(v)):
             this = v[i]
             if this > mx:
@@ -613,7 +638,7 @@ class DataPost(object):
             if this < mn:
                 mn = this
                 mnpos = x[i]
-            
+
             if lookformax:
                 if this < mx-delta:
                     maxtab.append((mxpos, mx))
@@ -626,9 +651,9 @@ class DataPost(object):
                     mx = this
                     mxpos = x[i]
                     lookformax = True
-    
+
         return array(maxtab), array(mintab)
-    
+
 #   fit data using sinusoidal functions
     def fit_sin(cls, tt, yy, guess_omeg):
         '''Fit sin to the input time sequence, and return fitting parameters
@@ -638,7 +663,7 @@ class DataPost(object):
         ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
         Fyy = abs(np.fft.fft(yy))
         # w, excluding the zero frequency "peak", which is related to offset
-        #guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])   
+        #guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])
         guess_amp = np.std(yy) * 2.**0.5 # A
         guess_offset = np.mean(yy)   # c
         guess = np.array([guess_amp, guess_freq, 0., guess_offset])  # p=0
@@ -657,7 +682,7 @@ class DataPost(object):
     def fit_func(cls, function, guess, tt, yy):
         popt, pcov = scipy.optimize.curve_fit(function, tt, yy, p0 = guess)
         return{"coeff": popt, "rawres": (guess, popt, pcov)}
-        
+
 #   fit data using sinusoidal functions
     @classmethod
     def fit_sin2(cls, tt, yy, guess_freq):
@@ -665,10 +690,10 @@ class DataPost(object):
         "amp", "omega", "phase", "offset", "freq", "period" and "fitfunc"'''
         tt = np.array(tt)
         yy = np.array(yy)
-#        ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
-#        Fyy = abs(np.fft.fft(yy))
+        #        ff = np.fft.fftfreq(len(tt), (tt[1]-tt[0]))   # assume uniform spacing
+        #        Fyy = abs(np.fft.fft(yy))
         # w, excluding the zero frequency "peak", which is related to offset
-        #guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])   
+        #guess_freq = 1.147607 #abs(ff[np.argmax(Fyy[1:])+1])
         guess_amp = np.std(yy) * 2.**0.5 # A
         #guess_offset = np.mean(yy)   # c
         guess_phase = 0.0
@@ -683,6 +708,12 @@ class DataPost(object):
         return {"amp": A, "omega": w, "phase": p, \
                 "freq": w/2/np.pi, "period": 2*np.pi/w, "fitfunc": fitfunc, \
                 "maxcov": np.max(pcov), "rawres": (guess,popt,pcov)}
+    @classmethod
+    def ReadProbeXYZ(cls, Infile):
+        FirstLine = open(Infile).readline()
+        xyz       = re.findall(r"[+-]?\d+\.?\d*", FirstLine)
+        print(xyz)
+        return xyz
 
 ## backup code for data fitting
 #guess_freq = 1
@@ -705,11 +736,11 @@ class DataPost(object):
 
 # recreate the fitted curve using the optimized parameters
 #data_fit = my_sin(t, *fit[0])
-        
+
 if __name__ == "__main__":
     a = DataPost()
     path = "../../TestData/"
-#    ind = a.LoadProbeData (80.0, 0.0, 0.0, path)
+    #    ind = a.LoadProbeData (80.0, 0.0, 0.0, path)
     a.LoadData(path + 'TimeSeries2X0Y0Z0.txt')
     b = DataPost()
     b.LoadData(path + 'Time1600Z0Slice.txt', skiprows = [1])
@@ -717,7 +748,7 @@ if __name__ == "__main__":
     bl = b.BLProfile('x', 0.3, 'u')
     plt.plot(bl[1], bl[0])
     plt.show()
-#    qval = b.IsoProfile3D('x', 0.0, 'z', 0.0, 'Mach')
+    #    qval = b.IsoProfile3D('x', 0.0, 'z', 0.0, 'Mach')
     qval = b.IsoProfile2D('x', 0.0, 'u')
     c = DataPost()
     c.LoadProbeData(0.0, 0.0, -2.7, path, Uniq = False)
