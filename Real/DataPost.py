@@ -30,13 +30,13 @@ class DataPost(object):
         #self._DataMat = [None]*13
         self._DataTab = pd.DataFrame()
 
-    def LoadData(self, InputFile, skiprows = None, \
+    def LoadData(self, Infile, skiprows = None, \
                  Sep = None, Uniq = True):
         # SkipHeader: skip i-th row, zero-based; 0:skip 1st line; 1:skip 2nd line
         start_time = time.clock()
-        assert isinstance(InputFile, str), \
-        "InputFile:{} is not a string".format(InputFile.__class__.__name__)
-        Infile = open(InputFile)
+        assert isinstance(Infile, str), \
+        "InputFile:{} is not a string".format(Infile.__class__.__name__)
+        #Infile = open(InputFile)
         if Sep is not None:
             self._DataTab = pd.read_csv(Infile, sep=Sep, \
                                         skiprows=skiprows,\
@@ -57,9 +57,9 @@ class DataPost(object):
             self._DataTab.sort_values(by=['time'])
         if Uniq == True:
             self._DataTab = self._DataTab.drop_duplicates(keep = 'last')
-        Infile.close()
+        #Infile.close()
         print("The cost time of reading: ", \
-            InputFile, time.clock()-start_time)
+            Infile, time.clock()-start_time)
 
     def AddVariable(self, VarName, VarVal):
         self._DataTab[VarName] = VarVal
@@ -108,9 +108,9 @@ class DataPost(object):
         self._DataTab['mu'] = mu_unit
         return (mu_unit)
 
-    def UserData(self, VarName, InputFile, SkipHeader, Sep = None):
+    def UserData(self, VarName, Infile, SkipHeader, Sep = None):
         start_time = time.clock()
-        Infile = open(InputFile)
+        #Infile = open(InputFile, 'r')
         self._DataTab = pd.read_csv(Infile, sep = ' ', index_col = False, \
                                     header = None, names=VarName, \
                                     skiprows=SkipHeader, skipinitialspace=True)
@@ -124,8 +124,8 @@ class DataPost(object):
             self._DataTab = self._DataTab.sort_values(by=['x', 'y'])
         if ('x' in VarName) & ('y' in VarName) & ('z' in VarName):
             self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
-        Infile.close()
         print("The cost time of reading: ", Infile, time.clock()-start_time)
+        #Infile.close()
 
 #   Obtain the filename of the probe at a specific location
     def GetProbeName (self, xx, yy, zz, path):
@@ -738,20 +738,35 @@ class DataPost(object):
 #data_fit = my_sin(t, *fit[0])
 
 if __name__ == "__main__":
-    a = DataPost()
-    path = "../../TestData/"
-    #    ind = a.LoadProbeData (80.0, 0.0, 0.0, path)
-    a.LoadData(path + 'TimeSeries2X0Y0Z0.txt')
-    b = DataPost()
-    b.LoadData(path + 'Time1600Z0Slice.txt', skiprows = [1])
-    b.AddWallDist(3.0)
-    bl = b.BLProfile('x', 0.3, 'u')
-    plt.plot(bl[1], bl[0])
-    plt.show()
-    #    qval = b.IsoProfile3D('x', 0.0, 'z', 0.0, 'Mach')
-    qval = b.IsoProfile2D('x', 0.0, 'u')
-    c = DataPost()
-    c.LoadProbeData(0.0, 0.0, -2.7, path, Uniq = False)
+#    a = DataPost()
+#    path = "../../TestData/"
+#    #    ind = a.LoadProbeData (80.0, 0.0, 0.0, path)
+#    a.LoadData(path + 'TimeSeries2X0Y0Z0.txt')
+#    b = DataPost()
+#    b.LoadData(path + 'Time1600Z0Slice.txt', skiprows = [1])
+#    b.AddWallDist(3.0)
+#    bl = b.BLProfile('x', 0.3, 'u')
+#    plt.plot(bl[1], bl[0])
+#    plt.show()
+#    #    qval = b.IsoProfile3D('x', 0.0, 'z', 0.0, 'Mach')
+#    qval = b.IsoProfile2D('x', 0.0, 'u')
+#    c = DataPost()
+#    c.LoadProbeData(0.0, 0.0, -2.7, path, Uniq = False)
+#    
+    path1="/media/weibo/Data1/BFS_M1.7L_0419/probes/old/"
+    path2="/media/weibo/Data1/BFS_M1.7L_0419/probes/"
+    path3="/media/weibo/Data1/BFS_M1.7L_0419/probes/new/"
+    with open(path1+"probe_00238.dat") as f1:
+        Data1 = np.loadtxt(f1, skiprows=0)
+    with open(path2+"probe_00238.dat") as f2:
+        Data2 = np.loadtxt(f2, skiprows=0)
+    Data = np.concatenate([Data1, Data2])   
+    np.savetxt(path3+"probe_00238.dat", Data, fmt='%1.8e', delimiter = "  ")
+    print("Congratulations!")
+
+
+
+    
 #    #a.GetMu_nondim (3856)
 #    a.Getwalldist (3.0)
 #    a.unique_rows()

@@ -39,6 +39,15 @@ def Intermittency(sigma, Pressure0, WallPre, TimeZone):
     gamma      = np.trapz(sign, TimeZone)/(TimeZone[-1]-TimeZone[0])
     return gamma
 
+# Obtain skewness coefficient corresponding to intermittency factor
+def Alpha3(WallPre):
+    AvePre = np.mean(WallPre)
+    sigma  = np.std(WallPre)
+    n      = np.size(WallPre)
+    temp1  = np.power(WallPre-AvePre, 3)
+    alpha  = np.sum(temp1)/n/np.power(sigma, 3)  
+    return alpha
+
 # Obtain nondimensinal dynamic viscosity
 def Viscosity(Re_delta, T): # nondimensional T
     mu = 1.0/Re_delta*np.power(T, 0.75)
@@ -53,6 +62,7 @@ def SkinFriction(mu, du, dy): # all variables are nondimensional
 def FW_PSD (VarZone, TimeZone):
     Ave = np.mean (VarZone)
     Var_fluc = VarZone-Ave
+    # time space must be equal
     # fast fourier transform and remove the half
     Var_fft = np.fft.rfft (Var_fluc)
     Var_psd = abs(Var_fft)**2
@@ -64,7 +74,7 @@ def FW_PSD (VarZone, TimeZone):
     Freq_weighted = Var_psd*Freq
     return (Freq, Freq_weighted)
 
-# Proper Orthogonal Decomposition
+# Proper Orthogonal Decomposition, equal time space
 # Input: the variable of POD (fluctuations)
 def POD(var, outfile, fluc = None):
     start_time = time.clock()
@@ -98,8 +108,29 @@ def POD(var, outfile, fluc = None):
     print("The computational time is ", time.clock()-start_time)
     return (coeff, phi, eigval, eigvec)
 
-# Dynamic Mode Decompostion
-def DMD(var, outfile, fluc = None):
+# Standard Dynamic Mode Decompostion, equal time space
+# Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
+def DMD_Standard(var, t_samp, outfile, fluc = None): # scaled method
+    start_time = time.clock()
+    m, n = np.shape(var) # n: the number of snapshots, m: dimensions
+    if fluc is not None:
+        var  = var - np.tile(np.mean(var, axis=1), (m, 1)).T # for fluctuations
+    V1   = var[:, :-1]
+    V2   = var[:, 1:]
+
+    U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
+    # V = VH.conj().T = VH.H
+    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot 
+    eigval, eigvec = np.linalg.eig(S)
+    eigvec = U.dot(eigvec) # dynamic modes
+    lamb   = np.log(eigval)/t_samp
+    coeff  = np.linalg.lstsq(eigvec, var.T[0])[0] # least-square?
+    print("The computational tiem is ", time.clock()-start_time)
+    return (coeff, eigval, eigvec, lamb)
+
+# Exact Dynamic Mode Decompostion
+# Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
+def DMD_Exact(): # scaled method
     start_time = time.clock()
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if fluc is not None:
@@ -107,15 +138,14 @@ def DMD(var, outfile, fluc = None):
     V1   = var[:, :-1]
     V2   = var[:, 1:]
 
-    U, D, V = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
-    # V = V.conj().T
-    S = np.matmul(U.T, V2)*np.matmul(V, np.reciprocal(D))
+    U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
+    # V = VH.conj().T = VH.H
+    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot 
     eigval, eigvec = np.linalg.eig(S)
     eigvec = U.dot(eigvec) # dynamic modes
     coeff  = np.linalg.lstsq(eigvec, var.T[0])[0]
     print("The computational tiem is ", time.clock()-start_time)
     return (coeff, eigval, eigvec)
-
 #uu = np.linspace(1, 50, 50)
 #uu = np.reshape(uu, [5,10])
 #uu = np.transpose(uu)

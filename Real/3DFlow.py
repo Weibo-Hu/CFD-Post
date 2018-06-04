@@ -12,7 +12,7 @@ import pandas as pd
 import FlowVar as fv
 from DataPost import DataPost
 from scipy.interpolate import interp1d
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+from matplotlib.ticker import MultipleLocator, FormatStrFormatter, AutoMinorLocator
 from scipy.interpolate import griddata
 from scipy.interpolate import spline
 import scipy.optimize
@@ -51,13 +51,13 @@ matplotlib.rc('font', **font1)
 MeanFlow = DataPost()
 VarName  = ['x', 'y', 'z', 'u', 'v', 'w', \
             'rho', 'p', 'Q_crit', 'Mach', 'T']
-MeanFlow.UserData(VarName, path+'t260.txt', 1, Sep = '\t')
-MeanFlow.SpanAve(path+'MeanSlice260.dat')
-#MeanFlow.LoadData(path+'MeanFlow.txt', Sep = '\t')
+#MeanFlow.UserData(VarName, path+'t260.txt', 1, Sep = '\t')
+#MeanFlow.SpanAve(path+'MeanSlice260.dat')
+MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
 #%%
-VarName  = ['x', 'y', 'u', 'v', 'w', 'rho', \
-            'p', 'T', 'mu', 'Q_crit', 'lambda2']
-MeanFlow.UserData(VarName, path+'MeanFlow.txt', 1, Sep = '\t')
+#VarName  = ['x', 'y', 'u', 'v', 'w', 'rho', \
+#            'p', 'T', 'mu', 'Q_crit', 'lambda2']
+#MeanFlow.UserData(VarName, path+'MeanFlow.txt', 1, Sep = '\t')
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 #%% Plot contour of the mean flow field
@@ -113,16 +113,53 @@ fig2, ax2 = plt.subplots()
 ax2.plot(WallFlow['x'], Cf, 'k', linewidth = 1.5)
 ax2.set_xlabel (r'$x/\delta_0$', fontdict = font3)
 ax2.set_ylabel (r'$C_f$', fontdict = font3)
-ax2.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax2.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 ax2.axvline(x=12.7, color='gray', linestyle='--', linewidth=1.0)
-ax2.grid (b=True, which = 'both', linestyle = ':')
-#bx2 = ax2.twinx()
-#bx2.plot(WallFlow['x'], WallFlow['p'], 'k--', linewidth = 1.5)
-#bx2.set_ylabel(r'$p/\rho_{\infty} U_{\infty}^2$', fontdict = font3)
-plt.tight_layout(pad = 1.0, w_pad = 0.3, h_pad = 1)
-fig2.set_size_inches(6.0, 4, forward=True)
-plt.savefig(path2+'SkinFriction.svg', dpi = 300)
+ax2.grid(b=True, which = 'both', linestyle = ':')
+plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
+fig2.set_size_inches(6, 5, forward=True)
+plt.savefig(path2+'Cf.pdf', dpi = 300)
 plt.show()
 
+#%% pressure coefficiency
+fig3, ax3 = plt.subplots()
+ax3.plot(WallFlow['x'], WallFlow['p'], 'k', linewidth = 1.5)
+ax3.set_xlabel (r'$x/\delta_0$', fontdict = font3)
+ax3.set_ylabel(r'$p/\rho_{\infty} U_{\infty}^2$', fontdict = font3)
+ax3.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax3.axvline(x=12.7, color='gray', linestyle='--', linewidth=1.0)
+ax3.grid(b=True, which = 'both', linestyle = ':')
+plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
+fig2.set_size_inches(6, 5, forward=True)
+plt.savefig(path2+'Cp.pdf', dpi = 300)
+plt.show()
+
+#%% Draw boundary layer profile along streamwise
+minorLocator = MultipleLocator(10)
+xlocations = np.array([-40, -20, 0, 10, 20, 50, 60])
+fig1 = plt.figure()
+ax1 = fig1.add_subplot(111)
+for j in range(np.size(xlocations)):
+    wd, ux = MeanFlow.BLProfile('x', xlocations[j], 'u')
+    ux = ux*10 + xlocations[j]
+    ax1.plot(ux, wd, 'k')
+
+ax1.text(xlocations[0], 6.1, 0.0, ha='center', va='center')
+ax1.text(xlocations[0]+10.0, 6.1, 1.0, ha='center', va='center')
+ax1.xaxis.set_minor_locator(minorLocator)
+ax1.grid(b=True, which = 'both', linestyle = ':')
+ax1.set_ylim ([0, 6])
+ax1.set_yticks ([0, 2, 4, 6])
+ax1.set_xlabel (r'$x/\delta_0$', fontdict = font3)
+ax1.set_ylabel (r'$\Delta y/\delta_0$', fontdict = font3)
+
+ax2 = ax1.twiny()
+ax2.set_xticks([])
+ax2.set_xticklabels([])
+ax2.set_xlabel(r'$u/u_\infty$', fontdict = font3)
+plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
+fig1.set_size_inches(10, 4, forward=True)
+plt.savefig(path2+'StreamwiseBLProfile.pdf', dpi = 300)
+plt.show()
 
 
