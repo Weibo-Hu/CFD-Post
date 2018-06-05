@@ -74,6 +74,56 @@ def FW_PSD (VarZone, TimeZone):
     Freq_weighted = Var_psd*Freq
     return (Freq, Freq_weighted)
 
+# Obtain the standard law of wall (turbulence)
+def StdWallLaw():
+    ConstK = 0.41
+    ConstC = 5.2
+    yplus1 = np.arange(1, 15, 0.1) # viscous sublayer velocity profile
+    uplus1 = yplus1
+    yplus2 = np.arange(3, 1000, 0.1) # logarithm layer velocity profile
+    uplus2 = 1.0/ConstK*np.log(yplus2)+ConstC
+    UPlus1 = np.column_stack((yplus1, uplus1))
+    UPlus2 = np.column_stack((yplus2, uplus2))
+    return(UPlus1, UPlus2)
+
+# Draw reference experimental data of turbulence
+# 0y/\delta_{99}, 1y+, 2U+, 3urms+, 4vrms+, 5wrms+, 6uv+, 7prms+, 8pu+,
+# 9pv+, 10S(u), 11F(u), 12dU+/dy+, 13V+, 14omxrms^+, 15omyrms^+, 16omzrms^+
+def ExpWallLaw():
+    ExpData = np.loadtxt ("vel_4060_dns.prof", skiprows = 14)
+    m, n = ExpData.shape
+    y_delta     = ExpData[:, 0]
+    y_plus      = ExpData[:, 1]
+    u_plus      = ExpData[:, 2]
+    urms_plus   = ExpData[:, 3]
+    vrms_plus   = ExpData[:, 4]
+    wrms_plus   = ExpData[:, 5]
+    uv_plus     = ExpData[:, 6]
+    UPlus    = np.column_stack((y_plus, u_plus))
+    UVPlus   = np.column_stack((y_plus, uv_plus))
+    UrmsPlus = np.column_stack((y_plus, urms_plus))
+    VrmsPlus = np.column_stack((y_plus, vrms_plus))
+    WrmsPlus = np.column_stack((y_plus, wrms_plus))
+    return(UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
+
+# This code validate boundary layer profile by incompressible, Van Direst transformed 
+# boundary profile from mean reults
+def DirestWallLaw(walldist, u, rho, mu):
+    if((np.diff(walldist) < 0.0).any()):
+        sys.exit("the WallDist must be in ascending order!!!")
+    m = np.size(u)
+    rho_wall= rho[0]
+    mu_wall = mu[0]
+    tau_wall  = mu_wall*u[1]/walldist[1]
+    u_tau     = np.sqrt(np.abs(tau_wall/rho_wall))
+    u_van  = np.zeros(m)
+    for i in range(m):
+        u_van[i] = np.trapz(rho[:i+1]/rho_wall, u[:i+1])
+    u_plus_van = u_van/u_tau
+    y_plus     = u_tau*walldist*rho_wall/mu_wall
+    UPlusVan   = np.column_stack((y_plus, u_plus_van))
+    return(UPlusVan)
+
 # Proper Orthogonal Decomposition, equal time space
 # Input: the variable of POD (fluctuations)
 def POD(var, outfile, fluc = None):
@@ -151,7 +201,7 @@ def DMD_Exact(): # scaled method
 #uu = np.transpose(uu)
 #coeff, phi, eigval, eigvec = POD(uu, '/media/weibo/Data1/'+'0527', 1)
 #
-
+"""
 path = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
 MeanFlow = DataPost()
 MeanFlow.LoadData(path+'MeanSlice141.dat', Sep = '\t')
@@ -168,3 +218,4 @@ p = np.column_stack((p, MeanFlow.p))
 MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
 p = np.column_stack((p, MeanFlow.p))
 coeff, phi, eigval, eigvec = POD(p, path+'test0528', 1)
+"""

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 import FlowVar as fv
+import copy
 from DataPost import DataPost
 from scipy.interpolate import interp1d
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, AutoMinorLocator
@@ -124,7 +125,7 @@ plt.show()
 #%% pressure coefficiency
 fig3, ax3 = plt.subplots()
 ax3.plot(WallFlow['x'], WallFlow['p'], 'k', linewidth = 1.5)
-ax3.set_xlabel (r'$x/\delta_0$', fontdict = font3)
+ax3.set_xlabel(r'$x/\delta_0$', fontdict = font3)
 ax3.set_ylabel(r'$p/\rho_{\infty} U_{\infty}^2$', fontdict = font3)
 ax3.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 ax3.axvline(x=12.7, color='gray', linestyle='--', linewidth=1.0)
@@ -162,4 +163,28 @@ fig1.set_size_inches(10, 4, forward=True)
 plt.savefig(path2+'StreamwiseBLProfile.pdf', dpi = 300)
 plt.show()
 
-
+#%% Compare the law of wall
+x0 = 50.0
+MeanFlow.AddMu(13718)
+BLProf = copy.copy(MeanFlow)
+BLProf.ExtraSeries('x', x0, x0)
+StdUPlus1, StdUPlus2 = fv.StdWallLaw()
+ExpUPlus = fv.ExpWallLaw()[0]
+CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
+fig, ax = plt.subplots()
+ax.plot(StdUPlus1[:,0], StdUPlus1[:,1], 'k--', \
+            StdUPlus2[:,0], StdUPlus2[:,1], 'k--', linewidth = 1.5)
+ax.scatter(ExpUPlus[:,0], ExpUPlus[:,1], linewidth = 0.8, \
+           s = 8.0, facecolor = "none", edgecolor = 'gray')
+ax.plot(CalUPlus[:,0], CalUPlus[:,1], 'k', linewidth = 1.5)
+ax.set_xscale('log')
+ax.set_xlim([1, 3000])
+ax.set_ylim([0, 30])
+ax.set_xlabel (r'$u^+$', fontdict = font3)
+ax.set_ylabel (r'$\Delta y^+$', fontdict = font3)
+ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax.grid(b=True, which = 'both', linestyle = ':')
+plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
+fig.set_size_inches(6, 5, forward=True)
+plt.savefig(path2+'WallLaw.pdf', dpi = 300)
+plt.show()
