@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from scipy.interpolate import interp1d
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+from matplotlib.ticker import MultipleLocator, FormatStrFormatter, ScalarFormatter
 from scipy.interpolate import griddata
 from scipy.interpolate import spline
 from scipy import integrate
@@ -52,8 +52,8 @@ matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
 t0 = 499.07144
-t1 = 235 #960
-t2 = 280 #
+t1 = 270 #960
+t2 = 325 #
 
 
 #%% Read data for Streamwise variations of frequency of a specific variable
@@ -95,12 +95,12 @@ ax.set_ylabel(r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
 ax.ticklabel_format(axis = 'y', useOffset = False, \
                     style = 'sci', scilimits = (-2, 2))
 #ax.text (850, 6.5, 'x=0', fontdict = font2)
-ax.grid (b=True, which = 'both', linestyle = ':')
+ax.grid(b=True, which = 'both', linestyle = ':')
 #Probe0P = Probe0.p-BProbe0P
 #grow0, time0 = Probe0.GrowthRate(Probe0.time, Probe0P)
 #ax.plot (time0, grow0, 'k', linewidth = 1.5)
 #Probe0.AddUGrad(0.015625)
-ax.plot (Probe0.time, Probe0.p, 'k', linewidth = 1.5)
+ax.plot(Probe0.time, Probe0.p, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(412)
 ax.set_title (r'$x={}$'.format(xloc[1]), fontdict = font1)
@@ -108,20 +108,20 @@ ax.set_xlim ([t1, t2])
 ax.set_xticklabels('')
 ax.ticklabel_format(axis = 'y', useOffset = False, \
                     style = 'sci', scilimits = (-2, 2))
-ax.set_ylabel (r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
-ax.grid (b=True, which = 'both', linestyle = ':')
+ax.set_ylabel(r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
+ax.grid(b=True, which = 'both', linestyle = ':')
 #Probe10P = Probe10.p-BProbe10P
 #grow10, time10 = Probe10.GrowthRate(Probe10.time, Probe10P)
 #ax.plot (time10, grow10, 'k', linewidth = 1.5)
 #Probe10.AddUGrad(0.015625)
-ax.plot (Probe10.time, Probe10.p, 'k', linewidth = 1.5)
+ax.plot(Probe10.time, Probe10.p, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(413)
 ax.set_title (r'$x={}$'.format(xloc[2]), fontdict = font1)
-ax.set_xlim ([t1, t2])
-ax.set_xticklabels ('')
-ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
-ax.set_ylabel (r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
+ax.set_xlim([t1, t2])
+ax.set_xticklabels('')
+ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax.set_ylabel(r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
 ax.grid (b=True, which = 'both', linestyle = ':')
 #Probe20P = Probe20.p-BProbe20P
 #grow20, time20 = Probe20.GrowthRate(Probe20.time, Probe20P)
@@ -133,9 +133,9 @@ ax = fig.add_subplot(414)
 ax.set_title (r'$x={}$'.format(xloc[3]), fontdict = font1)
 ax.set_xlim ([t1, t2])
 #ax.set_xticklabels ('')
-ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
-ax.set_xlabel (r'$t u_\infty/\delta_0$', fontdict = font2)
-ax.set_ylabel (r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
+ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax.set_xlabel(r'$t u_\infty/\delta_0$', fontdict = font2)
+ax.set_ylabel(r'$p/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font2)
 ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.text (850, 6.5, 'x=0', fontdict = font2)
 ax.grid (b=True, which = 'both', linestyle = ':')
@@ -150,49 +150,52 @@ plt.show ()
 
 
 #%% Frequency Weighted Power Spectral Density
+Freq_samp = 10
 fig = plt.figure()
 ax = fig.add_subplot(221)
 ax.set_title(r'$x={}$'.format(xloc[0]), fontdict = font1)
 #ax.set_xlim ([720, 960])
 #ax.set_xticklabels ('')
 ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
-#ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
+#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+#ax = plt.gca()
+#ax.yaxis.get_major_formatter().set_powerlimits((0,1))
 ax.set_ylabel('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
-Fre0, FPSD0 = DataPost.FW_PSD (Probe0.p, Probe0.time)
-ax.semilogx (Fre0, FPSD0, 'k', linewidth = 1.5)
-
+Fre0, FPSD0 = fv.FW_PSD(Probe0.p, Probe0.time, Freq_samp)
+ax.semilogx(Fre0, FPSD0, 'k', linewidth = 1.5)
+#ax.psd(Probe0.p-np.mean(Probe0.p), 100, 10)
 ax = fig.add_subplot(222)
 ax.set_title(r'$x={}$'.format(xloc[1]), fontdict = font1)
-#ax.set_xlim ([720, 960])
-#ax.set_xticklabels ('')
-ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+#ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
 #ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
-Fre10, FPSD10 = DataPost.FW_PSD (Probe10.p, Probe10.time)
+Fre10, FPSD10 = fv.FW_PSD (Probe10.p, Probe10.time, Freq_samp)
 ax.semilogx(Fre10, FPSD10, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(223)
 ax.set_title(r'$x={}$'.format(xloc[2]), fontdict = font1)
 #ax.set_xlim ([720, 960])
 #ax.set_xticklabels ('')
-ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-1, 2))
 ax.set_xlabel(r'$f\delta_0/U_\infty$', fontdict = font1)
 ax.set_ylabel('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
-Fre20, FPSD20 = DataPost.FW_PSD (Probe20.p, Probe20.time)
+Fre20, FPSD20 = fv.FW_PSD (Probe20.p, Probe20.time, Freq_samp)
 ax.semilogx (Fre20, FPSD20, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(224)
 ax.set_title(r'$x={}$'.format(xloc[3]), fontdict = font1)
 #ax.set_xlim ([720, 960])
 #ax.set_xticklabels ('')
-ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
+#ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 ax.set_xlabel(r'$f\delta_0/U_\infty$', fontdict = font1)
 #ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
-Fre30, FPSD30 = DataPost.FW_PSD (Probe30.p, Probe30.time)
+Fre30, FPSD30 = fv.FW_PSD (Probe30.p, Probe30.time, Freq_samp)
 ax.semilogx (Fre30, FPSD30, 'k', linewidth = 1.5)
 plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 1)
 plt.savefig (path3+'StreawiseFWPSD.svg', dpi = 300)

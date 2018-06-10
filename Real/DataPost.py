@@ -441,16 +441,17 @@ class DataPost(object):
         print (NameStr)
 
 #   Obtain Spanwise Average Value of Data
-    def SpanAve(self, OutputFile):
+    def SpanAve(self, OutputFile = None):
         start_time = time.clock()
         grouped = self._DataTab.groupby(['x', 'y'])
-        AveGroup = grouped.mean().reset_index()
-        outfile  = open(OutputFile, 'x')
-        AveGroup.to_csv(outfile, \
-                    index=False, sep = '\t')
-        outfile.close()
+        self._DataTab = grouped.mean().reset_index()
+        if OutputFile is not None:
+            outfile  = open(OutputFile, 'x')
+            self._DataTab.to_csv(outfile, \
+                            index=False, sep = '\t')
+            outfile.close()
         print("The computational time is ", time.clock()-start_time)
-        return AveGroup
+
 
 #   Detect peaks in data based on their amplitude and other features.
     @classmethod

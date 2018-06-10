@@ -11,8 +11,10 @@ Created on Tue May 1 10:24:50 2018
 """
 
 import numpy as np
+import scipy as sp
 import matplotlib.pyplot as plt
 import matplotlib
+import warnings
 import pandas as pd
 from DataPost import DataPost
 from scipy.interpolate import interp1d
@@ -45,7 +47,7 @@ def Alpha3(WallPre):
     sigma  = np.std(WallPre)
     n      = np.size(WallPre)
     temp1  = np.power(WallPre-AvePre, 3)
-    alpha  = np.sum(temp1)/n/np.power(sigma, 3)  
+    alpha  = np.sum(temp1)/n/np.power(sigma, 3)
     return alpha
 
 # Obtain nondimensinal dynamic viscosity
@@ -57,22 +59,27 @@ def Viscosity(Re_delta, T): # nondimensional T
 def SkinFriction(mu, du, dy): # all variables are nondimensional
     Cf = 2*mu*du/dy
     return Cf
+# obtain Power Spectral Density
+def PSD(VarZone, TimeSpan, Freq_samp):
+    TotalNo = Freq_samp * (TimeSpan[-1] - TimeSpan[0])
+    if (TotalNo > np.size(TimeSpan)):
+        warnings.warn("PSD results are not accurate due to too few snapshots",\
+                      UserWarning)
+    TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
+    #print(TimeZone)
+    Var = np.interp(TimeZone, TimeSpan, VarZone-np.mean(VarZone))  # time space must be equal
+    # fast fourier transform and remove the half
+    Var_fft = np.fft.rfft(Var)
+    Var_psd = abs(Var_fft)**2
+    num = np.size(Var_fft)
+    Freq = np.linspace(Freq_samp/2/num, Freq_samp/2, num)
+    return (Freq, Var_psd)
 
 # Obtain Frequency-Weighted Power Spectral Density
-def FW_PSD (VarZone, TimeZone):
-    Ave = np.mean (VarZone)
-    Var_fluc = VarZone-Ave
-    # time space must be equal
-    # fast fourier transform and remove the half
-    Var_fft = np.fft.rfft (Var_fluc)
-    Var_psd = abs(Var_fft)**2
-    num = np.size (Var_fft)
-    # sample frequency
-    Freq_samp = num/(TimeZone[-1]-TimeZone[0])
-    # f_var = np.linspace (0, f_samp/2, num)
-    Freq = np.linspace (Freq_samp/2/num, Freq_samp/2, num)
-    Freq_weighted = Var_psd*Freq
-    return (Freq, Freq_weighted)
+def FW_PSD (VarZone, TimeSpan, Freq_samp):
+    Freq, Var_PSD = PSD(VarZone, TimeSpan, Freq_samp)
+    FPSD = Var_PSD*Freq
+    return (Freq, FPSD)
 
 # Obtain the standard law of wall (turbulence)
 def StdWallLaw():
@@ -106,7 +113,7 @@ def ExpWallLaw():
     WrmsPlus = np.column_stack((y_plus, wrms_plus))
     return(UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
 
-# This code validate boundary layer profile by incompressible, Van Direst transformed 
+# This code validate boundary layer profile by incompressible, Van Direst transformed
 # boundary profile from mean reults
 def DirestWallLaw(walldist, u, rho, mu):
     if((np.diff(walldist) < 0.0).any()):
@@ -144,8 +151,8 @@ def POD(var, outfile, fluc = None):
     phi   = phi/norm2 # nomalized POD modes
     coeff = np.matmul(np.transpose(var), phi) # coefficiency of the corresponding POD modes
     # save data as text, be sure the file is closed after writting.
-#    np.savetxt(outfile+'EIG.dat', np.column_stack((eigval, eigvec)), \
-#            fmt='%1.9e', delimiter = "\t", header = 'eigval eigvec')
+    #    np.savetxt(outfile+'EIG.dat', np.column_stack((eigval, eigvec)), \
+    #            fmt='%1.9e', delimiter = "\t", header = 'eigval eigvec')
     with open(outfile+'EIG.dat', 'wb') as f:
         np.savetxt(f, np.column_stack((eigval, eigvec)), \
             fmt='%1.9e', delimiter = "\t", header = 'eigval eigvec')
@@ -170,7 +177,7 @@ def DMD_Standard(var, t_samp, outfile, fluc = None): # scaled method
 
     U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
     # V = VH.conj().T = VH.H
-    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot 
+    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot
     eigval, eigvec = np.linalg.eig(S)
     eigvec = U.dot(eigvec) # dynamic modes
     lamb   = np.log(eigval)/t_samp
@@ -190,7 +197,7 @@ def DMD_Exact(): # scaled method
 
     U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
     # V = VH.conj().T = VH.H
-    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot 
+    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot
     eigval, eigvec = np.linalg.eig(S)
     eigvec = U.dot(eigvec) # dynamic modes
     coeff  = np.linalg.lstsq(eigvec, var.T[0])[0]
@@ -219,3 +226,25 @@ MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
 p = np.column_stack((p, MeanFlow.p))
 coeff, phi, eigval, eigvec = POD(p, path+'test0528', 1)
 """
+
+#Fs = 1000
+#t = np.arange(0.0, 1-1.0/Fs, 1/Fs)
+#var = np.cos(2*3.14159265*100*t)+np.random.uniform(-1, 1, np.size(t))
+#Var_fft = np.fft.fft(var)
+#Var_fftr = np.fft.rfft(var)
+#Var_psd = abs(Var_fft)**2
+#Var_psd1 = Var_psd[:int(np.size(t)/2)]
+#Var_psd2 = abs(Var_fftr)**2
+#fre1, Var_psd3 = PSD(var, t, Fs)
+#num = np.size(Var_psd1)
+#freq = np.linspace(Fs/2/num, Fs/2, num)
+#f, fpsd = FW_PSD(var, t, Fs)
+##fre, psd = PSD(var, t, Fs)
+##plt.plot(fre1, 10*np.log10(Var_psd3))
+#fig2, ax2 = plt.subplots()
+#ax2.plot(f, fpsd)
+#plt.show()
+#
+#fig, ax = plt.subplots()
+#ax.psd(var, 500, Fs)
+#plt.show()
