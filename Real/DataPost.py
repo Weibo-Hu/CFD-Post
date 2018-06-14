@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
+from contextlib import contextmanager
 from scipy.interpolate import interp1d
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from scipy.interpolate import griddata
@@ -29,6 +30,13 @@ class DataPost(object):
         pass
         #self._DataMat = [None]*13
         self._DataTab = pd.DataFrame()
+#    def _enter_(self):
+#        self.start = time.clock()
+#        return self
+#    def _exit_(self):
+#        self.end = time.clock()
+#        total = self.end - self.start
+#        print("Load data time: ", total)
 
     def LoadData(self, Infile, skiprows = None, \
                  Sep = None, Uniq = True):
@@ -738,7 +746,7 @@ class DataPost(object):
 # recreate the fitted curve using the optimized parameters
 #data_fit = my_sin(t, *fit[0])
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
 #    a = DataPost()
 #    path = "../../TestData/"
 #    #    ind = a.LoadProbeData (80.0, 0.0, 0.0, path)
@@ -754,16 +762,16 @@ if __name__ == "__main__":
 #    c = DataPost()
 #    c.LoadProbeData(0.0, 0.0, -2.7, path, Uniq = False)
 #    
-    path1="/media/weibo/Data1/BFS_M1.7L_0419/probes/old/"
-    path2="/media/weibo/Data1/BFS_M1.7L_0419/probes/"
-    path3="/media/weibo/Data1/BFS_M1.7L_0419/probes/new/"
-    with open(path1+"probe_00238.dat") as f1:
-        Data1 = np.loadtxt(f1, skiprows=0)
-    with open(path2+"probe_00238.dat") as f2:
-        Data2 = np.loadtxt(f2, skiprows=0)
-    Data = np.concatenate([Data1, Data2])   
-    np.savetxt(path3+"probe_00238.dat", Data, fmt='%1.8e', delimiter = "  ")
-    print("Congratulations!")
+#    path1="/media/weibo/Data1/BFS_M1.7L_0419/probes/old/"
+#    path2="/media/weibo/Data1/BFS_M1.7L_0419/probes/"
+#    path3="/media/weibo/Data1/BFS_M1.7L_0419/probes/new/"
+#    with open(path1+"probe_00238.dat") as f1:
+#        Data1 = np.loadtxt(f1, skiprows=0)
+#    with open(path2+"probe_00238.dat") as f2:
+#        Data2 = np.loadtxt(f2, skiprows=0)
+#    Data = np.concatenate([Data1, Data2])   
+#    np.savetxt(path3+"probe_00238.dat", Data, fmt='%1.8e', delimiter = "  ")
+#    print("Congratulations!")
 
 
 

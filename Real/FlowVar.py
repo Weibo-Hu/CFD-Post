@@ -23,8 +23,7 @@ from scipy.interpolate import griddata
 from scipy.interpolate import spline
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
-import time
-import sys
+import sys, os, time
 
 # Obtain intermittency factor from an undisturbed and specific wall pressure
 def Intermittency(sigma, Pressure0, WallPre, TimeZone):
@@ -61,18 +60,20 @@ def SkinFriction(mu, du, dy): # all variables are nondimensional
     return Cf
 # obtain Power Spectral Density
 def PSD(VarZone, TimeSpan, Freq_samp):
-    TotalNo = Freq_samp * (TimeSpan[-1] - TimeSpan[0])
+    # interpolate data to make sure time-equaled distribution
+    TotalNo = Freq_samp*(TimeSpan[-1]-TimeSpan[0])*2 #make NO of snapshot twice larger
     if (TotalNo > np.size(TimeSpan)):
         warnings.warn("PSD results are not accurate due to too few snapshots",\
                       UserWarning)
     TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
     #print(TimeZone)
-    Var = np.interp(TimeZone, TimeSpan, VarZone-np.mean(VarZone))  # time space must be equal
-    # fast fourier transform and remove the half
+    Var = np.interp(TimeZone, TimeSpan, VarZone-np.mean(VarZone)) # time space must be equal
+    # POD, fast fourier transform and remove the half
     Var_fft = np.fft.rfft(Var)
     Var_psd = abs(Var_fft)**2
     num = np.size(Var_fft)
-    Freq = np.linspace(Freq_samp/2/num, Freq_samp/2, num)
+    Freq = np.linspace(Freq_samp/TotalNo, Freq_samp/2, num)
+    #Freq = np.linspace(Freq_samp/2/num, Freq_samp/2, num)
     return (Freq, Var_psd)
 
 # Obtain Frequency-Weighted Power Spectral Density
@@ -131,101 +132,6 @@ def DirestWallLaw(walldist, u, rho, mu):
     UPlusVan   = np.column_stack((y_plus, u_plus_van))
     return(UPlusVan)
 
-# Proper Orthogonal Decomposition, equal time space
-# Input: the variable of POD (fluctuations)
-def POD(var, outfile, fluc = None):
-    start_time = time.clock()
-    m, n = np.shape(var) # n: the number of snapshots, m: dimensions
-    if fluc is not None:
-        var  = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1))) # for fluctuations
-    # less time by this way in that m<n
-    CorrMat = np.matmul(np.transpose(var), var)/n # correlation matrix,
-    #CorMat = np.matmul(var, np.transpose(var))/n # correlation matrix
-    eigval, eigvec = np.linalg.eig(CorrMat)  # original eigval(n), eigvec(n*n)
-    idx = eigval.argsort()[::-1]
-    eigval = eigval[idx]
-    eigvec = eigvec[:,idx] # in descending order if necessary
-    # eigvec, eigval, coeff = LA.svd(CorrMat)
-    phi = np.matmul(var, eigvec.real) # POD basis function, only real part(m*n)
-    norm2 = np.sqrt(np.sum(phi*phi, axis=0)) # normlized by norm2
-    phi   = phi/norm2 # nomalized POD modes
-    coeff = np.matmul(np.transpose(var), phi) # coefficiency of the corresponding POD modes
-    # save data as text, be sure the file is closed after writting.
-    #    np.savetxt(outfile+'EIG.dat', np.column_stack((eigval, eigvec)), \
-    #            fmt='%1.9e', delimiter = "\t", header = 'eigval eigvec')
-    with open(outfile+'EIG.dat', 'wb') as f:
-        np.savetxt(f, np.column_stack((eigval, eigvec)), \
-            fmt='%1.9e', delimiter = "\t", header = 'eigval eigvec')
-    with open(outfile + 'COEFF.dat', 'wb') as f:
-        np.savetxt(f, coeff, \
-            fmt='%1.9e', delimiter = "\t", header = 'coeff')
-    with open(outfile + 'MODE.dat', 'wb') as f:
-        np.savetxt(f, phi, \
-            fmt='%1.9e', delimiter = "\t", header = 'mode')
-    print("The computational time is ", time.clock()-start_time)
-    return (coeff, phi, eigval, eigvec)
-
-# Standard Dynamic Mode Decompostion, equal time space
-# Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
-def DMD_Standard(var, t_samp, outfile, fluc = None): # scaled method
-    start_time = time.clock()
-    m, n = np.shape(var) # n: the number of snapshots, m: dimensions
-    if fluc is not None:
-        var  = var - np.tile(np.mean(var, axis=1), (m, 1)).T # for fluctuations
-    V1   = var[:, :-1]
-    V2   = var[:, 1:]
-
-    U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
-    # V = VH.conj().T = VH.H
-    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot
-    eigval, eigvec = np.linalg.eig(S)
-    eigvec = U.dot(eigvec) # dynamic modes
-    lamb   = np.log(eigval)/t_samp
-    coeff  = np.linalg.lstsq(eigvec, var.T[0])[0] # least-square?
-    print("The computational tiem is ", time.clock()-start_time)
-    return (coeff, eigval, eigvec, lamb)
-
-# Exact Dynamic Mode Decompostion
-# Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
-def DMD_Exact(): # scaled method
-    start_time = time.clock()
-    m, n = np.shape(var) # n: the number of snapshots, m: dimensions
-    if fluc is not None:
-        var  = var - np.transpose(np.tile(np.mean(var, axis=1), (m, 1))) # for fluctuations
-    V1   = var[:, :-1]
-    V2   = var[:, 1:]
-
-    U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
-    # V = VH.conj().T = VH.H
-    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot
-    eigval, eigvec = np.linalg.eig(S)
-    eigvec = U.dot(eigvec) # dynamic modes
-    coeff  = np.linalg.lstsq(eigvec, var.T[0])[0]
-    print("The computational tiem is ", time.clock()-start_time)
-    return (coeff, eigval, eigvec)
-#uu = np.linspace(1, 50, 50)
-#uu = np.reshape(uu, [5,10])
-#uu = np.transpose(uu)
-#coeff, phi, eigval, eigvec = POD(uu, '/media/weibo/Data1/'+'0527', 1)
-#
-"""
-path = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-MeanFlow = DataPost()
-MeanFlow.LoadData(path+'MeanSlice141.dat', Sep = '\t')
-print(np.size(MeanFlow.p))
-x = MeanFlow.x
-y = MeanFlow.y
-p = MeanFlow.p
-MeanFlow.LoadData(path+'MeanSlice163.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-MeanFlow.LoadData(path+'MeanSlice199.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-MeanFlow.LoadData(path+'MeanSlice236.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-coeff, phi, eigval, eigvec = POD(p, path+'test0528', 1)
-"""
 
 #Fs = 1000
 #t = np.arange(0.0, 1-1.0/Fs, 1/Fs)

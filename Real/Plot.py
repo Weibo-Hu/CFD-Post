@@ -376,31 +376,3 @@ plt.savefig (path+'AllStreamwiseTimeAmplitudeVar.pdf', dpi = 300)
 plt.show ()
 """
 
-#%% Get Frequency Weighted Power Spectral Density
-def FW_PSD (VarZone, TimeZone, pic = None):
-#    InputData ('x=50.txt')
-    #InputData (xloc)
-    #modify according to needs
-    var = VarZone
-    ave = np.mean (var)
-    var_fluc = var-ave
-    #    fast fourier transform and remove the half
-    var_fft = np.fft.rfft (var_fluc)
-    var_psd = abs(var_fft)**2
-    num = np.size (var_fft)
-    #    sample frequency
-    fre_samp = num/(TimeZone[-1]-TimeZone[0])
-    #f_var = np.linspace (0, f_samp/2, num)
-    fre = np.linspace (fre_samp/2/num, fre_samp/2, num)
-    fre_weighted = var_psd*fre
-    if pic is not None:
-        fig, ax = plt.subplots ()
-        ax.semilogx (fre, fre_weighted)
-        ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
-        ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font2)
-        ax.set_ylabel ('Weighted PSD, unitless', fontdict = font2)
-        ax.grid (b=True, which = 'both', linestyle = '--')
-        fig.savefig (path+pic, dpi = 600)
-        #plt.show ()
-    return (fre, fre_weighted)
-

@@ -52,8 +52,8 @@ matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
 t0 = 499.07144
-t1 = 270 #960
-t2 = 325 #
+t1 = 240 #960
+t2 = 386 #
 
 
 #%% Read data for Streamwise variations of frequency of a specific variable
@@ -145,12 +145,12 @@ ax.grid (b=True, which = 'both', linestyle = ':')
 ax.plot (Probe30.time, Probe30.p, 'k', linewidth = 1.5)
 #ax.plot (Probe40.time, Probe40.p, 'k', linewidth = 1.5)
 plt.tight_layout (pad = 0.5, w_pad = 0.2, h_pad = 1)
-plt.savefig (path3+'StreawiseTimeEvolution.svg', dpi = 300)
+plt.savefig (path3+'StreamwiseTimeEvolution.svg', dpi = 300)
 plt.show ()
 
 
 #%% Frequency Weighted Power Spectral Density
-Freq_samp = 10
+Freq_samp = 30
 fig = plt.figure()
 ax = fig.add_subplot(221)
 ax.set_title(r'$x={}$'.format(xloc[0]), fontdict = font1)
@@ -167,8 +167,8 @@ ax.semilogx(Fre0, FPSD0, 'k', linewidth = 1.5)
 #ax.psd(Probe0.p-np.mean(Probe0.p), 100, 10)
 ax = fig.add_subplot(222)
 ax.set_title(r'$x={}$'.format(xloc[1]), fontdict = font1)
-ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-#ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
 #ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
@@ -183,22 +183,22 @@ ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-1, 2))
 ax.set_xlabel(r'$f\delta_0/U_\infty$', fontdict = font1)
 ax.set_ylabel('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
-Fre20, FPSD20 = fv.FW_PSD (Probe20.p, Probe20.time, Freq_samp)
+Fre20, FPSD20 = fv.FW_PSD(Probe20.p, Probe20.time, Freq_samp)
 ax.semilogx (Fre20, FPSD20, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(224)
 ax.set_title(r'$x={}$'.format(xloc[3]), fontdict = font1)
 #ax.set_xlim ([720, 960])
 #ax.set_xticklabels ('')
-#ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
-ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
+#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 ax.set_xlabel(r'$f\delta_0/U_\infty$', fontdict = font1)
 #ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
 Fre30, FPSD30 = fv.FW_PSD (Probe30.p, Probe30.time, Freq_samp)
 ax.semilogx (Fre30, FPSD30, 'k', linewidth = 1.5)
 plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 1)
-plt.savefig (path3+'StreawiseFWPSD.svg', dpi = 300)
+plt.savefig (path3+'StreamwiseFWPSD.svg', dpi = 300)
 plt.show()
 
 #%% Compute intermittency factor
