@@ -428,14 +428,14 @@ class DataPost(object):
         title = '\n'.join([str(title1), str(title2)])
         f.close()
         #read data
-        unique_rows (NameStr[0], FinalFile)
+        unique_rows(NameStr[0], FinalFile)
         Infile = open(path + FinalFile)
         Data = np.loadtxt (Infile, skiprows = 2)
         Infile.close()
         n = len(NameStr)
         #merge the rest of files
         for j in range (1, n):
-            unique_rows (NameStr[j], FinalFile)
+            unique_rows(NameStr[j], FinalFile)
             Infile = open(path + FinalFile)
             l['Data'+str(j)] = np.loadtxt (Infile, skiprows = 2)
             Infile.close()
