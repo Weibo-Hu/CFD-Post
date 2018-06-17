@@ -66,8 +66,8 @@ def PSD(VarZone, TimeSpan, Freq_samp):
         warnings.warn("PSD results are not accurate due to too few snapshots",\
                       UserWarning)
     TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
-    #print(TimeZone)
-    Var = np.interp(TimeZone, TimeSpan, VarZone-np.mean(VarZone)) # time space must be equal
+    VarZone  = VarZone-np.mean(VarZone)
+    Var = np.interp(TimeZone, TimeSpan, VarZone) # time space must be equal
     # POD, fast fourier transform and remove the half
     Var_fft = np.fft.rfft(Var)
     Var_psd = abs(Var_fft)**2

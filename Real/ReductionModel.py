@@ -25,6 +25,7 @@ import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
 from numpy.core.umath_tests import inner1d
 import sys, os, time
+from timer import timer
 
 plt.close("all")
 plt.rc('text', usetex=True)
@@ -57,39 +58,37 @@ font3 = {
 
 # Proper Orthogonal Decomposition, equal time space
 # Input: the variable of POD (fluctuations)
-def POD(var, outfile, fluc = None):
-    start_time = time.clock()
+def POD(var, outfile, fluc = None, method = None):
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if(n > m):
         sys.exit("NO of snapshots had better be smaller than NO of grid points!!!")
     if fluc is not None:
         var  = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1)))
-#    CorrMat = np.matmul(np.transpose(var), var)/n # correlation matrix,
-#    eigval, eigvec = np.linalg.eig(CorrMat)  # original eigval(n), eigvec(n*n)
-#    idx = np.absolute(eigval).argsort()[::-1]
-#    eigval = (eigval[idx]).real
-#    eigvec = (eigvec[:,idx]).real # in descending order if necessary
-#    phi = np.matmul(var, eigvec) # POD basis function, only real part(m*n)
-#    norm2 = np.sqrt(np.sum(phi*phi, axis=0)) # normlized by norm2
-#    phi   = phi/norm2 # nomalized POD modes
-#    coeff = np.matmul(np.transpose(var), phi) # coefficiency of the corresponding POD modes
-    coeff, eigval, eigvec = np.linalg.svd(var, full_matrices=False)
-    eigvec = eigvec.T
-    eigval = eigval*eigval
-    phi = np.matmul(var, eigvec) # POD basis function, only real part(m*n)
-    norm2 = np.sqrt(np.sum(phi*phi, axis=0)) # normlized by norm2
-    phi   = phi/norm2 # nomalized POD modes
-    coeff = np.matmul(np.transpose(var), phi)
-    np.savetxt(outfile+'EIG.dat', np.column_stack((eigval, eigvec)), \
-               fmt='%1.8e', header = 'eigval eigvec')
+    if method is not None: # eigvalue problem method
+        CorrMat = np.matmul(np.transpose(var), var)/n # correlation matrix,
+        eigval, eigvec = np.linalg.eig(CorrMat)  # original eigval(n), eigvec(n*n)
+        idx = np.absolute(eigval).argsort()[::-1]
+        eigval = (eigval[idx]).real
+        eigvec = (eigvec[:,idx]).real # in descending order if necessary
+        phi = np.matmul(var, eigvec) # POD basis function, only real part(m*n)
+        norm2 = np.sqrt(np.sum(phi*phi, axis=0)) # normlized by norm2
+        phi   = phi/norm2 # nomalized POD modes
+        coeff = np.matmul(np.transpose(var), phi) # coefficiency of POD modes
+    else: # svd method ??? divided by n ????
+        eigvec, eigval, coeff = np.linalg.svd(var, full_matrices=False)
+        norm2 = np.sqrt(np.sum(eigvec*eigvec, axis=0)) # normlized by norm2
+        phi   = eigvec/norm2 # nomalized POD modes
+    np.savetxt(outfile+'EIGVEC', eigvec, fmt='%1.8e', \
+               delimiter='\t', header = 'Eigvector')
+    np.savetxt(outfile+'EIGVAL', eigvec, fmt='%1.8e', \
+               delimiter='\t', header = 'Eigvalue')
     with open(outfile + 'COEFF.dat', 'wb') as f:
         np.savetxt(f, coeff, \
             fmt='%1.8e', delimiter = "\t", header = 'coeff')
     with open(outfile + 'MODE.dat', 'wb') as f:
         np.savetxt(f, phi, \
             fmt='%1.8e', header = 'mode')
-    print("The computational time is ", time.clock()-start_time)
-    #coeff: row: different times, column: different modes
+    #coeff: (row: different times, column: different modes)
     return (coeff, phi, eigval, eigvec)
 
 def FlowReproduce(Percent, eigval, phi, coeff):
@@ -102,28 +101,26 @@ def FlowReproduce(Percent, eigval, phi, coeff):
 
 # Standard Dynamic Mode Decompostion, equal time space
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
-def DMD_Standard(var, t_samp, outfile, fluc = None): # scaled method
-    start_time = time.clock()
+def DMD_Standard(var, t_samp, outfolder, fluc = None): # scaled method
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if fluc is not None:
         var  = var - np.tile(np.mean(var, axis=1), (m, 1)).T # for fluctuations
     V1   = var[:, :-1]
     V2   = var[:, 1:]
-
-    U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
+    U, VectorD, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
     # V = VH.conj().T = VH.H
-    S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or ##.dot(np.diag(D)), @=np.matmul=np.dot
+    D = np.diag(VectorD)
+    S = U.T@V2@VH.T*np.reciprocal(D)
+    #S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or @=np.matmul=np.dot
     eigval, eigvec = np.linalg.eig(S)
-    eigvec = U.dot(eigvec) # dynamic modes
+    eigvec = np.matmul(U, eigvec) # dynamic modes
     lamb   = np.log(eigval)/t_samp
     coeff  = np.linalg.lstsq(eigvec, var.T[0])[0] # least-square?
-    print("The computational tiem is ", time.clock()-start_time)
     return (coeff, eigval, eigvec, lamb)
 
 # Exact Dynamic Mode Decompostion
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
 def DMD_Exact(): # scaled method
-    start_time = time.clock()
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if fluc is not None:
         var  = var - np.transpose(np.tile(np.mean(var, axis=1), (m, 1))) # for fluctuations
@@ -136,7 +133,6 @@ def DMD_Exact(): # scaled method
     eigval, eigvec = np.linalg.eig(S)
     eigvec = U.dot(eigvec) # dynamic modes
     coeff  = np.linalg.lstsq(eigvec, var.T[0])[0]
-    print("The computational tiem is ", time.clock()-start_time)
     return (coeff, eigval, eigvec)
 
 #%% load data
@@ -155,7 +151,8 @@ for jj in range(np.size(dirs)-1):
     Snapshots = np.column_stack((Snapshots,VarVal))
     del DataFrame
 #%% POD
-coeff, phi, eigval ,eigvec = POD(Snapshots, OutFolder)
+with timer("POD computing"):
+    coeff, phi, eigval ,eigvec = POD(Snapshots, OutFolder, fluc = 'Yes')
 Frac, Cumulation, NewFlow = FlowReproduce(99.99, eigval, phi, coeff)
 
 #%% POD Energy Spectrum
@@ -210,7 +207,7 @@ plt.show()
 fig, ax = plt.subplots()
 levels = [-0.002, 0.002]
 ax.contourf(x, y, u, levels, colors=('#66ccff', '#e6e6e6', '#ff4d4d'), \
-            linewidths = 1.2, extend='both') #blue, grey, red
+            extend='both') #blue, grey, red
 #ax.contour(x, y, u, levels = -0.003, linewidths = 1.2, colors='r')
 ax.plot([-40.0, 0.0], [0.0, 0.0], 'k-')
 ax.plot([0.0, 0.0], [-3.0, 0.0], 'k-')
