@@ -104,26 +104,28 @@ def FlowReproduce(Percent, eigval, phi, coeff):
 def DMD_Standard(var, t_samp, outfolder, fluc = None): # scaled method
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if fluc is not None:
-        var  = var - np.tile(np.mean(var, axis=1), (m, 1)).T # for fluctuations
+        var  = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1)))
     V1   = var[:, :-1]
     V2   = var[:, 1:]
-    U, VectorD, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
+    U, D, VH = np.linalg.svd(V1, full_matrices=False) # do not perform tlsq
     # V = VH.conj().T = VH.H
-    D = np.diag(VectorD)
-    S = U.T@V2@VH.T*np.reciprocal(D)
+    D_inverse = np.reciprocal(D)
+    S = U.T@V2@VH.T*np.diag(D_inverse)
     #S = U.conj().T@V2@VH.conj().T*np.reciprocal(D) # or @=np.matmul=np.dot
     eigval, eigvec = np.linalg.eig(S)
     eigvec = np.matmul(U, eigvec) # dynamic modes
     lamb   = np.log(eigval)/t_samp
-    coeff  = np.linalg.lstsq(eigvec, var.T[0])[0] # least-square?
-    return (coeff, eigval, eigvec, lamb)
+    coeff  = np.linalg.lstsq(eigvec, var.T[0])[0] # least-square???
+    resid  = V2-np.matmul(V1, S)
+    resid1 = np.linalg.norm(resid)/n
+    return (coeff, eigval, eigvec, lamb, resid)
 
 # Exact Dynamic Mode Decompostion
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
 def DMD_Exact(): # scaled method
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if fluc is not None:
-        var  = var - np.transpose(np.tile(np.mean(var, axis=1), (m, 1))) # for fluctuations
+        var  = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1)))
     V1   = var[:, :-1]
     V2   = var[:, 1:]
 
@@ -154,6 +156,12 @@ for jj in range(np.size(dirs)-1):
 with timer("POD computing"):
     coeff, phi, eigval ,eigvec = POD(Snapshots, OutFolder, fluc = 'Yes')
 Frac, Cumulation, NewFlow = FlowReproduce(99.99, eigval, phi, coeff)
+
+#%% DMD
+with timer("DMD computing"):
+    coeff1, eigval1, eigvec1, lamb1, resid1 = \
+    DMD_Standard(Snapshots, 1, OutFolder, fluc = 'Yes')
+    
 
 #%% POD Energy Spectrum
 N_modes = 50

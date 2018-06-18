@@ -73,6 +73,7 @@ def PSD(VarZone, TimeSpan, Freq_samp):
     Var_psd = abs(Var_fft)**2
     num = np.size(Var_fft)
     Freq = np.linspace(Freq_samp/TotalNo, Freq_samp/2, num)
+    #Freq = np.arange(Freq_samp/TotalNo, Freq_samp/2+Freq_samp/TotalNo, Freq_samp/TotalNo)
     #Freq = np.linspace(Freq_samp/2/num, Freq_samp/2, num)
     return (Freq, Var_psd)
 
