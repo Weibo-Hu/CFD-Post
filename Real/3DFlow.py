@@ -44,21 +44,21 @@ path = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0419/probes/"
 path2 = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
 #path3 = "D:/ownCloud/0509/Data/"
-matplotlib.rcParams['xtick.direction'] = 'in'
-matplotlib.rcParams['ytick.direction'] = 'in'
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', **font1)
 
 #%% Import Data
 MeanFlow = DataPost()
-#VarName  = ['x', 'y', 'z', 'u', 'v', 'w', \
-#            'rho', 'p', 'Q_crit', 'Mach', 'T']
-#MeanFlow.UserData(VarName, path+'t260.txt', 1, Sep = '\t')
+VarName  = ['x', 'y', 'z', 'u', 'v', 'w', \
+            'rho', 'p', 'Q_crit', 'Mach', 'T']
+MeanFlow.UserData(VarName, path+'t401.txt', 1, Sep = '\t')
 #MeanFlow.SpanAve(path+'MeanSlice260.dat')
 #MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
 #%%
-VarName  = ['x', 'y', 'u', 'v', 'w', 'rho', \
-            'p', 'T', 'mu', 'Q_crit', 'lambda2']
-MeanFlow.UserData(VarName, path+'MeanFlow.txt', 1, Sep = '\t')
+#VarName  = ['x', 'y', 'u', 'v', 'w', 'rho', \
+#            'p', 'T', 'mu', 'Q_crit', 'lambda2']
+#MeanFlow.UserData(VarName, path+'MeanFlow.txt', 1, Sep = '\t')
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 #%% Plot contour of the mean flow field
@@ -66,7 +66,7 @@ corner = (x<0.0) & (y<0.0)
 rho[corner] = np.nan
 fig, ax = plt.subplots()
 rg1 = np.linspace(0.25, 1.06, 13)
-cbar = ax.contourf(x, y, rho, cmap = 'rainbow', levels = rg1)
+cbar = ax.contourf(x, y, rho, cmap = 'rainbow', levels = rg1) #rainbow_r
 ax.set_xlim(np.min(x), np.max(x))
 ax.set_ylim(np.min(y), np.max(y))
 ax.set_xlabel(r'$x/\delta_0$', fontdict = font3)
