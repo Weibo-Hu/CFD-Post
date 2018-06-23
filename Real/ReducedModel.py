@@ -58,6 +58,9 @@ font3 = {
 
 # Proper Orthogonal Decomposition, equal time space
 # Input: the variable of POD (fluctuations)
+# phi-each column is a mode structure
+# eigval-the amount of enery in each mode
+# alpha -time amplitude, each mode varies in time   
 def POD(var, outfile, fluc = None, method = None):
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if(n > m):
@@ -65,33 +68,32 @@ def POD(var, outfile, fluc = None, method = None):
     if fluc is not None:
         var  = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1)))
     if method is not None: # eigvalue problem method
-        CorrMat = np.matmul(np.transpose(var), var)/n # correlation matrix,
-        eigval, eigvec = sp.linalg.eig(CorrMat)  # original eigval(n), eigvec(n*n)
-        idx = np.absolute(eigval).argsort()[::-1]
-        eigval = (eigval[idx]).real
-        eigvec = (eigvec[:,idx]).real # in descending order if necessary
+        CorrMat = np.matmul(np.transpose(var), var) # correlation matrix,
+        eigval, eigvec = np.linalg.eig(CorrMat)  # right eigvalues
+        eigval = np.absolute(eigval)
+        eigvec = np.absolute(eigvec)
+        idx = eigval.argsort()[::-1]
+        eigval = eigval[idx]
+        eigvec = eigvec[:,idx] # in descending order if necessary
         phi = np.matmul(var, eigvec) # POD basis function, only real part(m*n)
         norm2 = np.sqrt(np.sum(phi*phi, axis=0)) # normlized by norm2
         phi   = phi/norm2 # nomalized POD modes
-        coeff = np.matmul(np.transpose(var), phi) # coefficiency of POD modes
-    else: # svd method ??? divided by n ????
-        eigvec, eigval, coeff = sp.linalg.svd(var, full_matrices=False)
-        norm2 = np.sqrt(np.sum(eigvec*eigvec, axis=0)) # normlized by norm2
-        phi   = eigvec/norm2 # nomalized POD modes
-    np.savetxt(outfile+'EIGVEC', eigvec, fmt='%1.8e', \
-               delimiter='\t', header = 'Eigvector')
-    np.savetxt(outfile+'EIGVAL', eigvec, fmt='%1.8e', \
-               delimiter='\t', header = 'Eigvalue')
-    with open(outfile + 'COEFF.dat', 'wb') as f:
-        np.savetxt(f, coeff, \
-            fmt='%1.8e', delimiter = "\t", header = 'coeff')
-    with open(outfile + 'MODE.dat', 'wb') as f:
-        np.savetxt(f, phi, \
-            fmt='%1.8e', header = 'mode')
+        #phi = var@eigvec*np.sqrt(np.reciprocal(eigval))
+        alpha = np.diag(np.sqrt(eigval))@eigvec.T
+    else: # svd method
+        phi, sigma, VH = sp.linalg.svd(var, full_matrices=False)
+        eigval = sigma*sigma
+        alpha  = np.diag(sigma)@VH
+#    np.savetxt(outfile+'EIGVAL.dat', eigval, fmt='%1.8e', \
+#               delimiter='\t', header = 'Eigvalue')
+#    np.savetxt(outfile + 'COEFF.dat', alpha, fmt='%1.8e', \
+#               delimiter = "\t", header = 'Coeff')
+#    np.savetxt(outfile + 'MODE.dat', phi, fmt='%1.8e', \
+#               delimiter = "\t", header = 'mode')
     #coeff: (row: different times, column: different modes)
-    return (coeff, phi, eigval, eigvec)
+    return (eigval, phi, alpha)
 
-def FlowReproduce(Percent, eigval, phi, coeff):
+def POD_Reconstruct(Percent, eigval, phi, coeff):
     EnergyFrac       = eigval/np.sum(eigval)*100
     EnergyCumulation = np.cumsum(EnergyFrac)
     index = np.where(EnergyCumulation >= Percent)
@@ -134,10 +136,7 @@ def DMD_Dynamics(eigval, coeff, timepoints):
 
 def DMD_Reconstruct(phi, dynamics):
     reconstruct = phi@dynamics
-    return(reconstruct)
-    
-    
-    
+    return(reconstruct)    
     
 # Exact Dynamic Mode Decompostion
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
@@ -156,9 +155,9 @@ def DMD_Exact(): # scaled method
     coeff  = np.linalg.lstsq(eigvec, var.T[0])[0]
     return (coeff, eigval, eigvec)
 
-"""
+
 #%% load data
-InFolder  = "/media/weibo/Data1/BFS_M1.7L_0419/SpanAve/2/"
+InFolder  = "/media/weibo/Data1/BFS_M1.7L_0419/SpanAve/1/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0419/SpanAve/Test"
 path  = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
 dirs = os.listdir(InFolder)
@@ -175,15 +174,65 @@ for jj in range(np.size(dirs)-1):
 #Snapshots = Snapshots.astype(complex)
 #%% POD
 with timer("POD computing"):
-    coeff, phi, eigval ,eigvec = POD(Snapshots, OutFolder, fluc = 'Yes')
-Frac, Cumulation, NewFlow = FlowReproduce(99.99, eigval, phi, coeff)
+    eigval, phi, coeff = POD(Snapshots, OutFolder, fluc = 'Yes')
+with timer("POD computing"):
+    eigval1, phi1, coeff1 = POD(Snapshots, OutFolder, fluc = 'Yes', method = 1)
+#Frac, Cumulation, NewFlow = FlowReproduce(99.99, eigval, phi, coeff)
 
 #%% DMD
-with timer("DMD computing"):
-    coeff1, eigval1, eigvec1, phi1, lamb1, resid1 = \
-    DMD_Standard(Snapshots, 1, OutFolder, fluc = 'Yes')
-    
+#timepoints = np.linspace(200, 439, 240)
+timepoints = np.linspace(200, 399, 200)
+#with timer("DMD computing"):
+#    eigval, phi, coeff = \
+#    DMD_Standard(Snapshots, timepoints, OutFolder, fluc = 'Yes')
 
+#%%    
+plt.figure(figsize=(10, 10))
+plt.gcf()
+ax = plt.gca()
+points, = ax.plot(eigval.real, eigval.imag, 'bo', label='eigvalues')
+limit = np.max(np.ceil(np.absolute(eigval)))
+ax.set_xlim((-limit, limit))
+ax.set_ylim((-limit, limit))
+plt.xlabel('Real part')
+plt.ylabel('Imaginary part')
+unit_circle = plt.Circle((0., 0.), 1., color='black', fill=False, \
+                         label='unit circle', linestyle='--')
+ax.add_artist(unit_circle)
+ax.grid(b=True, which = 'both', linestyle = ':')
+plt.show()
+
+#%% Modes in space
+uval = phi[:,0].real
+umax = np.max(uval)
+x, y = np.meshgrid(np.unique(xval), np.unique(yval))
+u    = griddata((xval, yval), uval, (x, y))
+corner = (x<0.0) & (y<0.0)
+u[corner] = np.nan
+fig, ax = plt.subplots()
+#rg1 = np.linspace(-0.025, 0.025, 11)
+cbar = ax.contourf(x, y, u, cmap = 'rainbow') #, levels = rg1)
+ax.set_xlim(np.min(x), np.max(x))
+ax.set_ylim(np.min(y), np.max(y))
+ax.set_xlabel(r'$x/\delta_0$', fontdict = font3)
+ax.set_ylabel(r'$y/\delta_0$', fontdict = font3)
+#ax.grid (b=True, which = 'both', linestyle = ':')
+plt.gca().set_aspect('equal', adjustable='box')
+# Add colorbar
+#rg2 = np.linspace(0.000001, 0.001, 20)
+cbaxes = fig.add_axes([0.5, 0.75, 0.35, 0.07]) # x, y, width, height
+#cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
+#cbaxes.set_ylabel(r'$\rho/\rho_{\infty}$', \
+#                  rotation = 0, labelpad = 20)
+plt.colorbar(cbar, cax = cbaxes, orientation='horizontal')
+fig.set_size_inches(12, 4, forward=True)
+#plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
+plt.savefig(path+'DMDMode1.svg', dpi=300)
+plt.show()
+    
+#%%
+    
+"""
 #%% POD Energy Spectrum
 N_modes = 50
 xaxis = np.arange(1, N_modes+1)

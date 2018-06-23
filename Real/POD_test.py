@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 20 20:48:31 2018
-    This code for validating the DMD.
+Created on Thu Jun 21 20:48:31 2018
+    This code for validating the POD.
 @author: weibo
 """
 import matplotlib.pyplot as plt
@@ -18,8 +18,8 @@ def f2(x,t):
     return 2./np.cosh(x)*np.tanh(x)*np.exp(2.8j*t)
 
 
-x = np.linspace(-5, 5, 128)
-t = np.linspace(0, 4*np.pi, 256)
+x = np.linspace(-5, 5, 256)
+t = np.linspace(0, 4*np.pi, 128)
 tgrid, xgrid = np.meshgrid(t, x)
 
 x1 = f1(xgrid, tgrid)
@@ -39,28 +39,27 @@ plt.colorbar()
 plt.show()
 
 #%% DMD
-with timer("DMD test case computing"):
+with timer("POD test case computing"):
     eigval, phi, coeff= \
-        rm.DMD_Standard(XX, t, './', fluc = None)
+        rm.POD(XX, './', fluc = None)
     
 #%% Eigvalue Spectrum
-#for eig in eigval:
-#    print('Eigenvalue {}: distance from unit circle {}'.format(eig, \
-#          np.abs(eig.imag**2+eig.real**2 - 1)))
+N_modes = 50
+xaxis = np.arange(1, N_modes+1)
+fig1, ax1 = plt.subplots()
+ax1.plot(xaxis, eigval[:N_modes], color='black', marker='o', markersize=4,)
+ax1.set_ylim(bottom=-5)
+ax1.set_xlabel(r'$i$')
+ax1.set_ylabel(r'$E_i$')
+ax1.grid(b=True, which = 'both', linestyle = ':')
 
-plt.figure(figsize=(10, 10))
-plt.gcf()
-ax = plt.gca()
-points, = ax.plot(eigval.real, eigval.imag, 'bo', label='eigvalues')
-limit = np.max(np.ceil(np.absolute(eigval)))
-ax.set_xlim((-limit, limit))
-ax.set_ylim((-limit, limit))
-plt.xlabel('Real part')
-plt.ylabel('Imaginary part')
-unit_circle = plt.Circle((0., 0.), 1., color='black', fill=False, \
-                         label='unit circle', linestyle='--')
-ax.add_artist(unit_circle)
-ax.grid(b=True, which = 'both', linestyle = ':')
+Cumulation = np.cumsum(eigval/np.sum(eigval)*100)
+ax2 = ax1.twinx()
+ax2.fill_between(xaxis, Cumulation[:N_modes], color='grey', alpha=0.5)
+ax2.set_ylim([-5, 100])
+ax2.set_ylabel(r'$ES_i$')
+fig1.set_size_inches(5, 4, forward=True)
+plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
 plt.show()
 
 #%% Modes in space
@@ -78,10 +77,9 @@ plt.show()
 
 #%% Time evolution of each mode
 plt.figure(figsize=(10, 5))
-dynamics=rm.DMD_Dynamics(eigval, coeff, t)
 i = 0
 for i in range(2):
-    plt.plot(t, dynamics[i,:].real)
+    plt.plot(t, coeff[i,:].real)
     plt.title('Dynamics')
     plt.xlabel('t')
     plt.ylabel('f')

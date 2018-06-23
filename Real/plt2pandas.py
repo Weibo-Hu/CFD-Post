@@ -7,9 +7,10 @@ Created on Sat Jun 9 10:24:50 2018
 """
 import tecplot as tp
 import pandas as pd
-import sys, time, os
+import sys, os
 import numpy as np
 from DataPost import DataPost
+from timer import timer
 
 #   Show Progress of code loop
 def progress(count, total, status=''):
@@ -23,7 +24,6 @@ def progress(count, total, status=''):
 def ReadPlt(FoldPath, InFile, VarList, OutFile=None):
     #datafile = os.path.join(FilePath, FileName)
     #clear dataset first
-    start_time = time.clock()
     for j in range(np.size(FileList)):
         dataset = tp.data.load_tecplot(FileList[j])
         #namelist = dataset.VariablesNamedTuple
@@ -55,13 +55,11 @@ def ReadPlt(FoldPath, InFile, VarList, OutFile=None):
     #df.to_hdf(OutFile+".h5", 'w', format= 'fixed')
     #hdf1 = pd.read_hdf(OutFile+'.h5')
     #dat1 = pd.read_csv(OutFile+'.dat', sep='\t',skiprows=1, skipinitialspace=True)
-    print("The cost time of reading plt data", time.clock()-start_time, '\n')
     return(df)
 
 
 def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
                     SpanAve=None, OutFile=None):
-    start_time = time.clock()
     for j in range(BlockNO):
         #progress(j, BlockNO, 'Read *.plt:')
         FileName = FoldPath + "TP_dat_"+str(j+1).zfill(6)+".plt"
@@ -92,26 +90,24 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
                   'w', format= 'fixed')
     else:
         df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
-    print("The cost time of reading plt data ", time.clock()-start_time, '\n')
     return(df)
 
 # Obtain Spanwise Average Value of Data
 def SpanAve(DataFrame, OutputFile = None):
-    start_time = time.clock()
     grouped = DataFrame.groupby(['x', 'y'])
     DataFrame = grouped.mean().reset_index()
     if OutputFile is not None:
         outfile  = open(OutputFile, 'x')
         DataFrame.to_csv(outfile, index=False, sep = '\t')
         outfile.close()
-    print("The spanwise-averaged time is ", time.clock()-start_time, '\n')
 
 VarList  = ['x', 'y', 'z', 'u', 'v', 'w', 'p', 'T']
-FoldPath = "/media/weibo/Data1/BFS_M1.7L_0419/4/"
+FoldPath = "/media/weibo/Data1/BFS_M1.7L_0419/1/00/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0419/SpanAve/"
 dirs = os.listdir(FoldPath)
 num = np.size(dirs)
 for ii in range(num):
     progress(ii, num, 'Completed folder:')
     path  = FoldPath+dirs[ii]+"/"
-    DataFrame = ReadINCAResults(214, path, VarList, OutFolder, SpanAve="Yes")
+    with timer("Read .plt data"):
+        DataFrame = ReadINCAResults(214, path, VarList, OutFolder, SpanAve="Yes")
