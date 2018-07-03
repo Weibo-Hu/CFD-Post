@@ -18,13 +18,14 @@ def f2(x,t):
     return 2./np.cosh(x)*np.tanh(x)*np.exp(2.8j*t)
 
 
-x = np.linspace(-5, 5, 256)
-t = np.linspace(0, 4*np.pi, 128)
+x = np.linspace(-5, 5, 512)
+t = np.linspace(0, 4*np.pi, 256)
 tgrid, xgrid = np.meshgrid(t, x)
 
 x1 = f1(xgrid, tgrid)
 x2 = f2(xgrid, tgrid)
 XX = x1+x2
+XMean = np.mean(XX, axis=1)
 
 titles = ['$f_1(x,t)$', '$f_2(x,t)$', '$f$']
 data   = [x1, x2, XX]
@@ -41,19 +42,20 @@ plt.show()
 #%% DMD
 with timer("POD test case computing"):
     eigval, phi, coeff= \
-        rm.POD(XX, './', fluc = None)
+        rm.POD(XX, './', fluc = 'Yes')
     
 #%% Eigvalue Spectrum
 N_modes = 50
 xaxis = np.arange(1, N_modes+1)
+Frac = eigval/np.sum(eigval)*100
 fig1, ax1 = plt.subplots()
-ax1.plot(xaxis, eigval[:N_modes], color='black', marker='o', markersize=4,)
+ax1.plot(xaxis, Frac[:N_modes], color='black', marker='o', markersize=4,)
 ax1.set_ylim(bottom=-5)
 ax1.set_xlabel(r'$i$')
 ax1.set_ylabel(r'$E_i$')
 ax1.grid(b=True, which = 'both', linestyle = ':')
 
-Cumulation = np.cumsum(eigval/np.sum(eigval)*100)
+Cumulation = np.cumsum(Frac)
 ax2 = ax1.twinx()
 ax2.fill_between(xaxis, Cumulation[:N_modes], color='grey', alpha=0.5)
 ax2.set_ylim([-5, 100])
@@ -66,13 +68,13 @@ plt.show()
 plt.figure(figsize=(10, 5))
 i = 0
 modes = phi.T
-for i in range(2):
-    plt.plot(x, phi[:,i].real)
-    plt.xlabel('x')
-    plt.ylabel('f')
-    plt.title('Modes')
-plt.plot(x, f1(x, 0.0)/5.0, ':') # exact results
-plt.plot(x, f2(x, 0.0)/-6.0, '--')
+plt.plot(x, phi[:,0]*coeff[0,0].real)
+plt.plot(x, phi[:,1]*coeff[1,0].real)
+plt.xlabel('x')
+plt.ylabel('f')
+plt.title('Modes')
+plt.plot(x, f1(x, 0.0), 'k:') # exact results
+plt.plot(x, f2(x, 0.0), 'k--')
 plt.show()
 
 #%% Time evolution of each mode
@@ -83,12 +85,12 @@ for i in range(2):
     plt.title('Dynamics')
     plt.xlabel('t')
     plt.ylabel('f')
-plt.plot(t, f1(0.1, t), ':') # exact results
-plt.plot(t, f2(0.1, t), '--')
+plt.plot(t, f1(0.1, t), 'k:') # exact results
+plt.plot(t, f2(0.1, t), 'k--')
 plt.show()    
 
 #%% reconstruct flow field
-reconstruct = rm.DMD_Reconstruct(phi, dynamics)
+reconstruct = phi@coeff
 titles = [r'$f_1^{\prime}(x,t)$', r'$f_2^{\prime}(x,t)$']
 fig = plt.figure(figsize=(17,6))
 for i in range(2):
@@ -98,11 +100,11 @@ for i in range(2):
     plt.ylabel('t')
     plt.title(titles[i])
     phi1 = phi[:,i].reshape(np.size(x), 1)
-    dyn1 = dynamics[i,:].reshape(1, np.size(t))
+    dyn1 = coeff[i,:].reshape(1, np.size(t))
     plt.pcolor(xgrid, tgrid, (phi1@dyn1).real)
     
 plt.subplot(133)
-plt.pcolor(xgrid, tgrid, reconstruct.real)
+plt.pcolor(xgrid, tgrid, reconstruct.real+np.tile(XMean, (np.size(t),1)).T.real)
 plt.title(r'$f^{\prime}$')
 plt.xlabel('x')
 plt.ylabel('t')

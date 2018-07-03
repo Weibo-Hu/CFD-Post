@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Created on Sun Dec 10 22:24:50 2017
     This code for reading data from specific file so that post-processing data, including:
@@ -28,15 +29,7 @@ import re
 class DataPost(object):
     def __init__(self):
         pass
-        #self._DataMat = [None]*13
         self._DataTab = pd.DataFrame()
-#    def _enter_(self):
-#        self.start = time.clock()
-#        return self
-#    def _exit_(self):
-#        self.end = time.clock()
-#        total = self.end - self.start
-#        print("Load data time: ", total)
 
     def LoadData(self, Infile, skiprows = None, \
                  Sep = None, Uniq = True):
@@ -135,6 +128,16 @@ class DataPost(object):
         print("The cost time of reading: ", Infile, time.clock()-start_time)
         #Infile.close()
 
+    def UserDataBin(self, Infile):
+        #Infile = open(InputFile, 'r')
+        self._DataTab = pd.read_hdf(Infile)
+        self._DataTab = self._DataTab.dropna(axis=1, how='all')
+        VarName = list(self._DataTab.columns.values)
+        if ('x' in VarName) & ('y' in VarName):
+            self._DataTab = self._DataTab.sort_values(by=['x', 'y'])
+        if ('x' in VarName) & ('y' in VarName) & ('z' in VarName):
+            self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
+
 #   Obtain the filename of the probe at a specific location
     def GetProbeName (self, xx, yy, zz, path):
         Infile = open(path + 'inca_probes.inp')
@@ -176,12 +179,10 @@ class DataPost(object):
 
     @property
     def x(self):
-        #return self.DataMat[:,1]
         return self._DataTab['x'].values
 
     @property
     def y(self):
-        #return self.DataMat[:,2]
         return self._DataTab['y'].values
 
     @property
@@ -223,10 +224,30 @@ class DataPost(object):
     @property
     def walldist(self):
         return self._DataTab['walldist'].values
+    
+    @property
+    def uu(self):
+        return self._DataTab['uu'].values
 
     @property
     def UGrad(self):
         return self._DataTab['UGrad'].values
+    
+    @property
+    def vorticity_1(self):
+        return self._DataTab['vorticity_1'].values
+    @property
+    def vorticity_2(self):
+        return self._DataTab['vorticity_2'].values
+    @property
+    def vorticity_3(self):
+        return self._DataTab['vorticity_3'].values
+    @property
+    def Q_criterion(self):
+        return self._DataTab['Q-criterion'].values
+    @property
+    def L2_criterion(self):
+        return self._DataTab['L2-criterion'].values
 
 #   Obtain variables profile with an equal value (x, y, or z)
     def IsoProfile2D (self, qx, Iso_qx, qy):
@@ -371,7 +392,7 @@ class DataPost(object):
     def TimeAve (self):
         grouped = self._DataTab.groupby([self._DataTab['x'], \
                                         self._DataTab['y'], self._DataTab['z']])
-        self._DataTab = grouped.mean().reset_index()
+        self._DataTab = grouped.mean().reset_index(drop=True)
 
 
 #   Extract interesting part of the data

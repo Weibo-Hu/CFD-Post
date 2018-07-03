@@ -76,30 +76,41 @@ def POD(var, outfile, fluc = None, method = None):
         eigval = eigval[idx]
         eigvec = eigvec[:,idx] # in descending order if necessary
         phi = np.matmul(var, eigvec) # POD basis function, only real part(m*n)
-        norm2 = np.sqrt(np.sum(phi*phi, axis=0)) # normlized by norm2
-        phi   = phi/norm2 # nomalized POD modes
-        #phi = var@eigvec*np.sqrt(np.reciprocal(eigval))
-        alpha = np.diag(np.sqrt(eigval))@eigvec.T
+        norm2 = np.sum(phi*phi, axis=0) # normlized by norm2
+        phi   = phi/np.sqrt(norm2) # nomalized POD modes, not orthoganal!!!
+        #phi = var@eigvec@np.sqrt(np.diag(np.reciprocal(eigval)))
+        alpha = np.diag(np.sqrt(eigval))@eigvec.T #alpha = phi.T@var
     else: # svd method
         phi, sigma, VH = sp.linalg.svd(var, full_matrices=False)
         eigval = sigma*sigma
         alpha  = np.diag(sigma)@VH
+        #alpha  = phi.T.conj()@var
+        eigvec = VH.T.conj()
 #    np.savetxt(outfile+'EIGVAL.dat', eigval, fmt='%1.8e', \
 #               delimiter='\t', header = 'Eigvalue')
 #    np.savetxt(outfile + 'COEFF.dat', alpha, fmt='%1.8e', \
 #               delimiter = "\t", header = 'Coeff')
 #    np.savetxt(outfile + 'MODE.dat', phi, fmt='%1.8e', \
 #               delimiter = "\t", header = 'mode')
-    #coeff: (row: different times, column: different modes)
-    return (eigval, phi, alpha)
+    return (eigval, eigvec, phi, alpha)
 
-def POD_Reconstruct(Percent, eigval, phi, coeff):
+def POD_EigSpectrum(Percent, eigval):
     EnergyFrac       = eigval/np.sum(eigval)*100
     EnergyCumulation = np.cumsum(EnergyFrac)
     index = np.where(EnergyCumulation >= Percent)
     num = index[0][0]
     #NewFlow = inner1d(coeff[:,:num], phi[:,:num])
     return EnergyFrac, EnergyCumulation, num#NewFlow
+
+def POD_Reconstruct(num, Snapshots, eigval, phi, alpha):
+    # SVD
+    NewFlow = phi[:,:num]*alpha[:num,:]
+    # eigval problem
+    phi = Snapshots@eigvec
+    phi = phi[:,:num]@np.sqrt(np.diag(np.reciprocal(eigval[:num])))
+    alpha = phi.T@Snapshots
+    NewFlow[:,0] = alpha[:,0]*phi[:,num]
+    NewFlow[:,1] = alpha[:,1]*phi[:,num]
 
 # Standard Dynamic Mode Decompostion, equal time space
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
@@ -118,7 +129,7 @@ def DMD_Standard(var, timepoints, outfolder, fluc = None): # scaled method
     S = U.T.conj()@V2@V*np.reciprocal(D)
     eigval, eigvec = sp.linalg.eig(S)
     phi    = U@eigvec # projected dynamic modes
-    coeff  = np.linalg.lstsq(phi, var.T[0], rcond=-1)[0] # least-square???
+    coeff  = np.linalg.lstsq(phi, var.T[0], rcond=-1)[0] # modes coefficiency
     #resid  = np.linalg.norm(V2-np.matmul(S, V1))/n
     #resid  = np.linalg.norm(V2-np.matmul(V1, S))/n
     return (eigval, phi, coeff)
@@ -174,9 +185,9 @@ for jj in range(np.size(dirs)-1):
 #Snapshots = Snapshots.astype(complex)
 #%% POD
 with timer("POD computing"):
-    eigval, phi, coeff = POD(Snapshots, OutFolder, fluc = 'Yes')
+    eigval, eigvec, phi, coeff = POD(Snapshots, OutFolder, fluc = 'Yes')
 with timer("POD computing"):
-    eigval1, phi1, coeff1 = POD(Snapshots, OutFolder, fluc = 'Yes', method = 1)
+    eigval1, eigvec1, phi1, coeff1 = POD(Snapshots, OutFolder, fluc = 'Yes', method = 1)
 #Frac, Cumulation, NewFlow = FlowReproduce(99.99, eigval, phi, coeff)
 
 #%% DMD

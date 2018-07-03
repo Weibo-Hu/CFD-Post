@@ -18,7 +18,8 @@ from scipy.interpolate import griddata
 from scipy.interpolate import spline
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
-import time
+import plt2pandas as p2p
+from timer import timer
 import sys
 
 plt.close ("All")
@@ -40,9 +41,9 @@ font3 = {'family' : 'Times New Roman',
          'size' : 16,
 }
 
-path = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0419/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
+path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 #path3 = "D:/ownCloud/0509/Data/"
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
@@ -50,15 +51,16 @@ matplotlib.rc('font', **font1)
 
 #%% Import Data
 MeanFlow = DataPost()
-VarName  = ['x', 'y', 'z', 'u', 'v', 'w', \
-            'rho', 'p', 'Q_crit', 'Mach', 'T']
-MeanFlow.UserData(VarName, path+'t401.txt', 1, Sep = '\t')
+#VarName  = ['x', 'y', 'z', 'u', 'v', 'w', \
+#            'rho', 'p', 'Q_crit', 'Mach', 'T']
+#MeanFlow.UserData(VarName, path+'t401.txt', 1, Sep = '\t')
 #MeanFlow.SpanAve(path+'MeanSlice260.dat')
 #MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
 #%%
-#VarName  = ['x', 'y', 'u', 'v', 'w', 'rho', \
-#            'p', 'T', 'mu', 'Q_crit', 'lambda2']
-#MeanFlow.UserData(VarName, path+'MeanFlow.txt', 1, Sep = '\t')
+VarName  = ['x', 'y', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', \
+            'uv', 'uw', 'vv', 'vw', 'ww', 'Q-criterion']
+MeanFlow.UserData(VarName, path+'Meanflow.dat', 1, Sep = '\t')
+#MeanFlow.UserDataBin(VarName, path+'Meanflow.h5')
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 #%% Plot contour of the mean flow field
@@ -163,12 +165,12 @@ fig1.set_size_inches(10, 4, forward=True)
 plt.savefig(path2+'StreamwiseBLProfile.pdf', dpi = 300)
 plt.show()
 
-#%% Compare the law of wall
+#%% Compare van Driest transformed mean velocity profile
 x0 = 35.0
-#MeanFlow.AddMu(13718)
+MeanFlow.AddMu(13718)
 BLProf = copy.copy(MeanFlow)
 BLProf.ExtraSeries('x', x0, x0)
-BLProf.SpanAve()
+#BLProf.SpanAve()
 StdUPlus1, StdUPlus2 = fv.StdWallLaw()
 ExpUPlus = fv.ExpWallLaw()[0]
 CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
@@ -189,3 +191,33 @@ plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
 fig.set_size_inches(6, 5, forward=True)
 plt.savefig(path2+'WallLaw.pdf', dpi = 300)
 plt.show()
+
+#%% Compare Reynolds stresses in Morkovin scaling
+ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
+    fv.ExpWallLaw()
+fig, ax = plt.subplots()
+ax.scatter(ExpUrmsPlus[:,0], ExpUrmsPlus[:,1], linewidth = 0.8, \
+           s = 8.0, facecolor = "none", edgecolor = 'gray')
+ax.scatter(ExpVrmsPlus[:,0], ExpVrmsPlus[:,1], linewidth = 0.8, \
+           s = 8.0, facecolor = "none", edgecolor = 'gray')
+ax.scatter(ExpWrmsPlus[:,0], ExpWrmsPlus[:,1], linewidth = 0.8, \
+           s = 8.0, facecolor = "none", edgecolor = 'gray')
+ax.scatter(ExpUVPlus[:,0], ExpUVPlus[:,1], linewidth = 0.8, \
+           s = 8.0, facecolor = "none", edgecolor = 'gray')
+u_tau = fv.UTau(BLProf.walldist, BLProf.uu, BLProf.rho, BLProf.mu)
+xi = np.sqrt(BLProf.rho/BLProf.rho[0])
+UUPlus = BLProf.uu/u_tau
+uu = xi*np.sqrt(UUPlus)
+ax.plot(CalUPlus[:,0], uu, 'k', linewidth = 1.5)
+ax.set_xscale('log')
+ax.set_xlim([1, 3000])
+#ax.set_ylim([0, 30])
+ax.set_ylabel (r'$\langle u^{\prime}_i u^{\prime}_j \rangle$', fontdict = font3)
+ax.set_xlabel (r'$\Delta y^+$', fontdict = font3)
+ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+ax.grid(b=True, which = 'both', linestyle = ':')
+plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
+fig.set_size_inches(6, 5, forward=True)
+plt.savefig(path2+'ReynoldStress.svg', dpi = 300)
+plt.show()
+

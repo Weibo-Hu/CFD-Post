@@ -115,6 +115,13 @@ def ExpWallLaw():
     WrmsPlus = np.column_stack((y_plus, wrms_plus))
     return(UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
 
+def UTau(walldist, u, rho, mu):
+    rho_wall= rho[0]
+    mu_wall = mu[0]
+    tau_wall  = mu_wall*u[1]/walldist[1]
+    u_tau = np.sqrt(np.abs(tau_wall/rho_wall))
+    return u_tau
+
 # This code validate boundary layer profile by incompressible, Van Direst transformed
 # boundary profile from mean reults
 def DirestWallLaw(walldist, u, rho, mu):
@@ -123,16 +130,21 @@ def DirestWallLaw(walldist, u, rho, mu):
     m = np.size(u)
     rho_wall= rho[0]
     mu_wall = mu[0]
-    tau_wall  = mu_wall*u[1]/walldist[1]
-    u_tau     = np.sqrt(np.abs(tau_wall/rho_wall))
+    u_tau = UTau(walldist, u, rho, mu)
     u_van  = np.zeros(m)
     for i in range(m):
         u_van[i] = np.trapz(rho[:i+1]/rho_wall, u[:i+1])
     u_plus_van = u_van/u_tau
     y_plus     = u_tau*walldist*rho_wall/mu_wall
+#    return(y_plus, u_plus_van)
     UPlusVan   = np.column_stack((y_plus, u_plus_van))
     return(UPlusVan)
 
+# Vorticity: omega=delta*v
+# omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
+def Vorticity():
+    return 0
+    
 
 #Fs = 1000
 #t = np.arange(0.0, 1-1.0/Fs, 1/Fs)

@@ -18,7 +18,7 @@ def f2(x,t):
     return 2./np.cosh(x)*np.tanh(x)*np.exp(2.8j*t)
 
 
-x = np.linspace(-5, 5, 128)
+x = np.linspace(-5, 5, 512)
 t = np.linspace(0, 4*np.pi, 256)
 tgrid, xgrid = np.meshgrid(t, x)
 
@@ -42,13 +42,14 @@ plt.show()
 with timer("DMD test case computing"):
     eigval, phi, coeff= \
         rm.DMD_Standard(XX, t, './', fluc = None)
+dynamics=rm.DMD_Dynamics(eigval, coeff, t)
     
 #%% Eigvalue Spectrum
 #for eig in eigval:
 #    print('Eigenvalue {}: distance from unit circle {}'.format(eig, \
 #          np.abs(eig.imag**2+eig.real**2 - 1)))
 
-plt.figure(figsize=(10, 10))
+plt.figure(figsize=(10, 9))
 plt.gcf()
 ax = plt.gca()
 points, = ax.plot(eigval.real, eigval.imag, 'bo', label='eigvalues')
@@ -66,27 +67,28 @@ plt.show()
 #%% Modes in space
 plt.figure(figsize=(10, 5))
 i = 0
-modes = phi.T
-for i in range(2):
-    plt.plot(x, phi[:,i].real)
-    plt.xlabel('x')
-    plt.ylabel('f')
-    plt.title('Modes')
-plt.plot(x, f1(x, 0.0)/5.0, ':') # exact results
-plt.plot(x, f2(x, 0.0)/-6.0, '--')
+#modes = phi.T
+#plt.plot(x, phi[:,0].real, 'b-')
+plt.plot(x, phi[:,0].real*coeff[0].real, 'b-')
+plt.plot(x, phi[:,1].real*coeff[1].real, 'r-')
+plt.xlabel('x')
+plt.ylabel('f')
+plt.title('Modes')
+#plt.plot(x, f1(x, 0), color='gray', marker='o', markersize=1, fillstyle='none') # exact results
+plt.plot(x, f1(x, 0), 'k:')
+plt.plot(x, f2(x, 0), 'k--')
 plt.show()
 
 #%% Time evolution of each mode
 plt.figure(figsize=(10, 5))
-dynamics=rm.DMD_Dynamics(eigval, coeff, t)
 i = 0
-for i in range(2):
-    plt.plot(t, dynamics[i,:].real)
-    plt.title('Dynamics')
-    plt.xlabel('t')
-    plt.ylabel('f')
-plt.plot(t, f1(0.1, t), ':') # exact results
-plt.plot(t, f2(0.1, t), '--')
+plt.plot(t, dynamics[0,:].real*phi[0, 0].real, 'b-')
+plt.plot(t, dynamics[1,:].real*phi[0, 1].real, 'r-')
+plt.title('Dynamics')
+plt.xlabel('t')
+plt.ylabel('f')
+plt.plot(t, f1(-5, t), 'k:') # exact results
+plt.plot(t, f2(-5, t), 'k--')
 plt.show()    
 
 #%% reconstruct flow field
