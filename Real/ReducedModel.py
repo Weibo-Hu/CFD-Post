@@ -56,7 +56,7 @@ font3 = {
     'size': 16,
 }
 
-# Proper Orthogonal Decomposition, equal time space
+# Proper Orthogonal Decomposition (snapshots method), equal time space
 # Input: the variable of POD (fluctuations)
 # phi-each column is a mode structure
 # eigval-the amount of enery in each mode
@@ -65,9 +65,15 @@ def POD(var, outfile, fluc = None, method = None):
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if(n > m):
         sys.exit("NO of snapshots had better be smaller than NO of grid points!!!")
-    if fluc is not None:
+    if fluc == 'True':
         var  = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1)))
-    if method is not None: # eigvalue problem method
+    if method == 'svd': # svd method
+        phi, sigma, VH = sp.linalg.svd(var, full_matrices=False)
+        eigval = sigma*sigma
+        alpha  = np.diag(sigma)@VH # every row: every mode; every column:coordinates
+        #alpha  = phi.T.conj()@var
+        eigvec = VH.T.conj()
+    else: # eigvalue problem method
         CorrMat = np.matmul(np.transpose(var), var) # correlation matrix,
         eigval, eigvec = np.linalg.eig(CorrMat)  # right eigvalues
         eigval = np.absolute(eigval)
@@ -80,12 +86,7 @@ def POD(var, outfile, fluc = None, method = None):
         phi   = phi/np.sqrt(norm2) # nomalized POD modes, not orthoganal!!!
         #phi = var@eigvec@np.sqrt(np.diag(np.reciprocal(eigval)))
         alpha = np.diag(np.sqrt(eigval))@eigvec.T #alpha = phi.T@var
-    else: # svd method
-        phi, sigma, VH = sp.linalg.svd(var, full_matrices=False)
-        eigval = sigma*sigma
-        alpha  = np.diag(sigma)@VH
-        #alpha  = phi.T.conj()@var
-        eigvec = VH.T.conj()
+
 #    np.savetxt(outfile+'EIGVAL.dat', eigval, fmt='%1.8e', \
 #               delimiter='\t', header = 'Eigvalue')
 #    np.savetxt(outfile + 'COEFF.dat', alpha, fmt='%1.8e', \
@@ -115,12 +116,9 @@ def POD_Reconstruct(num, Snapshots, eigval, phi, alpha):
 # Standard Dynamic Mode Decompostion, equal time space
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
 # x/y, phi: construct flow field for each mode (phi:row-coordinates, column-time)
-def DMD_Standard(var, timepoints, outfolder, fluc = None): # scaled method
-    period = np.round(np.diff(timepoints), 6)
-    if(np.size(np.unique(period)) != 1):
-        sys.exit("Time period is not equal!!!")
+def DMD_Standard(var, outfolder, fluc = None): # scaled method
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
-    if fluc is not None:
+    if fluc == 'True':
         var  = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1)))
     V1   = var[:, :-1]
     V2   = var[:, 1:]
@@ -135,6 +133,9 @@ def DMD_Standard(var, timepoints, outfolder, fluc = None): # scaled method
     return (eigval, phi, coeff)
 
 def DMD_Dynamics(eigval, coeff, timepoints):
+    period = np.round(np.diff(timepoints), 6)
+    if(np.size(np.unique(period)) != 1):
+        sys.exit("Time period is not equal!!!")
     t_samp = timepoints[1]-timepoints[0]
     lamb = np.log(eigval)/t_samp # growth rate(real part), frequency(imaginary part)
     m = np.size(lamb)
@@ -167,29 +168,8 @@ def DMD_Exact(): # scaled method
     return (coeff, eigval, eigvec)
 
 
-#%% load data
-InFolder  = "/media/weibo/Data1/BFS_M1.7L_0419/SpanAve/1/"
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0419/SpanAve/Test"
-path  = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-dirs = os.listdir(InFolder)
-DataFrame = pd.read_hdf(InFolder+dirs[0])
-Snapshots = DataFrame['u']
-xval = DataFrame['x']
-yval = DataFrame['y']
-del DataFrame
-for jj in range(np.size(dirs)-1):
-    DataFrame = pd.read_hdf(InFolder+dirs[jj+1])
-    VarVal    = DataFrame['u']
-    Snapshots = np.column_stack((Snapshots,VarVal))
-    del DataFrame
-#Snapshots = Snapshots.astype(complex)
-#%% POD
-with timer("POD computing"):
-    eigval, eigvec, phi, coeff = POD(Snapshots, OutFolder, fluc = 'Yes')
-with timer("POD computing"):
-    eigval1, eigvec1, phi1, coeff1 = POD(Snapshots, OutFolder, fluc = 'Yes', method = 1)
-#Frac, Cumulation, NewFlow = FlowReproduce(99.99, eigval, phi, coeff)
 
+"""
 #%% DMD
 #timepoints = np.linspace(200, 439, 240)
 timepoints = np.linspace(200, 399, 200)
@@ -243,7 +223,7 @@ plt.show()
     
 #%%
     
-"""
+
 #%% POD Energy Spectrum
 N_modes = 50
 xaxis = np.arange(1, N_modes+1)

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 """
 Created on Sun Dec 10 22:24:50 2017
     This code for reading data from specific file so that post-processing data, including:
@@ -243,10 +242,10 @@ class DataPost(object):
     def vorticity_3(self):
         return self._DataTab['vorticity_3'].values
     @property
-    def Q_criterion(self):
+    def Qcrit(self):
         return self._DataTab['Q-criterion'].values
     @property
-    def L2_criterion(self):
+    def L2crit(self):
         return self._DataTab['L2-criterion'].values
 
 #   Obtain variables profile with an equal value (x, y, or z)
@@ -397,16 +396,12 @@ class DataPost(object):
 
 #   Extract interesting part of the data
     def ExtraPoint (self, Mode, Val):
-        start_time = time.clock()
         self._DataTab = self._DataTab.loc[self._DataTab[Mode] >= Val]
         self._DataTab = self._DataTab.head(1)
-        print("The cost time of extract data: ", time.clock()-start_time)
 
     def ExtraSeries (self, Mode, Min, Max):
-        start_time = time.clock()
         self._DataTab = self._DataTab.loc[self._DataTab[Mode] >= Min]
         self._DataTab = self._DataTab.loc[self._DataTab[Mode] <= Max]
-        print("The cost time of extract data series: ",time.clock()-start_time)
 
 #   Obtain finite differential derivatives of a variable (2nd order)
     @classmethod
@@ -709,9 +704,13 @@ class DataPost(object):
                 "maxcov": np.max(pcov), "rawres": (guess,popt,pcov)}
 
 #   fit data using a specific functions
-    def fit_func(cls, function, guess, tt, yy):
-        popt, pcov = scipy.optimize.curve_fit(function, tt, yy, p0 = guess)
-        return{"coeff": popt, "rawres": (guess, popt, pcov)}
+    def fit_func(cls, function, tt, yy, guess=None):
+        if guess is not None:
+            popt, pcov = scipy.optimize.curve_fit(function, tt, yy, p0 = guess)
+        else:
+            popt, pcov = scipy.optimize.curve_fit(function, tt, yy, absolute_sigma=True)
+        return (popt, pcov)
+        #return{"coeff": popt, "rawres": (guess, popt, pcov)}
 
 #   fit data using sinusoidal functions
     @classmethod

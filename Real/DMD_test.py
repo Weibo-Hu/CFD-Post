@@ -41,7 +41,7 @@ plt.show()
 #%% DMD
 with timer("DMD test case computing"):
     eigval, phi, coeff= \
-        rm.DMD_Standard(XX, t, './', fluc = None)
+        rm.DMD_Standard(XX, './', fluc = None)
 dynamics=rm.DMD_Dynamics(eigval, coeff, t)
     
 #%% Eigvalue Spectrum

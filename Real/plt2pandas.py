@@ -77,14 +77,54 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
     #df.to_csv(OutFile+".dat", index=False, sep = '\t')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
-        df      = grouped.mean().reset_index(drop=True)
+        df      = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if OutFile is None:
-        df.to_hdf(FoldPath2+"SolTime"+str(round(SolTime,1))+".h5", \
+        df.to_hdf(FoldPath2+"SolTime"+str(round(SolTime,2))+".h5", \
                   'w', format= 'fixed')
     #else:
     #    df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
     return(df)
+
+
+def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
+                    SpanAve=None, OutFile=None):
+    os.chdir(FoldPath)
+    FileName = os.listdir(FoldPath)
+    dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+    SolTime = dataset.solution_times[0]
+    if (np.size(FileName) != BlockNO):
+        sys.exit("You're missing some blocks!!!")
+    for j in range(BlockNO):
+        zone = dataset.zone
+        zonename = zone(j).name
+        for i in range(np.size(VarList)):
+            var = dataset.variable(VarList[i])
+            if i == 0:
+                VarCol = var.values(zonename).as_numpy_array()
+            else:
+                Var_index = var.values(zonename).as_numpy_array()
+                VarCol = np.column_stack((VarCol, Var_index))
+        if j == 0:
+            ZoneRow = VarCol
+        else:
+            ZoneRow = np.row_stack((ZoneRow, VarCol))
+    del FileName, dataset, zone, zonename, var
+    df = pd.DataFrame(data=ZoneRow, columns=VarList)
+    #print(SolTime)
+    #df.to_csv(OutFile+".dat", index=False, sep = '\t')
+    if SpanAve is not None:
+        grouped = df.groupby(['x', 'y'])
+        df = grouped.mean().reset_index()
+
+#        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
+    if OutFile is None:
+        df.to_hdf(FoldPath2+"SolTime"+"%0.2f"%SolTime+".h5", \
+                  'w', format= 'fixed')
+    #else:
+    #    df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
+    return (df)
+
 
 def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
                     SpanAve=None, OutFile=None):
@@ -113,10 +153,10 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
     #df.to_csv(OutFile+".dat", index=False, sep = '\t')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
-        df      = grouped.mean().reset_index(drop=True)
+        df      = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if OutFile is None:
-        df.to_hdf(FoldPath2+"SolTime"+str(round(SolTime,1))+".h5", \
+        df.to_hdf(FoldPath2+"SolTime"+str(round(SolTime,2))+".h5", \
                   'w', format= 'fixed')
     #else:
     #    df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
@@ -125,7 +165,7 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
 # Obtain Spanwise Average Value of Data
 def SpanAve(DataFrame, OutputFile = None):
     grouped = DataFrame.groupby(['x', 'y'])
-    DataFrame = grouped.mean().reset_index(drop=True)
+    DataFrame = grouped.mean().reset_index()
     if OutputFile is not None:
         outfile  = open(OutputFile, 'x')
         DataFrame.to_csv(outfile, index=False, sep = '\t')

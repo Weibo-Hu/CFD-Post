@@ -44,16 +44,16 @@ font3 = {'family' : 'Times New Roman',
         'size' : 16,
 }
 
-path = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0419/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
+path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path3 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
 t0 = 499.07144
-t1 = 240 #960
-t2 = 386 #
+t1 = 300 #960
+t2 = 600 #
 
 #%% Read data for Streamwise variations of frequency of a specific variable
 Probe0 = DataPost()
@@ -84,11 +84,14 @@ Probe30.ExtraSeries('time', t1, t2)
 
 
 #%% Streamwise variations of time evolution of a specific variable
+var    = 'p'
+def func(t, a, b):  
+    return a/t + b
+abc, _ = Probe0.fit_func(func, Probe0.time, getattr(Probe0, var))
 fig = plt.figure()
 ax = fig.add_subplot(411)
 xlabel = r'$x={}$'
 ytitle = r'$p/(\rho_{\infty} u_{\infty}^{2})$'
-var    = 'p'
 ax.set_title (xlabel.format(xloc[0]), fontdict = font1)
 ax.set_xlim ([t1, t2])
 ax.set_xticklabels ('')
@@ -103,6 +106,7 @@ ax.grid(b=True, which = 'both', linestyle = ':')
 #ax.plot (time0, grow0, 'k', linewidth = 1.5)
 #Probe0.AddUGrad(0.015625)
 ax.plot(Probe0.time, getattr(Probe0, var), 'k', linewidth = 1.5)
+ax.plot(Probe0.time, func(Probe0.time, *abc), 'b:')
 
 ax = fig.add_subplot(412)
 ax.set_title(xlabel.format(xloc[1]), fontdict = font1)
@@ -164,15 +168,12 @@ ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.yaxis.get_major_formatter().set_powerlimits((0,1))
 ax.set_ylabel('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
-Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var), Probe0.time, Freq_samp)
+Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var)-func(Probe0.time, *abc), Probe0.time, Freq_samp)
 ax.semilogx(Fre0, FPSD0, 'k', linewidth = 1.5)
-#ax.psd(Probe0.p-np.mean(Probe0.p), 100, 10)
 ax = fig.add_subplot(222)
 ax.set_title(xlabel.format(xloc[1]), fontdict = font1)
 #ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
-#ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
-#ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
 Fre10, FPSD10 = fv.FW_PSD (getattr(Probe10, var), Probe10.time, Freq_samp)
 ax.semilogx(Fre10, FPSD10, 'k', linewidth = 1.5)
@@ -190,12 +191,9 @@ ax.semilogx (Fre20, FPSD20, 'k', linewidth = 1.5)
 
 ax = fig.add_subplot(224)
 ax.set_title(xlabel.format(xloc[3]), fontdict = font1)
-#ax.set_xlim ([720, 960])
-#ax.set_xticklabels ('')
 ax.ticklabel_format (axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 ax.set_xlabel(r'$f\delta_0/U_\infty$', fontdict = font1)
-#ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
 Fre30, FPSD30 = fv.FW_PSD(getattr(Probe30, var), Probe30.time, Freq_samp)
 ax.semilogx(Fre30, FPSD30, 'k', linewidth = 1.5)
@@ -204,7 +202,7 @@ plt.savefig (path3+'StreamwiseFWPSD.svg', dpi = 300)
 plt.show()
 
 #%% Compute intermittency factor
-xzone = np.linspace(-40.0, 40.0, 41)
+xzone = np.linspace(-40.0, 60.0, 51)
 gamma = np.zeros(np.size(xzone))
 alpha = np.zeros(np.size(xzone))
 sigma = np.std(Probe0.p)
@@ -221,8 +219,8 @@ for j in range(np.size(xzone)):
 
 fig3, ax3 = plt.subplots()
 ax3.plot(xzone, gamma, 'ko')
-ax3.set_xlabel (r'$x/\delta_0$', fontdict = font3)
-ax3.set_ylabel (r'$\gamma$', fontdict = font3)
+ax3.set_xlabel(r'$x/\delta_0$', fontdict = font3)
+ax3.set_ylabel(r'$\gamma$', fontdict = font3)
 #ax3.set_ylim([0.0, 1.0])
 ax3.grid (b=True, which = 'both', linestyle = ':')
 ax3.axvline(x=0.0, color='k', linestyle='--', linewidth=1.0)
