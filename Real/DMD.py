@@ -46,22 +46,24 @@ m, n = np.shape(Snapshots)
 #%% DMD
 timepoints = np.linspace(338, 439.5, np.size(dirs))
 with timer("DMD computing"):
-    eigval, phi, coeff = \
+    eigval, phi, U, eigvec, residual = \
         rm.DMD_Standard(Snapshots, SaveFolder, fluc='True')
+coeff = rm.DMD_Amplitude(Snapshots, U, eigvec, phi, eigval) #, lstsq='False')
 dynamics = rm.DMD_Dynamics(eigval, coeff, timepoints)
 
 #%% Eigvalue Spectrum
 matplotlib.rc('font', size=14)
-fig1, ax1 = plt.subplots(figsize=(6, 5))
-ax1.plot(eigval.real, eigval.imag, 'bo', label='eigvalues')
-limit = np.max(np.ceil(np.absolute(eigval)))
+fig1, ax1 = plt.subplots(figsize=(6, 6))
+unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False, \
+                         label='unit circle', linewidth=5.0, alpha=0.7)
+ax1.add_artist(unit_circle)
+ax1.scatter(eigval.real, eigval.imag, marker='o',\
+            facecolor='none', edgecolors='k', s=18)
+limit = np.max(np.absolute(eigval))+0.1
 ax1.set_xlim((-limit, limit))
 ax1.set_ylim((-limit, limit))
 plt.xlabel(r'$\Re(\lambda)$')
 plt.ylabel(r'$\Im(\lambda)$')
-unit_circle = plt.Circle((0., 0.), 1., color='black', fill=False, \
-                         label='unit circle', linestyle='--')
-ax1.add_artist(unit_circle)
 ax1.grid(b=True, which='both', linestyle=':')
 plt.show()
 plt.savefig(path + 'DMDEigSpectrum.svg', bbox_inches='tight')

@@ -124,13 +124,49 @@ def DMD_Standard(var, outfolder, fluc = None): # scaled method
     V2   = var[:, 1:]
     U, D, VH = sp.linalg.svd(V1, full_matrices=False) # do not perform tlsq
     V = VH.conj().T
+    ind = np.where(np.round(D, 1) == 0.0)
+    if np.size(ind) != 0:
+        print("There are "+str(np.size(ind))+" zero-value singular value!!!")
+        nonzero = n-1-np.size(ind)
+        V = V[:, :nonzero]
+        D = D[:nonzero]
+        U = U[:, :nonzero] 
     S = U.T.conj()@V2@V*np.reciprocal(D)
     eigval, eigvec = sp.linalg.eig(S)
     phi    = U@eigvec # projected dynamic modes
-    coeff  = np.linalg.lstsq(phi, var.T[0], rcond=-1)[0] # modes coefficiency
-    #resid  = np.linalg.norm(V2-np.matmul(S, V1))/n
-    #resid  = np.linalg.norm(V2-np.matmul(V1, S))/n
-    return (eigval, phi, coeff)
+    if np.size(ind) != 0:
+        residual = np.linalg.norm(V2[:,:nonzero]-V1[:,:nonzero]@S)/n
+    else:
+        residual = np.linalg.norm(V2-V1@S)/n
+    return (eigval, phi, U, eigvec, residual)
+# convex optimization problem
+def OldDMD_Amplitude(var, phi, eigval, lstsq=None):
+    m, r = np.shape(phi) # n: the number of snapshots, m: dimensions
+    m, n = np.shape(var)
+    if lstsq == 'False':
+        coeff  = np.linalg.lstsq(phi, var.T[0], rcond=-1)[0] # modes coefficiency
+    else: # min(var-phi@coeff@Vand)-->min(UT@V1-UT@U@eigvec@coeff@Vand)
+        A = phi@np.diag(eigval**0)
+        for i in range(n-1):
+            a2 = phi@np.diag(eigval**(i+1))
+            A = np.vstack([A, a2])
+        b = np.reshape(var, (-1, ), order='F')
+        coeff = np.linalg.lstsq(A, b, rcond=-1)[0]
+    return coeff
+
+def DMD_Amplitude(var, U, eigvec, phi, eigval, lstsq=None):
+    m, r = np.shape(phi) # n: the number of snapshots, m: dimensions
+    m, n = np.shape(var)
+    if lstsq == 'False':# min(var-phi@coeff@Vand)-->min(UT@V1-UT@U@eigvec@coeff@Vand)
+        coeff  = np.linalg.lstsq(phi, var.T[0], rcond=-1)[0]
+    else: # min(var-phi@coeff@Vand)-->min(UT@V1-UT@U@eigvec@coeff@Vand)
+        A = eigvec@np.diag(eigval**0)
+        for i in range(n-2):
+            a2 = eigvec@np.diag(eigval**(i+1))
+            A = np.vstack([A, a2])
+        b = np.reshape(U.T.conj()@var[:,:-1], (-1, ), order='F')
+        coeff = np.linalg.lstsq(A, b, rcond=-1)[0]
+    return coeff
 
 def DMD_Dynamics(eigval, coeff, timepoints):
     period = np.round(np.diff(timepoints), 6)
@@ -148,8 +184,7 @@ def DMD_Dynamics(eigval, coeff, timepoints):
 
 def DMD_Reconstruct(phi, dynamics):
     reconstruct = phi@dynamics
-    return(reconstruct)    
-    
+    return(reconstruct)      
 # Exact Dynamic Mode Decompostion
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
 def DMD_Exact(): # scaled method
@@ -288,21 +323,4 @@ plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
 plt.savefig(path+'PODIsosurfaceMeanflow.svg', dpi=300)
 plt.show()
 """
-"""
-path = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-MeanFlow = DataPost()
-MeanFlow.LoadData(path+'MeanSlice141.dat', Sep = '\t')
-print(np.size(MeanFlow.p))
-x = MeanFlow.x
-y = MeanFlow.y
-p = MeanFlow.p
-MeanFlow.LoadData(path+'MeanSlice163.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-MeanFlow.LoadData(path+'MeanSlice199.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-MeanFlow.LoadData(path+'MeanSlice236.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
-p = np.column_stack((p, MeanFlow.p))
-coeff, phi, eigval, eigvec = POD(p, path+'test0528', 1)
-"""
+

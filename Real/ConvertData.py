@@ -11,8 +11,8 @@ import plt2pandas as p2p
 
 #%% Make spanwise-averaged snapshots
 VarList  = ['x', 'y', 'z', 'u', 'v', 'w', 'p', 'T']
-FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/3/05/"
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/3/05/"
+FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/3/01/"
+OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/"
 NoBlock = 240
 dirs1 = os.listdir(FoldPath)
 dirs = os.scandir(FoldPath)
