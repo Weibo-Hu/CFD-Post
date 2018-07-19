@@ -43,23 +43,21 @@ font3 = {'family' : 'Times New Roman',
         'size' : 16,
 }
 
-path = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0419/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0419/DataPost/"
+path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path3 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
 t0 = 499.07144
-t1 = 240 #960
-t2 = 386 #
+t1 = 330 #960
+t2 = 560 #
 
 #%% Read data for Streamwise variations of frequency of a specific variable
 Probe0 = DataPost()
 xloc = [-40.0, 6.873, 13.0, 30.0]
 yloc = [0.0, -1.23726, -3.0, -3.0]
-#xloc = [-40.0, -20, 13.0, 30.0]
-#yloc = [0.0, 0.0, -3.0, -3.0]
 Probe0.LoadProbeData(xloc[0], yloc[0], 0.0, path1, Uniq = True)
 Probe0.ExtraSeries('time', t1, t2)
 #Probe0.AveAtSameXYZ('All')
@@ -88,20 +86,28 @@ ax = fig.add_subplot(411)
 xlabel = r'$x={}$'
 ytitle = r'$p/(\rho_{\infty} u_{\infty}^{2})$'
 var    = 'p'
-ax.set_title (xlabel.format(xloc[0]), fontdict = font1)
-ax.set_xlim ([t1, t2])
-ax.set_xticklabels ('')
+ax.set_title(xlabel.format(xloc[0]), fontdict = font1)
+ax.set_xlim([t1, t2])
+ax.set_xticklabels('')
 #ax.set_xlabel (r'$t u_\infty/\delta$', fontdict = font1)
 ax.set_ylabel(ytitle, fontdict = font2)
 ax.ticklabel_format(axis = 'y', useOffset = False, \
                     style = 'sci', scilimits = (-2, 2))
 #ax.text (850, 6.5, 'x=0', fontdict = font2)
-ax.grid(b=True, which = 'both', linestyle = ':')
+ax.grid(b=True, which='both', linestyle=':')
 #Probe0P = Probe0.p-BProbe0P
 #grow0, time0 = Probe0.GrowthRate(Probe0.time, Probe0P)
 #ax.plot (time0, grow0, 'k', linewidth = 1.5)
 #Probe0.AddUGrad(0.015625)
 ax.plot(Probe0.time, getattr(Probe0, var), 'k', linewidth = 1.5)
+# fit curve
+def func(t, A, B):
+    return A / t + B
+popt, pcov = Probe0.fit_func(func, Probe0.time, getattr(Probe0, var), guess=None)
+A, B = popt
+fitfunc = lambda t: A / t + B
+ax.plot(Probe0.time, fitfunc(Probe0.time), 'b', linewidth=1.5)
+
 
 ax = fig.add_subplot(412)
 ax.set_title(xlabel.format(xloc[1]), fontdict = font1)
@@ -163,7 +169,8 @@ ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 #ax.yaxis.get_major_formatter().set_powerlimits((0,1))
 ax.set_ylabel('Weighted PSD, unitless', fontdict = font1)
 ax.grid(b=True, which = 'both', linestyle = ':')
-Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var), Probe0.time, Freq_samp)
+#Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var), Probe0.time, Freq_samp)
+Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var)-fitfunc(Probe0.time), Probe0.time, Freq_samp)
 ax.semilogx(Fre0, FPSD0, 'k', linewidth = 1.5)
 #ax.psd(Probe0.p-np.mean(Probe0.p), 100, 10)
 ax = fig.add_subplot(222)

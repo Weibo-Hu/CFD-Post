@@ -28,12 +28,12 @@ matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', **font)
 
 #%% load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/3/"
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/4/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-NewFrame = DataFrame.query("x>=-5.0 & x<=8.0 & y>=-3.0 & y<=5.0")
+NewFrame = DataFrame.query("x>=-5.0 & x<=10.0 & y>=-3.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = NewFrame['x']
 yval = NewFrame['y']
@@ -44,9 +44,10 @@ with timer("Load Data"):
     Snapshots = np.vstack(
         [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
     Snapshots = Snapshots.T
+Snapshots = Snapshots[ind, :]
 m, n = np.shape(Snapshots)
 #%% POD
-timepoints = np.arange(330, 439.5 + 0.5, 0.5)
+timepoints = np.arange(330, 549.5 + 0.5, 0.5)
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
         rm.POD(Snapshots, SaveFolder, fluc='True', method='svd')
@@ -142,8 +143,8 @@ plt.show()
 
 reconstruct = phi @ coeff
 err = Snapshots - (reconstruct + np.tile(meanflow.reshape(m, 1), (1, n)))
-print("Errors of POD: ", np.linalg.norm(err))
-#%% Test POD using meaning flow
+print("Errors of POD: ", np.linalg.norm(err)/n)
+# %% Test POD using meaning flow
 def PODMeanflow(Snapshots):
     with timer("POD mean flow computing"):
         eigval, eigvec, phi, coeff = \
@@ -153,7 +154,8 @@ def PODMeanflow(Snapshots):
     x, y = np.meshgrid(np.unique(xval), np.unique(yval))
     newflow = \
         np.reshape(phi[:, ind-1], (m,1))@np.reshape(coeff[ind-1, :], (1, n))
-    u = griddata((xval, yval), np.mean(newflow, axis=1), (x, y))
+    meanflow = np.mean(newflow.real, axis=1)
+    u = griddata((xval, yval), meanflow, (x, y))
     corner = (x < 0.0) & (y < 0.0)
     u[corner] = np.nan
     matplotlib.rc('font', size=18)
@@ -199,5 +201,6 @@ def PODMeanflow(Snapshots):
     cbaxes.tick_params(labelsize=14)
     plt.savefig(path+'OrigMeanFlow.svg', bbox_inches='tight')
     plt.show()
+    print("Errors of MeanFlow: ", np.linalg.norm(meanflow - origflow)/n)
 #%% POD for mean flow
 PODMeanflow(Snapshots)
