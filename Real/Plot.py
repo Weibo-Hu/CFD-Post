@@ -16,7 +16,7 @@ from scipy.interpolate import griddata
 from scipy import signal
 from scipy.interpolate import spline
 import sys
-from DataPost import DataPost 
+from DataPost import DataPost
 #import tqdm
 #import LoadData as dt
 
@@ -89,6 +89,7 @@ ax.grid (b=True, which = 'both', linestyle = ':')
 plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
 plt.savefig(path + 'BLUPertProfile.pdf', dpi=300)
 plt.show()
+
 
 #%% Draw impose mode
 ImpMode = np.loadtxt(path+"UnstableMode.inp", skiprows = 5)
@@ -375,4 +376,3 @@ plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
 plt.savefig (path+'AllStreamwiseTimeAmplitudeVar.pdf', dpi = 300)
 plt.show ()
 """
-

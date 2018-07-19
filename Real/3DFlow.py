@@ -5,6 +5,7 @@ Created on Wed May  9 10:38:00 2018
     Plot mean flow or a slice of a 3D flow
 @author: Weibo Hu
 """
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -38,7 +39,7 @@ font2 = {'family' : 'Times New Roman',
 font3 = {'family' : 'Times New Roman',
          #'color' : 'k',
          'weight' : 'normal',
-         'size' : 16,
+         'size' : 18,
 }
 
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
@@ -66,21 +67,20 @@ rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 #%% Plot contour of the mean flow field
 corner = (x<0.0) & (y<0.0)
 rho[corner] = np.nan
-fig, ax = plt.subplots()
-rg1 = np.linspace(0.25, 1.06, 13)
+fig, ax = plt.subplots(figsize=(12, 4))
+rg1 = np.linspace(0.25, 1.06, 20)
 cbar = ax.contourf(x, y, rho, cmap = 'rainbow', levels = rg1) #rainbow_r
-ax.set_xlim(np.min(x), np.max(x))
-ax.set_ylim(np.min(y), np.max(y))
+ax.set_xlim(-10.0, 30.0)
+ax.set_ylim(-3.0, 10.0)
 ax.set_xlabel(r'$x/\delta_0$', fontdict = font3)
 ax.set_ylabel(r'$y/\delta_0$', fontdict = font3)
 #ax.grid (b=True, which = 'both', linestyle = ':')
 plt.gca().set_aspect('equal', adjustable='box')
 # Add colorbar
 rg2 = np.linspace(0.25, 1.06, 4)
-cbaxes = fig.add_axes([0.68, 0.7, 0.2, 0.07]) # x, y, width, height
+cbaxes = fig.add_axes([0.16, 0.76, 0.18, 0.07])  # x, y, width, height
 cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
-cbaxes.set_ylabel(r'$\rho/\rho_{\infty}$', \
-                  fontdict = font3, rotation = 0, labelpad = 20)
+cbar.set_label(r'$\rho/\rho_{\infty}$', rotation=0, fontdict=font3)
 # Add iosline for Mach number
 MeanFlow.AddMach()
 #ax.tricontour(MeanFlow.x, MeanFlow.y, MeanFlow.Mach, \
@@ -103,7 +103,6 @@ ax.contour(x, y, u, levels = 0.0, \
 #plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
 #ax.tick_params(axis='both', which='major', labelsize=10)
 #fig = matplotlib.pyplot.gcf()
-fig.set_size_inches(12, 4, forward=True)
 plt.savefig(path+'MeanFlow.svg', bbox_inches='tight')
 plt.show()
 
@@ -220,4 +219,3 @@ plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
 fig.set_size_inches(6, 5, forward=True)
 plt.savefig(path2+'ReynoldStress.svg', dpi = 300)
 plt.show()
-

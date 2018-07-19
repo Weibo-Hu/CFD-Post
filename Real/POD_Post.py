@@ -33,18 +33,20 @@ SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-Snapshots = DataFrame['u']
-xval = DataFrame['x']
-yval = DataFrame['y']
+NewFrame = DataFrame.query("x>=-5.0 & x<=8.0 & y>=-3.0 & y<=5.0")
+ind = NewFrame.index.values
+xval = NewFrame['x']
+yval = NewFrame['y']
+# set range to do POD and DMD: (x:-5~8, y:-3~5, make some tests)
+# (x:8~15, y:-3~3)
 del DataFrame
-for jj in range(np.size(dirs) - 1):
-    DataFrame = pd.read_hdf(InFolder + dirs[jj + 1])
-    VarVal = DataFrame['u']
-    Snapshots = np.column_stack((Snapshots, VarVal))
-    del DataFrame
+with timer("Load Data"):
+    Snapshots = np.vstack(
+        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
+    Snapshots = Snapshots.T
 m, n = np.shape(Snapshots)
 #%% POD
-timepoints = np.linspace(338, 439.5, np.size(dirs))
+timepoints = np.arange(330, 439.5 + 0.5, 0.5)
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
         rm.POD(Snapshots, SaveFolder, fluc='True', method='svd')
@@ -76,9 +78,8 @@ ax2.set_ylim([0, 100])
 ax2.set_ylabel(r'$ES_i$')
 fig1.set_size_inches(5, 4, forward=True)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.show()
 plt.savefig(path+'PODEigSpectrum.svg', bbox_inches='tight')
-
+plt.show()
 #%% specific mode in space
 ind = 1
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
@@ -99,9 +100,8 @@ cbar.cmap.set_under('b')
 cbar.cmap.set_over('r')
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
-plt.show()
 plt.savefig(path+'PODMode'+str(ind)+'.svg', bbox_inches='tight')
-
+plt.show()
 #%% First several modes with time
 plt.figure(figsize=(10, 5))
 for i in range(2):
@@ -109,9 +109,8 @@ for i in range(2):
 plt.xlabel(r'$tu_\infty/\delta_0/$')
 plt.ylabel(r'$\phi$')
 plt.grid(b=True, which='both', linestyle=':')
-plt.show()
 plt.savefig(path + 'PODModeTemp' + str(ind) + '.svg', bbox_inches='tight')
-
+plt.show()
 #%% Reconstruct flow field using POD
 tind = 0
 meanflow = np.mean(Snapshots, axis=1)
@@ -138,9 +137,12 @@ cbaxes = fig.add_axes([0.16, 0.76, 0.18, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.set_label(r'$u/u_{\infty}$', rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=14)
-plt.show()
 plt.savefig(path+'PODReconstructFlow.svg', bbox_inches='tight')
+plt.show()
 
+reconstruct = phi @ coeff
+err = Snapshots - (reconstruct + np.tile(meanflow.reshape(m, 1), (1, n)))
+print("Errors of POD: ", np.linalg.norm(err))
 #%% Test POD using meaning flow
 def PODMeanflow(Snapshots):
     with timer("POD mean flow computing"):
@@ -171,8 +173,8 @@ def PODMeanflow(Snapshots):
     cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
     cbar1.set_label(r'$u/u_{\infty}$', rotation=0, fontdict=font)
     cbaxes.tick_params(labelsize=14)
-    plt.show()
     plt.savefig(path+'PODMeanFlow.svg', bbox_inches='tight')
+    plt.show()
     #%% Original MeanFlow
     origflow = np.mean(Snapshots, axis=1)
     u = griddata((xval, yval), origflow, (x, y))
@@ -195,8 +197,7 @@ def PODMeanflow(Snapshots):
     cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
     cbar1.set_label(r'$u/u_{\infty}$', rotation=0, fontdict=font)
     cbaxes.tick_params(labelsize=14)
-    plt.show()
     plt.savefig(path+'OrigMeanFlow.svg', bbox_inches='tight')
-
+    plt.show()
 #%% POD for mean flow
 PODMeanflow(Snapshots)

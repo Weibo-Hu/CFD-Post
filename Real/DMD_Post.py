@@ -33,21 +33,20 @@ SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-Snapshots = DataFrame['u']
 xval = DataFrame['x']
 yval = DataFrame['y']
 del DataFrame
-for jj in range(np.size(dirs) - 1):
-    DataFrame = pd.read_hdf(InFolder + dirs[jj + 1])
-    VarVal = DataFrame['u']
-    Snapshots = np.column_stack((Snapshots, VarVal))
-    del DataFrame
+with timer("Load Data"):
+    Snapshots = np.vstack(
+        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
+    Snapshots = Snapshots.T
 m, n = np.shape(Snapshots)
 #%% DMD
-timepoints = np.linspace(338, 439.5, np.size(dirs))
+timepoints = np.arange(330, 484+0.5, 0.5)
 with timer("DMD computing"):
     eigval, phi, U, eigvec, residual = \
         rm.DMD_Standard(Snapshots, SaveFolder, fluc='True')
+print("The residuals of DMD is ", residual)
 coeff = rm.DMD_Amplitude(Snapshots, U, eigvec, phi, eigval) #, lstsq='False')
 dynamics = rm.DMD_Dynamics(eigval, coeff, timepoints)
 
@@ -65,9 +64,9 @@ ax1.set_ylim((-limit, limit))
 plt.xlabel(r'$\Re(\lambda)$')
 plt.ylabel(r'$\Im(\lambda)$')
 ax1.grid(b=True, which='both', linestyle=':')
-plt.show()
+plt.gca().set_aspect('equal', adjustable='box')
 plt.savefig(path + 'DMDEigSpectrum.svg', bbox_inches='tight')
-
+plt.show()
 #%% specific mode in space
 ind = 1
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
@@ -89,9 +88,8 @@ cbar.cmap.set_under('b')
 cbar.cmap.set_over('r')
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
-plt.show()
 plt.savefig(path+'DMDMode'+str(ind)+'.svg', bbox_inches='tight')
-
+plt.show()
 #%% Time evolution of each mode (first several modes)
 plt.figure(figsize=(10, 5))
 matplotlib.rc('font', size=18)
@@ -100,9 +98,8 @@ for i in range(2):
 plt.xlabel(r'$tu_\infty/\delta_0/$')
 plt.ylabel(r'$\phi$')
 plt.grid(b=True, which='both', linestyle=':')
-plt.show()
 plt.savefig(path + 'DMDModeTemp' + str(ind) + '.svg', bbox_inches='tight')
-
+plt.show()
 #%% Reconstruct flow field using DMD
 tind = 0
 N_modes = 200
@@ -110,7 +107,7 @@ reconstruct = rm.DMD_Reconstruct(phi, dynamics)
 meanflow = np.mean(Snapshots, axis=1)
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 newflow = phi[:,:N_modes]@dynamics[:N_modes, tind]
-#newflow = reconstruct[:,tind] 
+#newflow = reconstruct[:,tind]
 u = griddata((xval, yval), meanflow+newflow.real, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
@@ -131,11 +128,11 @@ cbaxes = fig.add_axes([0.16, 0.76, 0.18, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.set_label(r'$u/u_{\infty}$', rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=14)
-plt.show()
 plt.savefig(path+'DMDReconstructFlow.svg', bbox_inches='tight')
+plt.show()
+
 
 err = Snapshots - (reconstruct.real+np.tile(meanflow.reshape(m,1), (1, n)))
 print("Errors of DMD: ", np.linalg.norm(err))
 # how about residuals???
 #%% Test DMD using meaning flow
-

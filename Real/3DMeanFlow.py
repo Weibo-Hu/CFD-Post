@@ -163,7 +163,7 @@ z, y = np.meshgrid(np.unique(MeanFlowX3.z), np.unique(MeanFlowX3.y))
 omegax = griddata((MeanFlowX3.z, MeanFlowX3.y), MeanFlowX3.vorticity_1, (z, y))
 textsize = 18
 numsize = 13
-fig, ax = plt.subplots(figsize=(5, 4))
+fig, ax = plt.subplots(figsize=(4, 3))
 matplotlib.rc('font', size=textsize)
 plt.tick_params(labelsize=numsize)
 lev1 = np.linspace(-0.1, 0.1, 30)
@@ -178,29 +178,29 @@ ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 plt.gca().set_aspect('equal', adjustable='box')
 # Add colorbar
 rg2 = np.linspace(-0.1, 0.1, 5)
+cbaxes = fig.add_axes([0.16, 0.76, 0.18, 0.07])  # x, y, width, height
 ax1_divider = make_axes_locatable(ax)
-cax1 = ax1_divider.append_axes("top", size="6%", pad="12%")
-cbar2 = plt.colorbar(cbar1, cax=cax1, orientation="horizontal", ticks=rg2)
+cax1 = ax1_divider.append_axes("top", size="7%", pad="12%")
+cbar = plt.colorbar(cbar1, cax=cax1, orientation="horizontal", ticks=rg2)
 cax1.xaxis.set_ticks_position("top")
-cbar2.set_label(r'$\omega_x$', rotation=0, fontdict=font)
-plt.tick_params(labelsize=numsize)
+cbar.set_label(r'$\omega_z$', rotation=0, fontdict=font)
 # Add streamlines
-z1 = np.linspace(-2.5, 2.5, 50)
-y1 = np.linspace(-3.0, 0.0, 30)
-zbox, ybox = np.meshgrid(z1, y1)
+zbox = np.linspace(-2.5, 2.5, 50)
+ybox = np.linspace(-3.0, 0.0, 30)
 v = griddata((MeanFlowX3.z, MeanFlowX3.y), MeanFlowX3.v, (zbox, ybox))
 w = griddata((MeanFlowX3.z, MeanFlowX3.y), MeanFlowX3.w, (zbox, ybox))
 ax.set_xlim(-2.5, 2.5)
 ax.set_ylim(-3.0, 0.0)
-ax.streamplot(zbox, ybox, w, v, density=[3, 2], color='w', \
-              linewidth=0.9, arrowsize = 0.5, integration_direction='both')
+ax.streamplot(zbox, ybox, w, v, density=[2.5, 1.5], color='w', \
+              linewidth=1.0, integration_direction='both')
 plt.show()
-plt.savefig(path2 + 'vorticity1.svg', bbox_inches='tight', pad_inches=0.1)
+plt.savefig(path2 + 'vorticity1.svg', bbox_inches='tight', pad_inches=0)
+
 
 #%% Isosurface of vorticity1 criterion
 MeanFlow = DataPost()
 MeanFlow.UserDataBin(path+'MeanFlow2.h5')
-xx, yy, zz = np.mgrid[0.0:30.0:60j, -3.0:10.0:26j, -2.5:2.5:10j]
+xx, yy, zz = np.mgrid[-10.0:30.0:100j, -3.0:10.0:52j, -2.5:2.5:20j]
 vort1 = griddata((MeanFlow.x, MeanFlow.y, MeanFlow.z), \
                   MeanFlow.vorticity_1, (xx, yy, zz))
 #coord, index, normals, values = \

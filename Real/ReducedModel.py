@@ -60,7 +60,7 @@ font3 = {
 # Input: the variable of POD (fluctuations)
 # phi-each column is a mode structure
 # eigval-the amount of enery in each mode
-# alpha -time amplitude, each mode varies in time   
+# alpha -time amplitude, each mode varies in time
 def POD(var, outfile, fluc = None, method = None):
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if(n > m):
@@ -130,7 +130,7 @@ def DMD_Standard(var, outfolder, fluc = None): # scaled method
         nonzero = n-1-np.size(ind)
         V = V[:, :nonzero]
         D = D[:nonzero]
-        U = U[:, :nonzero] 
+        U = U[:, :nonzero]
     S = U.T.conj()@V2@V*np.reciprocal(D)
     eigval, eigvec = sp.linalg.eig(S)
     phi    = U@eigvec # projected dynamic modes
@@ -168,9 +168,22 @@ def DMD_Amplitude(var, U, eigvec, phi, eigval, lstsq=None):
         coeff = np.linalg.lstsq(A, b, rcond=-1)[0]
     return coeff
 
+def SPDMD_J(var, eigval, eigvec, D, V, coeff):
+    m, n = np.shape(var)
+    Vand = np.hstack([eigval.reshape(-1,1)**i for i in range(n-1)])
+    p1 = (eigvec.T.conj() @ eigvec)
+    p2 = (Vand.T.conj() @ Vand).conj()
+    P = p1 * p2
+    q1 = Vand @ V @ np.diag(D).T.conj() @ eigvec
+    q = np.diag(q1).conj()
+    ss = (np.linalg.norm(D))**2
+    Ja = coeff.T.conj@P@coeff-q.T.conj()@coeff-coeff.T.conj@q+ss
+    return Ja
+
 def DMD_Dynamics(eigval, coeff, timepoints):
     period = np.round(np.diff(timepoints), 6)
-    if(np.size(np.unique(period)) != 1):
+    if(np.size(np.unique(period)) != 1 or \
+        np.size(timepoints) != np.size(coeff) + 1):
         sys.exit("Time period is not equal!!!")
     t_samp = timepoints[1]-timepoints[0]
     lamb = np.log(eigval)/t_samp # growth rate(real part), frequency(imaginary part)
@@ -184,7 +197,7 @@ def DMD_Dynamics(eigval, coeff, timepoints):
 
 def DMD_Reconstruct(phi, dynamics):
     reconstruct = phi@dynamics
-    return(reconstruct)      
+    return(reconstruct)
 # Exact Dynamic Mode Decompostion
 # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition: theory and application
 def DMD_Exact(): # scaled method
@@ -323,4 +336,3 @@ plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
 plt.savefig(path+'PODIsosurfaceMeanflow.svg', dpi=300)
 plt.show()
 """
-
