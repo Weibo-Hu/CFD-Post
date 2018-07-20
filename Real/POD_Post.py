@@ -19,15 +19,14 @@ import os
 plt.close("All")
 plt.rc('text', usetex=True)
 font = {
-    'family': 'Times New Roman',
-    #'color' : 'k',
+    'family': 'Times New Roman',  # 'color' : 'k',
     'weight': 'normal',
 }
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', **font)
 
-#%% load data
+# %% load data
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/4/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
@@ -46,13 +45,13 @@ with timer("Load Data"):
     Snapshots = Snapshots.T
 Snapshots = Snapshots[ind, :]
 m, n = np.shape(Snapshots)
-#%% POD
+# %% POD
 timepoints = np.arange(330, 549.5 + 0.5, 0.5)
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
         rm.POD(Snapshots, SaveFolder, fluc='True', method='svd')
 
-#%% Eigvalue Spectrum
+# %% Eigvalue Spectrum
 EFrac, ECumu, N_modes = rm.POD_EigSpectrum(99, eigval)
 matplotlib.rc('font', size=14)
 fig1, ax1 = plt.subplots(figsize=(6,5))
@@ -81,7 +80,7 @@ fig1.set_size_inches(5, 4, forward=True)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
 plt.savefig(path+'PODEigSpectrum.svg', bbox_inches='tight')
 plt.show()
-#%% specific mode in space
+# %% specific mode in space
 ind = 1
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
@@ -91,9 +90,9 @@ u[corner] = np.nan
 matplotlib.rc('font', size=18)
 fig, ax = plt.subplots(figsize=(12, 4))
 lev1 = [-0.01, 0.01]
-cbar = ax.contourf(x, y, u, levels=lev1, \
-                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'), extend='both') #blue, grey, red
-ax.grid(b=True, which='both', linestyle=':')
+cbar = ax.contourf(x, y, u, levels=lev1,
+                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'), extend='both')
+ax.grid(b=True, which='both', linestyle=':')  # blue, grey, red
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
 ax.tick_params(labelsize=14)
@@ -103,7 +102,7 @@ ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 plt.savefig(path+'PODMode'+str(ind)+'.svg', bbox_inches='tight')
 plt.show()
-#%% First several modes with time
+# %% First several modes with time
 plt.figure(figsize=(10, 5))
 for i in range(2):
     plt.plot(timepoints, coeff[i, :])
@@ -112,12 +111,12 @@ plt.ylabel(r'$\phi$')
 plt.grid(b=True, which='both', linestyle=':')
 plt.savefig(path + 'PODModeTemp' + str(ind) + '.svg', bbox_inches='tight')
 plt.show()
-#%% Reconstruct flow field using POD
+# %% Reconstruct flow field using POD
 tind = 0
 meanflow = np.mean(Snapshots, axis=1)
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
-newflow = phi[:,:N_modes]@coeff[:N_modes, tind] #\
-#    np.reshape(phi[:, ind-1], (m,1))@np.reshape(coeff[ind-1, :], (1, n))
+newflow = phi[:,:N_modes]@coeff[:N_modes, tind]  
+# np.reshape(phi[:, ind-1], (m,1))@np.reshape(coeff[ind-1, :], (1, n))
 u = griddata((xval, yval), meanflow+newflow, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
@@ -146,6 +145,7 @@ err = Snapshots - (reconstruct + np.tile(meanflow.reshape(m, 1), (1, n)))
 print("Errors of POD: ", np.linalg.norm(err)/n)
 # %% Test POD using meaning flow
 def PODMeanflow(Snapshots):
+    
     with timer("POD mean flow computing"):
         eigval, eigvec, phi, coeff = \
             rm.POD(Snapshots, SaveFolder, method='svd')

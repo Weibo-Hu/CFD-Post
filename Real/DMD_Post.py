@@ -12,21 +12,20 @@ import numpy as np
 import pandas as pd
 from timer import timer
 from DMD import DMD
-from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from scipy.interpolate import griddata
 import os
 
 plt.close("All")
 plt.rc('text', usetex=True)
 font = {
-    'family': 'Times New Roman',  #'color' : 'k',
+    'family': 'Times New Roman',  # 'color' : 'k',
     'weight': 'normal',
 }
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', **font)
 
-#%% load data
+# %% load data
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/4/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
@@ -43,7 +42,7 @@ with timer("Load Data"):
     Snapshots = Snapshots.T
 Snapshots = Snapshots[ind, :]
 m, n = np.shape(Snapshots)
-#%% DMD
+# %% DMD
 timepoints = np.arange(440, 549.5+0.5, 0.5)
 test1 = DMD(Snapshots)
 with timer("DMD computing"):
@@ -51,17 +50,18 @@ with timer("DMD computing"):
 print("The residuals of DMD is ", residual)
 coeff = test1.dmd_amplitude()
 dynamics = test1.dmd_dynamics(timepoints)
-#with timer("DMD computing"):
-#    eigval, phi, U, eigvec, residual = \
-#        rm.DMD_Standard(Snapshots, SaveFolder, fluc='True')
-#print("The residuals of DMD is ", residual)
-#coeff = rm.DMD_Amplitude(Snapshots, U, eigvec, phi, eigval) #, lstsq='False')
-#dynamics = rm.DMD_Dynamics(eigval, coeff, timepoints)
-
-#%% Eigvalue Spectrum
+coeff = test1.SPDMD_J()
+# with timer("DMD computing"):
+#     eigval, phi, U, eigvec, residual = \
+#         rm.DMD_Standard(Snapshots, SaveFolder, fluc='True')
+# print("The residuals of DMD is ", residual)
+# coeff = rm.DMD_Amplitude(Snapshots, U, eigvec, phi, eigval) #, lstsq='False')
+# dynamics = rm.DMD_Dynamics(eigval, coeff, timepoints)
+ 
+# %% Eigvalue Spectrum
 matplotlib.rc('font', size=14)
 fig1, ax1 = plt.subplots(figsize=(6, 6))
-unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False, \
+unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
                          label='unit circle', linewidth=5.0, alpha=0.7)
 ax1.add_artist(unit_circle)
 ax1.scatter(eigval.real, eigval.imag, marker='o',\
@@ -75,7 +75,7 @@ ax1.grid(b=True, which='both', linestyle=':')
 plt.gca().set_aspect('equal', adjustable='box')
 plt.savefig(path + 'DMDEigSpectrum.svg', bbox_inches='tight')
 plt.show()
-#%% specific mode in space
+# %% specific mode in space
 ind = 1
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 modeflow = phi[:, ind - 1].real*coeff[ind - 1].real
@@ -98,7 +98,7 @@ ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 plt.savefig(path+'DMDMode'+str(ind)+'.svg', bbox_inches='tight')
 plt.show()
-#%% Time evolution of each mode (first several modes)
+# %% Time evolution of each mode (first several modes)
 plt.figure(figsize=(10, 5))
 matplotlib.rc('font', size=18)
 for i in range(2):
@@ -108,7 +108,7 @@ plt.ylabel(r'$\phi$')
 plt.grid(b=True, which='both', linestyle=':')
 plt.savefig(path + 'DMDModeTemp' + str(ind) + '.svg', bbox_inches='tight')
 plt.show()
-#%% Reconstruct flow field using DMD
+# %% Reconstruct flow field using DMD
 tind = 0
 N_modes = np.shape(phi)[1]
 reconstruct = test1.dmd_reconstruct(phi, dynamics)
@@ -157,7 +157,7 @@ def DMDMeanflow(Snapshots):
     newflow = phi @ dynamics
     meanflow = np.mean(newflow.real, axis=1)
     #newflow = reconstruct[:,tind]
-    u = griddata((xval, yval), newflow.real, (x, y))
+    u = griddata((xval, yval), meanflow, (x, y))
     corner = (x < 0.0) & (y < 0.0)
     u[corner] = np.nan
     matplotlib.rc('font', size=18)
@@ -179,7 +179,7 @@ def DMDMeanflow(Snapshots):
     cbaxes.tick_params(labelsize=14)
     plt.savefig(path + 'DMDMeanFlow.svg', bbox_inches='tight')
     plt.show()
-    #%% Original Meanflow
+    # %% Original Meanflow
     origflow = np.mean(Snapshots, axis=1)
     u = griddata((xval, yval), origflow, (x, y))
     corner = (x < 0.0) & (y < 0.0)
