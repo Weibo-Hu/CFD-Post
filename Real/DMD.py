@@ -8,9 +8,8 @@ Created on Tue Jul 18 10:24:50 2018
 import numpy as np
 import scipy as sp
 import warnings
-import pandas as pd
-from numpy.core.umath_tests import inner1d
 import sys
+from progressbar import ProgressBar, Percentage, Bar
 
 
 class DMD(object):
@@ -20,6 +19,7 @@ class DMD(object):
         self.modes = None
         self.snapshots = snapshots
         self.amplit = None
+        self.Vand = None
         self.dynamics = None
         self.residual = 0
         self.s = 0.0
@@ -29,11 +29,18 @@ class DMD(object):
         self.Prho = None
         self.eps_abs = 1.e-6
         self.eps_rel = 1.e-4
-        self.gamma = np.logspace(-2, 6, 100)
+        self.gamma = np.logspace(-2, 6, 50)
+        self.spdmd = None
+        self.spdmd_nmodes = None
+        self.spdmd_modes = None
+        self.spdmd_amplit = None
+        self.spdmd_Vand = None
+        self.spdmd_reconstruct = None
+        self.spdmd_loss = None
         self.r = 0.0
         self.ng = 0.0
-        self._dim = 0
-        self._tn = 0
+        self._dim = np.shape(self.snapshots)[0]
+        self._tn = np.shape(self.snapshots)[1]
         self._U = None
         self._V = None
         self._VH = None
@@ -52,6 +59,12 @@ class DMD(object):
     def U(self):
         return self._U
 
+    @property
+    def dmd_residual(self):
+        V1 = self.modes @ self.dynamics
+        resid = V1 - self.snapshots[:, :-1]
+        return (np.linalg.norm(resid))
+
     def dmd_standard(self, fluc=None):
         """
         U D VH = V1
@@ -59,11 +72,11 @@ class DMD(object):
         D: the sigular values, it is a 1d array in python
         V: the right singular vectors, VH = V.T.conj()
         """
-        snapshots = self.snapshots
         tn = self.tn
         if fluc == 'True':
-            snapshots = snapshots - np.transpose(
-                np.tile(np.mean(snapshots, axis=1), (tn, 1)))
+            self.snapshots = self.snapshots - np.transpose(
+                np.tile(np.mean(self.snapshots, axis=1), (tn, 1)))
+        snapshots = self.snapshots
         V1 = snapshots[:, :-1]
         V2 = snapshots[:, 1:]
         U, D, VH = sp.linalg.svd(V1, full_matrices=False)  # use min(m, n)
@@ -71,25 +84,21 @@ class DMD(object):
         DM = np.diag(D)
         rank = np.linalg.matrix_rank(DM)
         if np.size(D) != rank:
-            print("There are " + str(np.size(D) - rank) +
-                  " zero-value singular value!!!")
+            warnings.warn("There are " + str(np.size(D) - rank) +
+                          " zero-value singular value!!!")
             V = V[:, :rank]
             D = D[:rank]
             U = U[:, :rank]
         S = U.T.conj() @ V2 @ V * np.reciprocal(D)
         self.eigval, self.eigvec = sp.linalg.eig(S)
         self.modes = U @ self.eigvec  # projected dynamic modes
-        if np.size(D) != rank:
-            self.residual = np.linalg.norm(
-                V2[:, :rank] - V1[:, :rank] @ S) / tn
-        else:
-            self.residual = np.linalg.norm(V2 - V1 @ S) / tn
+
         self._U = U
         self._D = D
         self._V = V
         self._VH = V.T.conj()
         self._DM = DM
-        return (self.eigval, self.modes, self.residual)
+        return (self.eigval, self.modes)
 
     # convex optimization problem
     def dmd_amplitude(self, opt=None):
@@ -108,27 +117,31 @@ class DMD(object):
             self.amplit = np.linalg.lstsq(A, b, rcond=-1)[0]
         return self.amplit
 
+
     def dmd_dynamics(self, timepoints):
         period = np.round(np.diff(timepoints), 6)
         if (np.size(np.unique(period)) != 1):
             sys.exit("Time period is not equal!!!")
-        t_samp = timepoints[1] - timepoints[0]
-        # growth rate(real part), frequency(imaginary part)
-        lamb = np.log(
-            self.eigval) / t_samp
-        m = np.size(lamb)
-        n = np.size(timepoints)
-        TimeGrid = np.transpose(np.tile(timepoints, (m, 1)))
-        LambGrid = np.tile(lamb, (n, 1))
-        OmegaT = LambGrid * TimeGrid  # element wise multiply
-        self.dynamics = np.transpose(np.exp(OmegaT) * self.amplit)
+        # t_samp = timepoints[1] - timepoints[0]
+        # # growth rate(real part), frequency(imaginary part)
+        # lamb = np.log(
+        #     self.eigval) / t_samp
+        # m = np.size(lamb)
+        # n = np.size(timepoints)
+        # TimeGrid = np.transpose(np.tile(timepoints[:-1], (m, 1)))
+        # LambGrid = np.tile(lamb, (n-1, 1))
+        # OmegaT = LambGrid * TimeGrid  # element wise multiply
+        # self.dynamics = np.transpose(np.exp(OmegaT) * self.amplit)
+        self.Vand = np.vander(self.eigval, self.tn - 1, increasing=True)
+        self.dynamics = np.diag(self.amplit) @ self.Vand
         return self.dynamics
 
-    def spdmd_j(self):
+    def spdmd_amplitude(self):
         tn = self.tn
         # coeff = self.amplit
         # Vand = np.hstack([self.eigval.reshape(-1,1)**i for i in range(tn-1)])
-        Vand = np.vander(self.eigval, tn-1, increasing=True)
+        self.Vand = np.vander(self.eigval, self.tn - 1, increasing=True)
+        Vand = self.Vand
         # Determine optimal vector of amplitudes (amplit)
         # Objective: minimize the least-squares deviation between
         # the matrix of snapshots V1 and the linear combination of
@@ -140,14 +153,18 @@ class DMD(object):
         q = np.diag(Vand @ self._V @ self._DM.T.conj() @ self.eigvec).conj()
         ss = (np.linalg.norm(self._D))**2
         # ss = np.trace(self._DM.T.conj() @ self._DM)
-        # self.Ja = coeff.T.conj@P@coeff-q.T.conj()@coeff-coeff.T.conj@q+ss
+        # Opitmal vector of amplitudes (amplit)
+        # amplit = P^-1 q (P amplit = q)
         self.amplit = sp.linalg.cho_solve(sp.linalg.cho_factor(P), q)
         self.q = q
         self.P = P
         self.s = ss
         return self.amplit
 
-    def spdmd(self, maxiter=None, gamma=None, rho=None,
+
+    # Ref: Jovanovic H. T., et. al.-2014
+    # Sparsity-promoting dynamic mode decomposition
+    def compute_spdmd(self, maxiter=None, gamma=None, rho=None,
               eps_abs=None, eps_rel=None):
         if eps_abs is not None:
             self.eps_abs = eps_abs
@@ -159,25 +176,32 @@ class DMD(object):
             self.gamma = gamma
         if maxiter is not None:
             self.maxiter = maxiter
-
+        # Appendix B
         self.r = len(self.q)
-        self.ng = len(gamma)
-        self.Prho = self.Prho = self.P + (self.rho / 2.0) * np.identity(self.r)
-        self.maxiter = maxiter
+        self.ng = len(self.gamma)
+        self.Prho = self.P + (self.rho / 2.0) * np.identity(self.r)
         answer = SparseAnswer(self.r, self.ng)
-        answer.gamma = gamma
-
-        for i, gammaval in enumerate(gamma):
+        answer.gamma = self.gamma
+        widgets = ['SPDMD iteration:', Percentage(), ' ',
+                    Bar(marker='>', left='[', right=']')]
+        pbar = ProgressBar(widgets=widgets, maxval=np.size(self.gamma))
+        pbar.start()
+        for i, gammaval in enumerate(self.gamma):
+            # find a sparisty structure which achieves a tradeoff between
+            # the number of the modes and the approximation error
             ret = self.optimize_gamma(gammaval)
-            answer.xsp[:, i] = ret['xsp']
-            answer.xpol[:, i] = ret['xpol']
+            answer.amplit[:, i] = ret['xsp']
+            answer.PolAmplit[:, i] = ret['xpol']
             answer.Nz[i] = ret['Nz']
-            answer.Jsp[i] = ret['Jsp']
-            answer.Jpol[i] = ret['Jpol']
-            answer.Ploss[i] = ret['Ploss']
-        answer.nonzero[:] = answer.xsp != 0
+            answer.Ja[i] = ret['Jsp']
+            answer.PolJa[i] = ret['Jpol']
+            answer.PolLoss[i] = ret['Ploss']
+            pbar.update(i)
+        pbar.finish()
+        answer.nonzero[:] = answer.amplit != 0
+        self.spdmd = answer
 
-        return answer
+        return self.spdmd
 
     def optimize_gamma(self, gamma):
         """
@@ -188,22 +212,22 @@ class DMD(object):
         The second constraint is satisfied using KKT_solve.
         """
         # 1. use ADMM to solve the gamma-parameterized problem
-        # minimiszing J with initial conditions z0, y0
-        y0 = np.zeros(self.r)  # Lagrange multiplier
-        z0 = np.zeros(self.r)  # initial amplitudes
-        z = self.admm(z0, y0, gamma)
+        # minimiszing J with initial conditions z0,y0 (seek sparsity structure)
+        lambda0 = np.zeros(self.r)  # Lagrange multiplier
+        beta0 = np.zeros(self.r)  # initial amplitudes
+        beta = self.admm(beta0, lambda0, gamma)  # (alpha = beta)
         # 2. use the minimized amplitudes as the input to the sparsity
-        # contraint to create a vector of polished (optimal) amplitudes
-        xpol = self.KKT_solve(z)[:self.r]
+        # contraint to create a vector of polished (optimal) amplitudes (fix)
+        alpha = self.KKT_solve(beta)[:self.r]
         # outputs that we are intrested
-        sparse_amplitudes = z  # vector of amplitudes
-        num_nonzero = (z != 0).sum()  # number of non-zero amplitudes
-        residuals = self.spdmd_resid(z)  # least squares residual
+        sparse_amplitudes = beta  # vector of amplitudes
+        num_nonzero = (beta != 0).sum()  # number of non-zero amplitudes
+        residuals = self.spdmd_residual(beta)  # least squares residual
 
         # Vector of polished (optimal) amplitudes
-        polished_amplitudes = xpol
+        polished_amplitudes = alpha
         # Polished (optimal) least-squares residual
-        polished_residual = self.spdmd_resid(xpol)
+        polished_residual = self.spdmd_residual(alpha)
         # Polished (optimal) performance loss
         polished_performance_loss = 100 * \
             np.sqrt(polished_residual / self.s)
@@ -218,7 +242,8 @@ class DMD(object):
         }
 
     def admm(self, z, y, gamma):
-        """Alternating direction method of multipliers."""
+        """Alternating direction method of multipliers. 
+        Sec. III A, Appendix B"""
         # There are two complexity sources:
         # 1. the matrix solver. I can't see how this can get any
         #    faster (tested with Intel MKL on Canopy).
@@ -270,7 +295,9 @@ class DMD(object):
 
     def KKT_solve(self, z):
         """
+        Fix the sparsity structure 
         Polish of the sparse vector z , seek solution to E^T z = 0
+        Appendix C
         """
         ind_zero = abs(z) < 1.e-12  # ignore zero elements of z
         m = ind_zero.sum()
@@ -280,27 +307,46 @@ class DMD(object):
                          np.hstack((E.T.conj(), np.zeros((m, m))))
                          ))
         rhs = np.hstack((self.q, np.zeros(m)))
-        # solve KKT system
+        # solve KKT system (Appendix C)
         return sp.linalg.solve(KKT, rhs)
 
-    def spdmd_resid(self, x):
+    def spdmd_residual(self, x):
         """Calculate the residuals from a minimised
         vector of amplitudes x.
         """
-        # conjugate transpose
-        x_ = x.T.conj()
-        q_ = self.q.T.conj()
+        # qstar @ x = xstar @ q
+        xstar = x.T.conj()
+        Ja = xstar @ self.P @ x - 2 * xstar @ self.q + self.s
 
-        x_P = np.dot(x_, self.P)
-        x_Px = np.dot(x_P, x)
-        q_x = np.dot(q_, x)
-
-        return x_Px.real - 2 * q_x.real + self.s
+        return Ja
 
     @staticmethod
-    def dmd_reconstruct(modes, dynamics):
-        reconstruct = modes @ dynamics
+    def reconstruct(modes, amplitude, Vand):
+        reconstruct = modes @ np.diag(amplitude) @ Vand
+        # dynamics = amplitude @ Vand
         return (reconstruct)
+
+    def spdmd_reconstruct(self, ind):
+        """Reconstruction of the snapshots based on the selected 
+        number of modes, given the index of gamma array
+        """
+        # the reconstructed data via spdmd
+        Damplit = np.diag(self.spdmd.PolAmplit[:, ind])
+        sp_reconst = self.modes @ Damplit @ self.Vand
+        # the selected modes and corresponding parameters
+        # the index of non zero amplitudes
+        nonzero = self.spdmd.nonzero[:, ind]
+        self.spdmd_nmodes = self.spdmd.Nz[ind]
+        self.spdmd_modes = self.modes[:, nonzero]
+        self.spdmd_amplit = self.spdmd.PolAmplit[nonzero, ind]
+        self.spdmd_Vand = self.Vand[nonzero, :]
+        self.spdmd_loss = self.spdmd.PolLoss[ind]
+        # actually, self.spdmd_reconstruct == sp_reconst
+        # zero value amplitudes almost still remain zero after polished
+        self.spdmd_reconstruct = \
+            self.spdmd_modes @ np.diag(self.spdmd_amplit) @ self.spdmd_Vand
+
+        return (sp_reconst)
 
     # Exact Dynamic Mode Decompostion
     # Ref: Jonathan H. T., et. al.-On dynamic mode decomposition:
@@ -348,17 +394,17 @@ class SparseAnswer(object):
         # number of non-zero amplitudes
         self.Nz = np.zeros(ng)
         # square of frobenius norm (before polishing)
-        self.Jsp = np.zeros(ng, dtype=np.complex)
+        self.Ja = np.zeros(ng, dtype=np.complex)
         # square of frobenius norm (after polishing)
-        self.Jpol = np.zeros(ng, dtype=np.complex)
+        self.PolJa = np.zeros(ng, dtype=np.complex)
         # optimal performance loss (after polishing)
-        self.Ploss = np.zeros(ng, dtype=np.complex)
+        self.PolLoss = np.zeros(ng, dtype=np.complex)
         # vector of amplitudes (before polishing)
-        self.xsp = np.zeros((n, ng), dtype=np.complex)
+        self.amplit = np.zeros((n, ng), dtype=np.complex)
         # vector of amplitudes (after polishing)
-        self.xpol = np.zeros((n, ng), dtype=np.complex)
+        self.PolAmplit = np.zeros((n, ng), dtype=np.complex)
 
     @property
     def nonzero(self):
         """where amplitudes are nonzero"""
-        return self.xsp != 0
+        return self.amplit != 0

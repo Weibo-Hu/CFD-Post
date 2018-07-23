@@ -41,30 +41,41 @@ with timer("Load Data"):
         [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
     Snapshots = Snapshots.T
 Snapshots = Snapshots[ind, :]
-m, n = np.shape(Snapshots)
+
+Snapshots1 = Snapshots[:,:-1]
+m, n = np.shape(Snapshots1)
 # %% DMD
 timepoints = np.arange(440, 549.5+0.5, 0.5)
 test1 = DMD(Snapshots)
 with timer("DMD computing"):
-    eigval, phi, residual = test1.dmd_standard(fluc='True')
-print("The residuals of DMD is ", residual)
+    eigval, phi = test1.dmd_standard(fluc='True')
+
 coeff = test1.dmd_amplitude()
 dynamics = test1.dmd_dynamics(timepoints)
-coeff = test1.SPDMD_J()
+residual = test1.dmd_residual
+print("The residuals of DMD is ", residual)
+
+with timer("Precompute SPDMD amplitudes"):
+    coeff1 = test1.spdmd_amplitude()
+
+gamma = np.logspace(0, 3, 10)
+with timer("SPDMD computing"):
+    ans = test1.compute_spdmd(gamma = gamma)
+
 # with timer("DMD computing"):
 #     eigval, phi, U, eigvec, residual = \
 #         rm.DMD_Standard(Snapshots, SaveFolder, fluc='True')
 # print("The residuals of DMD is ", residual)
 # coeff = rm.DMD_Amplitude(Snapshots, U, eigvec, phi, eigval) #, lstsq='False')
 # dynamics = rm.DMD_Dynamics(eigval, coeff, timepoints)
- 
+
 # %% Eigvalue Spectrum
 matplotlib.rc('font', size=14)
 fig1, ax1 = plt.subplots(figsize=(6, 6))
 unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
                          label='unit circle', linewidth=5.0, alpha=0.7)
 ax1.add_artist(unit_circle)
-ax1.scatter(eigval.real, eigval.imag, marker='o',\
+ax1.scatter(eigval.real, eigval.imag, marker='o',
             facecolor='none', edgecolors='k', s=18)
 limit = np.max(np.absolute(eigval))+0.1
 ax1.set_xlim((-limit, limit))
@@ -85,9 +96,11 @@ u[corner] = np.nan
 matplotlib.rc('font', size=18)
 fig, ax = plt.subplots(figsize=(12, 4))
 lev1 = [-0.01, 0.01]
-cbar = ax.contourf(x, y, u, levels=lev1, \
-                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'), extend='both') #blue, grey, red
-cbar = ax.contourf(x, y, u, colors=('#66ccff', '#e6e6e6', '#ff4d4d')) #blue, grey, red
+cbar = ax.contourf(x, y, u, levels=lev1,
+                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'),
+                   extend='both')  # blue, grey, red
+cbar = ax.contourf(x, y, u,
+                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
 ax.grid(b=True, which='both', linestyle=':')
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
@@ -102,7 +115,7 @@ plt.show()
 plt.figure(figsize=(10, 5))
 matplotlib.rc('font', size=18)
 for i in range(2):
-    plt.plot(timepoints, dynamics[ind-1,:].real*phi[0,ind-1].real)
+    plt.plot(timepoints[:-1], dynamics[ind-1, :].real*phi[0, ind-1].real)
 plt.xlabel(r'$tu_\infty/\delta_0/$')
 plt.ylabel(r'$\phi$')
 plt.grid(b=True, which='both', linestyle=':')
@@ -111,11 +124,11 @@ plt.show()
 # %% Reconstruct flow field using DMD
 tind = 0
 N_modes = np.shape(phi)[1]
-reconstruct = test1.dmd_reconstruct(phi, dynamics)
+reconstruct = test1.reconstruct(test1.modes, test1.amplit, test1.Vand)
 meanflow = np.mean(Snapshots, axis=1)
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
-newflow = phi[:,:N_modes]@dynamics[:N_modes, tind]
-#newflow = reconstruct[:,tind]
+newflow = phi[:, :N_modes]@dynamics[:N_modes, tind]
+# newflow = reconstruct[:,tind]
 u = griddata((xval, yval), meanflow+newflow.real, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
@@ -139,24 +152,28 @@ cbaxes.tick_params(labelsize=14)
 plt.savefig(path+'DMDReconstructFlow.svg', bbox_inches='tight')
 plt.show()
 
-err = Snapshots - (reconstruct.real+np.tile(meanflow.reshape(m,1), (1, n)))
+err = Snapshots1 - (reconstruct.real+np.tile(meanflow.reshape(m, 1), (1, n)))
 print("Errors of DMD: ", np.linalg.norm(err)/n)
 # how about residuals???
+
+
 # %% Test DMD using meaning flow
 def DMDMeanflow(Snapshots):
     flow = DMD(Snapshots)
-    m, n = np.shape(Snapshots)
+    n = np.shape(Snapshots)[1]
     with timer("DMD computing"):
-        eigval, phi, residual = flow.dmd_standard()
-    print("The residuals of DMD is ", residual)
+        eigval, phi = flow.dmd_standard()
+    
     coeff = flow.dmd_amplitude()
     dynamics = flow.dmd_dynamics(timepoints)
+    residual = flow.dmd_residual
+    print("The residuals of DMD is ", residual)
     # Reconstruct flow field using DMD
-    tind = 0
+    # tind = 0
     x, y = np.meshgrid(np.unique(xval), np.unique(yval))
     newflow = phi @ dynamics
     meanflow = np.mean(newflow.real, axis=1)
-    #newflow = reconstruct[:,tind]
+    # newflow = reconstruct[:,tind]
     u = griddata((xval, yval), meanflow, (x, y))
     corner = (x < 0.0) & (y < 0.0)
     u[corner] = np.nan
@@ -179,7 +196,7 @@ def DMDMeanflow(Snapshots):
     cbaxes.tick_params(labelsize=14)
     plt.savefig(path + 'DMDMeanFlow.svg', bbox_inches='tight')
     plt.show()
-    # %% Original Meanflow
+    ## Original Meanflow
     origflow = np.mean(Snapshots, axis=1)
     u = griddata((xval, yval), origflow, (x, y))
     corner = (x < 0.0) & (y < 0.0)
@@ -187,7 +204,7 @@ def DMDMeanflow(Snapshots):
     matplotlib.rc('font', size=18)
     fig, ax = plt.subplots(figsize=(12, 4))
     lev1 = np.linspace(-0.20, 1.15, 18)
-    cbar = ax.contourf(x, y, u, cmap='rainbow', levels=lev1)  #, extend="both")
+    cbar = ax.contourf(x, y, u, cmap='rainbow', levels=lev1)  # ,extend="both")
     ax.set_xlim(-10.0, 30.0)
     ax.set_ylim(-3.0, 10.0)
     ax.tick_params(labelsize=14)
@@ -204,5 +221,7 @@ def DMDMeanflow(Snapshots):
     plt.savefig(path + 'OrigMeanFlow.svg', bbox_inches='tight')
     plt.show()
     print("Errors of MeanFlow: ", np.linalg.norm(meanflow-origflow)/n)
-# %% DMD for mean flow
-DMDMeanflow(Snapshots)
+
+
+#  DMD for mean flow
+DMDMeanflow(Snapshots1)
