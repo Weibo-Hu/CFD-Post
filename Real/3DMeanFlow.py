@@ -91,8 +91,8 @@ box = patches.Rectangle((2.0, -2.0), 3.5, 1.5, linewidth=1, \
                         linestyle='--', edgecolor='k', facecolor='none')
 ax.add_patch(box)
 plt.tick_params(labelsize=numsize)
-plt.show()
 plt.savefig(path2+'Vorticity3.svg', bbox_inches='tight')
+plt.show()
 
 #%% Zoom box for streamline
 fig, ax = plt.subplots(figsize=(7,3))
@@ -109,9 +109,8 @@ v  = griddata((MeanFlowZ0.x, MeanFlowZ0.y), MeanFlowZ0.v, (xbox, ybox))
 ax.streamplot(xbox, ybox, u, v, density=[1.5, 1.5], color='w', \
               linewidth=1.0, integration_direction='both')
 plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
-plt.show()
 plt.savefig(path2+'V3ZoomBox.svg', bbox_inches='tight', pad_inches=0)
-
+plt.show()
 #%% Preprocess the data in the xz plane (y=-0.5)
 #MeanFlow = DataPost()
 #MeanFlow.UserDataBin(path+'MeanFlow2.h5')

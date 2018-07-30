@@ -5,7 +5,7 @@ Created on Wed May  9 10:38:00 2018
     Plot mean flow or a slice of a 3D flow
 @author: Weibo Hu
 """
-#%%
+# %%
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -45,26 +45,26 @@ font3 = {'family' : 'Times New Roman',
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
 path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
-#path3 = "D:/ownCloud/0509/Data/"
+# path3 = "D:/ownCloud/0509/Data/"
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', **font1)
 
-#%% Import Data
+# %% Import Data
 MeanFlow = DataPost()
-#VarName  = ['x', 'y', 'z', 'u', 'v', 'w', \
+# VarName  = ['x', 'y', 'z', 'u', 'v', 'w', \
 #            'rho', 'p', 'Q_crit', 'Mach', 'T']
-#MeanFlow.UserData(VarName, path+'t401.txt', 1, Sep = '\t')
-#MeanFlow.SpanAve(path+'MeanSlice260.dat')
-#MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
-#%%
+# MeanFlow.UserData(VarName, path+'t401.txt', 1, Sep = '\t')
+# MeanFlow.SpanAve(path+'MeanSlice260.dat')
+# MeanFlow.LoadData(path+'MeanSlice260.dat', Sep = '\t')
+# %%
 VarName  = ['x', 'y', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', \
-            'uv', 'uw', 'vv', 'vw', 'ww', 'Q-criterion']
+            'uv', 'uw', 'vv', 'vw', 'ww', 'Q-criterion', 'L2-criterion']
 MeanFlow.UserData(VarName, path+'Meanflow.dat', 1, Sep = '\t')
-#MeanFlow.UserDataBin(VarName, path+'Meanflow.h5')
+# MeanFlow.UserDataBin(VarName, path+'Meanflow.h5')
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
-#%% Plot contour of the mean flow field
+# %% Plot contour of the mean flow field
 corner = (x<0.0) & (y<0.0)
 rho[corner] = np.nan
 fig, ax = plt.subplots(figsize=(12, 4))
@@ -74,7 +74,7 @@ ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
 ax.set_xlabel(r'$x/\delta_0$', fontdict = font3)
 ax.set_ylabel(r'$y/\delta_0$', fontdict = font3)
-#ax.grid (b=True, which = 'both', linestyle = ':')
+# ax.grid (b=True, which = 'both', linestyle = ':')
 plt.gca().set_aspect('equal', adjustable='box')
 # Add colorbar
 rg2 = np.linspace(0.25, 1.06, 4)
@@ -83,12 +83,12 @@ cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
 cbar.set_label(r'$\rho/\rho_{\infty}$', rotation=0, fontdict=font3)
 # Add iosline for Mach number
 MeanFlow.AddMach()
-#ax.tricontour(MeanFlow.x, MeanFlow.y, MeanFlow.Mach, \
-#              levels = 1.0, linewidths=1.2, colors='grey')
+ax.tricontour(MeanFlow.x, MeanFlow.y, MeanFlow.Mach,
+              levels = 1.0, linewidths=1.2, colors='w')
 # Add isoline for boudary layer edge
 u  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
 umax = u[-1,:]
-#umax = np.amax(u, axis = 0)
+# umax = np.amax(u, axis = 0)
 rg2  = (x[1,:]<16.0) # in front of the shock wave
 umax[rg2] = 1.0
 rg1  = (x[1,:]>=16.0)
@@ -100,13 +100,13 @@ u[rg1]     = np.nan
 ax.contour(x, y, u, levels = 0.99, linewidths = 1.2, colors='k')
 ax.contour(x, y, u, levels = 0.0, \
         linewidths = 1.2, linestyles = 'dashed', colors='k')
-#plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
-#ax.tick_params(axis='both', which='major', labelsize=10)
-#fig = matplotlib.pyplot.gcf()
+# plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 0.2)
+# ax.tick_params(axis='both', which='major', labelsize=10)
+# fig = matplotlib.pyplot.gcf()
 plt.savefig(path+'MeanFlow.svg', bbox_inches='tight')
 plt.show()
 
-#%% Plot streamwise skin friction
+# %% Plot streamwise skin friction
 MeanFlow.AddWallDist(3.0)
 WallFlow = MeanFlow.DataTab.groupby("x", as_index=False).nth(1)
 mu = fv.Viscosity(13718, WallFlow['T'])
@@ -123,7 +123,7 @@ fig2.set_size_inches(6, 5, forward=True)
 plt.savefig(path2+'Cf.pdf', dpi = 300)
 plt.show()
 
-#%% pressure coefficiency
+# %% pressure coefficiency
 fig3, ax3 = plt.subplots()
 ax3.plot(WallFlow['x'], WallFlow['p'], 'k', linewidth = 1.5)
 ax3.set_xlabel(r'$x/\delta_0$', fontdict = font3)
@@ -136,7 +136,7 @@ fig2.set_size_inches(6, 5, forward=True)
 plt.savefig(path2+'Cp.pdf', dpi = 300)
 plt.show()
 
-#%% Draw boundary layer profile along streamwise
+# %% Draw boundary layer profile along streamwise
 minorLocator = MultipleLocator(10)
 xlocations = np.array([-40, -20, 0, 10, 20, 50, 60])
 fig1 = plt.figure()
@@ -164,58 +164,4 @@ fig1.set_size_inches(10, 4, forward=True)
 plt.savefig(path2+'StreamwiseBLProfile.pdf', dpi = 300)
 plt.show()
 
-#%% Compare van Driest transformed mean velocity profile
-x0 = 35.0
-MeanFlow.AddMu(13718)
-BLProf = copy.copy(MeanFlow)
-BLProf.ExtraSeries('x', x0, x0)
-#BLProf.SpanAve()
-StdUPlus1, StdUPlus2 = fv.StdWallLaw()
-ExpUPlus = fv.ExpWallLaw()[0]
-CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
-fig, ax = plt.subplots()
-ax.plot(StdUPlus1[:,0], StdUPlus1[:,1], 'k--', \
-            StdUPlus2[:,0], StdUPlus2[:,1], 'k--', linewidth = 1.5)
-ax.scatter(ExpUPlus[:,0], ExpUPlus[:,1], linewidth = 0.8, \
-           s = 8.0, facecolor = "none", edgecolor = 'gray')
-ax.plot(CalUPlus[:,0], CalUPlus[:,1], 'k', linewidth = 1.5)
-ax.set_xscale('log')
-ax.set_xlim([1, 3000])
-ax.set_ylim([0, 30])
-ax.set_ylabel (r'$\langle u_{VD}^+ \rangle$', fontdict = font3)
-ax.set_xlabel (r'$\Delta y^+$', fontdict = font3)
-ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
-ax.grid(b=True, which = 'both', linestyle = ':')
-plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
-fig.set_size_inches(6, 5, forward=True)
-plt.savefig(path2+'WallLaw.pdf', dpi = 300)
-plt.show()
 
-#%% Compare Reynolds stresses in Morkovin scaling
-ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
-    fv.ExpWallLaw()
-fig, ax = plt.subplots()
-ax.scatter(ExpUrmsPlus[:,0], ExpUrmsPlus[:,1], linewidth = 0.8, \
-           s = 8.0, facecolor = "none", edgecolor = 'gray')
-ax.scatter(ExpVrmsPlus[:,0], ExpVrmsPlus[:,1], linewidth = 0.8, \
-           s = 8.0, facecolor = "none", edgecolor = 'gray')
-ax.scatter(ExpWrmsPlus[:,0], ExpWrmsPlus[:,1], linewidth = 0.8, \
-           s = 8.0, facecolor = "none", edgecolor = 'gray')
-ax.scatter(ExpUVPlus[:,0], ExpUVPlus[:,1], linewidth = 0.8, \
-           s = 8.0, facecolor = "none", edgecolor = 'gray')
-u_tau = fv.UTau(BLProf.walldist, BLProf.uu, BLProf.rho, BLProf.mu)
-xi = np.sqrt(BLProf.rho/BLProf.rho[0])
-UUPlus = BLProf.uu/u_tau
-uu = xi*np.sqrt(UUPlus)
-ax.plot(CalUPlus[:,0], uu, 'k', linewidth = 1.5)
-ax.set_xscale('log')
-ax.set_xlim([1, 3000])
-#ax.set_ylim([0, 30])
-ax.set_ylabel (r'$\langle u^{\prime}_i u^{\prime}_j \rangle$', fontdict = font3)
-ax.set_xlabel (r'$\Delta y^+$', fontdict = font3)
-ax.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
-ax.grid(b=True, which = 'both', linestyle = ':')
-plt.tight_layout(pad = 0.5, w_pad = 0.5, h_pad = 0.3)
-fig.set_size_inches(6, 5, forward=True)
-plt.savefig(path2+'ReynoldStress.svg', dpi = 300)
-plt.show()

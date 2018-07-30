@@ -22,6 +22,8 @@ class DMD(object):
         self.Vand = None
         self.dynamics = None
         self.residual = 0
+        self.beta = None
+        self.omega = None
         self.s = 0.0
         self.Ja = None
         self.rho = 1.0
@@ -122,10 +124,12 @@ class DMD(object):
         period = np.round(np.diff(timepoints), 6)
         if (np.size(np.unique(period)) != 1):
             sys.exit("Time period is not equal!!!")
-        # t_samp = timepoints[1] - timepoints[0]
+        t_samp = timepoints[1] - timepoints[0]
         # # growth rate(real part), frequency(imaginary part)
-        # lamb = np.log(
-        #     self.eigval) / t_samp
+        lamb = np.log(
+            self.eigval) / t_samp
+        self.beta = lamb.real
+        self.omega = lamb.imag
         # m = np.size(lamb)
         # n = np.size(timepoints)
         # TimeGrid = np.transpose(np.tile(timepoints[:-1], (m, 1)))
@@ -137,7 +141,6 @@ class DMD(object):
         return self.dynamics
 
     def spdmd_amplitude(self):
-        tn = self.tn
         # coeff = self.amplit
         # Vand = np.hstack([self.eigval.reshape(-1,1)**i for i in range(tn-1)])
         self.Vand = np.vander(self.eigval, self.tn - 1, increasing=True)
@@ -155,11 +158,13 @@ class DMD(object):
         # ss = np.trace(self._DM.T.conj() @ self._DM)
         # Opitmal vector of amplitudes (amplit)
         # amplit = P^-1 q (P amplit = q)
-        self.amplit = sp.linalg.cho_solve(sp.linalg.cho_factor(P), q)
+        # amplit = sp.linalg.cho_solve(sp.linalg.cho_factor(P), q)
+        amplit = sp.linalg.solve(P, q)
         self.q = q
         self.P = P
         self.s = ss
-        return self.amplit
+        # self.amplit = amplit
+        return amplit
 
 
     # Ref: Jovanovic H. T., et. al.-2014
@@ -182,7 +187,7 @@ class DMD(object):
         self.Prho = self.P + (self.rho / 2.0) * np.identity(self.r)
         answer = SparseAnswer(self.r, self.ng)
         answer.gamma = self.gamma
-        widgets = ['SPDMD iteration:', Percentage(), ' ',
+        widgets = ['SPDMD iteration on gamma:', Percentage(), ' ',
                     Bar(marker='>', left='[', right=']')]
         pbar = ProgressBar(widgets=widgets, maxval=np.size(self.gamma))
         pbar.start()

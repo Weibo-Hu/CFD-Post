@@ -56,7 +56,7 @@ class DataPost(object):
             self._DataTab = \
             self._DataTab.sort_values(by=['time'])
         if Uniq == True:
-            self._DataTab = self._DataTab.drop_duplicates(keep = 'last')
+            self._DataTab = self._DataTab.drop_duplicates(keep='last')
         #Infile.close()
         print("The cost time of reading: ", \
             Infile, time.clock()-start_time)
@@ -108,7 +108,7 @@ class DataPost(object):
         self._DataTab['mu'] = mu_unit
         return (mu_unit)
 
-    def UserData(self, VarName, Infile, SkipHeader, Sep = None):
+    def UserData(self, VarName, Infile, SkipHeader, Sep=None, Uniq=True):
         start_time = time.clock()
         #Infile = open(InputFile, 'r')
         self._DataTab = pd.read_csv(Infile, sep = ' ', index_col = False, \
@@ -124,18 +124,22 @@ class DataPost(object):
             self._DataTab = self._DataTab.sort_values(by=['x', 'y'])
         if ('x' in VarName) & ('y' in VarName) & ('z' in VarName):
             self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
+        if Uniq == True:
+            self._DataTab = self._DataTab.drop_duplicates(keep='last')
         print("The cost time of reading: ", Infile, time.clock()-start_time)
         #Infile.close()
 
-    def UserDataBin(self, Infile):
-        #Infile = open(InputFile, 'r')
+    def UserDataBin(self, Infile, Uniq=True):
         self._DataTab = pd.read_hdf(Infile)
         self._DataTab = self._DataTab.dropna(axis=1, how='all')
+        if Uniq == True:
+            self._DataTab = self._DataTab.drop_duplicates(keep='last')
         VarName = list(self._DataTab.columns.values)
-        if ('x' in VarName) & ('y' in VarName):
-            self._DataTab = self._DataTab.sort_values(by=['x', 'y'])
-        if ('x' in VarName) & ('y' in VarName) & ('z' in VarName):
+        if ('z' in VarName):
             self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
+        else:
+            self._DataTab = self._DataTab.sort_values(by=['x', 'y'])
+
 
 #   Obtain the filename of the probe at a specific location
     def GetProbeName (self, xx, yy, zz, path):
@@ -143,12 +147,12 @@ class DataPost(object):
         Prob = np.loadtxt(Infile, skiprows = 6, \
                                 usecols = (1,2,3,4))
         Infile.close()
-        xarr = np.around(Prob[:,1], 6)
-        yarr = np.around(Prob[:,2], 6)
-        zarr = np.around(Prob[:,3], 6)
-        ProbIndArr = np.where((xarr[:]==np.around(xx,6))\
-                              & (yarr[:]==np.around(yy,6)) \
-                              & (zarr[:]==np.around(zz,6)))
+        xarr = np.around(Prob[:,1], 3)
+        yarr = np.around(Prob[:,2], 3)
+        zarr = np.around(Prob[:,3], 3)
+        ProbIndArr = np.where((xarr[:]==np.around(xx,3))\
+                              & (yarr[:]==np.around(yy,3)) \
+                              & (zarr[:]==np.around(zz,3)))
         if len(ProbIndArr[0]) == 0:
             print ("The probe you input is not found in the probe files!!!")
         ProbInd = ProbIndArr[0][-1] + 1
@@ -223,15 +227,34 @@ class DataPost(object):
     @property
     def walldist(self):
         return self._DataTab['walldist'].values
-    
+
     @property
     def uu(self):
         return self._DataTab['uu'].values
+    @property
+    def vv(self):
+        return self._DataTab['vv'].values
+
+    @property
+    def ww(self):
+        return self._DataTab['ww'].values
+
+    @property
+    def uv(self):
+        return self._DataTab['uv'].values
+
+    @property
+    def uw(self):
+        return self._DataTab['uw'].values
+
+    @property
+    def vw(self):
+        return self._DataTab['vw'].values
 
     @property
     def UGrad(self):
         return self._DataTab['UGrad'].values
-    
+
     @property
     def vorticity_1(self):
         return self._DataTab['vorticity_1'].values
@@ -781,7 +804,7 @@ class DataPost(object):
 #    qval = b.IsoProfile2D('x', 0.0, 'u')
 #    c = DataPost()
 #    c.LoadProbeData(0.0, 0.0, -2.7, path, Uniq = False)
-#    
+#
 #    path1="/media/weibo/Data1/BFS_M1.7L_0419/probes/old/"
 #    path2="/media/weibo/Data1/BFS_M1.7L_0419/probes/"
 #    path3="/media/weibo/Data1/BFS_M1.7L_0419/probes/new/"
@@ -789,13 +812,13 @@ class DataPost(object):
 #        Data1 = np.loadtxt(f1, skiprows=0)
 #    with open(path2+"probe_00238.dat") as f2:
 #        Data2 = np.loadtxt(f2, skiprows=0)
-#    Data = np.concatenate([Data1, Data2])   
+#    Data = np.concatenate([Data1, Data2])
 #    np.savetxt(path3+"probe_00238.dat", Data, fmt='%1.8e', delimiter = "  ")
 #    print("Congratulations!")
 
 
 
-    
+
 #    #a.GetMu_nondim (3856)
 #    a.Getwalldist (3.0)
 #    a.unique_rows()

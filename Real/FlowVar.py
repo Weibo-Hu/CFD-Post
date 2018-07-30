@@ -23,7 +23,7 @@ from scipy.interpolate import griddata
 from scipy.interpolate import spline
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
-import sys, os, time
+import sys
 
 # Obtain intermittency factor from an undisturbed and specific wall pressure
 def Intermittency(sigma, Pressure0, WallPre, TimeZone):
@@ -98,8 +98,11 @@ def StdWallLaw():
 # Draw reference experimental data of turbulence
 # 0y/\delta_{99}, 1y+, 2U+, 3urms+, 4vrms+, 5wrms+, 6uv+, 7prms+, 8pu+,
 # 9pv+, 10S(u), 11F(u), 12dU+/dy+, 13V+, 14omxrms^+, 15omyrms^+, 16omzrms^+
-def ExpWallLaw():
-    ExpData = np.loadtxt ("vel_4060_dns.prof", skiprows = 14)
+def ExpWallLaw(Re_theta):
+    if isinstance(Re_theta, str):
+        ExpData = np.loadtxt ("vel_"+Re_theta+"_dns.prof", skiprows = 14)
+    else:
+        sys.exit('Re_theta must be a string!!!')
     m, n = ExpData.shape
     y_delta     = ExpData[:, 0]
     y_plus      = ExpData[:, 1]
@@ -122,7 +125,9 @@ def UTau(walldist, u, rho, mu):
     u_tau = np.sqrt(np.abs(tau_wall/rho_wall))
     return u_tau
 
-# This code validate boundary layer profile by incompressible, Van Direst transformed
+
+# This code validate boundary layer profile by
+# incompressible, Van Direst transformed
 # boundary profile from mean reults
 def DirestWallLaw(walldist, u, rho, mu):
     if((np.diff(walldist) < 0.0).any()):
@@ -136,15 +141,16 @@ def DirestWallLaw(walldist, u, rho, mu):
         u_van[i] = np.trapz(rho[:i+1]/rho_wall, u[:i+1])
     u_plus_van = u_van/u_tau
     y_plus     = u_tau*walldist*rho_wall/mu_wall
-#    return(y_plus, u_plus_van)
+    #    return(y_plus, u_plus_van)
     UPlusVan   = np.column_stack((y_plus, u_plus_van))
     return(UPlusVan)
+
 
 # Vorticity: omega=delta*v
 # omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
 def Vorticity():
     return 0
-    
+
 
 #Fs = 1000
 #t = np.arange(0.0, 1-1.0/Fs, 1/Fs)

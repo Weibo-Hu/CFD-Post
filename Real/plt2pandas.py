@@ -7,7 +7,7 @@ Created on Sat Jun 9 10:24:50 2018
 """
 import tecplot as tp
 import pandas as pd
-import sys, os
+import os
 import numpy as np
 from DataPost import DataPost
 from timer import timer
@@ -90,7 +90,7 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
 def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
                     SpanAve=None, OutFile=None):
     os.chdir(FoldPath)
-    FileName = os.listdir(FoldPath)
+    FileName = sorted(os.listdir(FoldPath))
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)
     SolTime = dataset.solution_times[0]
     if (np.size(FileName) != BlockNO):
@@ -128,15 +128,17 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
 
 def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
                     SpanAve=None, OutFile=None):
+    os.chdir(FoldPath)
+    FileName = os.listdir(FoldPath)
+    dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+    VarList = [v.name for v in dataset.variables()]
+    zone = dataset.zone
+    if (np.size(FileName) != BlockNO):
+        sys.exit("You're missing some blocks!!!")
     for j in range(BlockNO):
-        #progress(j, BlockNO, 'Read *.plt:')
-        FileName = FoldPath + "TP_dat_"+str(j+1).zfill(6)+".plt"
-        dataset = tp.data.load_tecplot(FileName)
-        VarList = [v.name for v in dataset.variables()]
-        zone = dataset.zone
         zonename = zone(j).name
         for i in range(np.size(VarList)):
-            var  = dataset.variable(VarList[i])
+            var = dataset.variable(VarList[i])
             if i == 0:
                 VarCol = var.values(zonename).as_numpy_array()
             else:
@@ -146,21 +148,57 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
             ZoneRow = VarCol
         else:
             ZoneRow = np.row_stack((ZoneRow, VarCol))
-        SolTime = dataset.solution_times[-1]
-        del FileName, dataset, zone, zonename, var
+    del FileName, dataset, zone, zonename, var
     df = pd.DataFrame(data=ZoneRow, columns=VarList)
-    #print(SolTime)
-    #df.to_csv(OutFile+".dat", index=False, sep = '\t')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
-        df      = grouped.mean().reset_index()
+        df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
-    if OutFile is None:
-        df.to_hdf(FoldPath2+"SolTime"+str(round(SolTime,2))+".h5", \
-                  'w', format= 'fixed')
-    #else:
-    #    df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
+    if OutFile is not None:
+        df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
     return(df)
+
+
+def frame2tec(dataframe, SaveFolder, FileName, float_format='%.8f'):
+    if not os.path.exists(SaveFolder):
+        raise IOError('ERROR: directory does not exist: %s' % SaveFolder)
+    SavePath = os.path.join(SaveFolder, FileName)
+    header = "VARIABLES="
+    zone_name = "Zone_0001"
+    zone = 'ZONE T= "{}" \n\n'.format(zone_name)
+    I = np.size(dataframe.x.unique())
+    J = np.size(dataframe.y.unique())
+    K = np.size(dataframe.z.unique())
+    for i in range(len(dataframe.columns)):
+        header = '{} "{}"'.format(header, dataframe.columns[i])
+    with open(SavePath + '.dat', 'w') as f:
+        f.write(header+'\n')
+        f.write(zone)
+        f.write('I = {}, J = {}, K = {} \n'.format(I, J, K))
+        dataframe.to_csv(f, index=False, header=False,
+                         float_format=float_format)
+
+
+
+def tec2plt(Folder, InFile, OutFile):
+    dataset = tp.data.load_tecplot(Folder + InFile + '.dat')
+    tecplot.data.save_tecplot_plt(OutFile + '.plt')
+
+
+def tec2szplt(Folder, InFile, OutFile):
+    dataset = tp.data.load_tecplot(Folder + InFile + '.dat')
+    tecplot.data.save_tecplot_szl(OutFile + '.szplt')
+
+
+def frame2plt(dataframe, SaveFolder, OutFile, float_format='%.8f'):
+    frame2tec(dataframe, SaveFolder, OutFile)
+    tec2plt(SaveFolder, OutFile, OutFile)
+
+
+def frame2szplt(dataframe, SaveFolder, OutFile, float_format='%.8f'):
+    frame2tec(dataframe, SaveFolder, OutFile)
+    tec2szplt(SaveFolder, OutFile, OutFile)
+
 
 # Obtain Spanwise Average Value of Data
 def SpanAve(DataFrame, OutputFile = None):

@@ -23,34 +23,6 @@ from numpy.core.umath_tests import inner1d
 import sys, os
 from timer import timer
 
-plt.close("all")
-plt.rc('text', usetex=True)
-font0 = {
-    'family': 'Times New Roman',
-    'color': 'k',
-    'weight': 'normal',
-    'size': 10,
-}
-font1 = {
-    'family': 'Times New Roman',
-    'color': 'k',
-    'weight': 'normal',
-    'size': 12,
-}
-
-font2 = {
-    'family': 'Times New Roman',
-    'color': 'k',
-    'weight': 'normal',
-    'size': 14,
-}
-
-font3 = {
-    'family': 'Times New Roman',
-    'color': 'k',
-    'weight': 'normal',
-    'size': 16,
-}
 
 # Proper Orthogonal Decomposition (snapshots method), equal time space
 # Input: the variable of POD (fluctuations)
