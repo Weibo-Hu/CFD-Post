@@ -9,6 +9,7 @@ import tecplot as tp
 import pandas as pd
 import os
 import numpy as np
+from scipy.interpolate import griddata
 from DataPost import DataPost
 from timer import timer
 
@@ -159,44 +160,73 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
     return(df)
 
 
-def frame2tec(dataframe, SaveFolder, FileName, float_format='%.8f'):
+def frame2tec(dataframe, SaveFolder, FileName, z=None, float_format='%.8f'):
     if not os.path.exists(SaveFolder):
         raise IOError('ERROR: directory does not exist: %s' % SaveFolder)
     SavePath = os.path.join(SaveFolder, FileName)
+    dataframe = dataframe.sort_values(by=['z', 'y', 'x'])
     header = "VARIABLES="
-    zone_name = "Zone_0001"
+    x = dataframe.x.unique()
+    y = dataframe.y.unique()
+    if z is None:
+        z = dataframe.z.unique()
+    I = np.size(x)
+    J = np.size(y)
+    K = np.size(z)
+    zone_name = "Zone_000"+str(K)
     zone = 'ZONE T= "{}" \n\n'.format(zone_name)
-    I = np.size(dataframe.x.unique())
-    J = np.size(dataframe.y.unique())
-    K = np.size(dataframe.z.unique())
-    for i in range(len(dataframe.columns)):
-        header = '{} "{}"'.format(header, dataframe.columns[i])
+    xx, yy = np.meshgrid(x, y, indexing='ij')
+    # xx, yy, zz = np.meshgrid(x, y, z, indexing='ij')
+    new = np.zeros((I*J*K, np.size(dataframe.columns)))
+    if K == 1:
+        for i in range(len(dataframe.columns)):
+            header = '{} "{}"'.format(header, dataframe.columns[i])
+            var = griddata((dataframe.x, dataframe.y),
+                           dataframe.values[:, i], (xx, yy), fill_value=0.0)
+            new[:, i] = var.flatten('F')
+        if np.isnan(var).any() == True:
+            raise ValueError(
+                'ERROR: dataframe contains NON value due to geometry',
+                'discontinuity, like a step exist in the domain!!!')
+    else:
+        temp = np.zeros((I*J, K))
+        for i in range(len(dataframe.columns)):
+            header = '{} "{}"'.format(header, dataframe.columns[i])
+            for j in range(K):
+                newframe = dataframe.loc[dataframe['z']==z[j]]
+                var = griddata((newframe.x, newframe.y),
+                               newframe.values[:, i], (xx, yy))
+                temp[:, j] = var.flatten('F')
+            new[:, i] = temp.flatten('F')
     with open(SavePath + '.dat', 'w') as f:
         f.write(header+'\n')
         f.write(zone)
-        f.write('I = {}, J = {}, K = {} \n'.format(I, J, K))
-        dataframe.to_csv(f, index=False, header=False,
-                         float_format=float_format)
+        f.write('I = {}, J = {}, K = {}\n'.format(I, J, K))
+        newframe = pd.DataFrame(new, columns=dataframe.columns)
+        newframe.to_csv(f, sep='\t', index=False, header=False,
+                        float_format=float_format)
 
 
 
 def tec2plt(Folder, InFile, OutFile):
-    dataset = tp.data.load_tecplot(Folder + InFile + '.dat')
-    tecplot.data.save_tecplot_plt(OutFile + '.plt')
+    dataset = tp.data.load_tecplot(
+        Folder + InFile + '.dat', read_data_option=2)
+    tp.data.save_tecplot_plt(Folder + OutFile + '.plt', dataset=dataset)
 
 
 def tec2szplt(Folder, InFile, OutFile):
-    dataset = tp.data.load_tecplot(Folder + InFile + '.dat')
-    tecplot.data.save_tecplot_szl(OutFile + '.szplt')
+    dataset = tp.data.load_tecplot(
+        Folder + InFile + '.dat', read_data_option=2)
+    tp.data.save_tecplot_szl(Folder + OutFile + '.szplt', dataset=dataset)
 
 
-def frame2plt(dataframe, SaveFolder, OutFile, float_format='%.8f'):
-    frame2tec(dataframe, SaveFolder, OutFile)
+def frame2plt(dataframe, SaveFolder, OutFile, z=None, float_format='%.8f'):
+    frame2tec(dataframe, SaveFolder, OutFile, z)
     tec2plt(SaveFolder, OutFile, OutFile)
 
 
-def frame2szplt(dataframe, SaveFolder, OutFile, float_format='%.8f'):
-    frame2tec(dataframe, SaveFolder, OutFile)
+def frame2szplt(dataframe, SaveFolder, OutFile, z=None, float_format='%.8f'):
+    frame2tec(dataframe, SaveFolder, OutFile, z)
     tec2szplt(SaveFolder, OutFile, OutFile)
 
 

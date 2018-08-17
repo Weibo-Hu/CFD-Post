@@ -61,7 +61,7 @@ def SkinFriction(mu, du, dy): # all variables are nondimensional
 # obtain Power Spectral Density
 def PSD(VarZone, TimeSpan, Freq_samp):
     # interpolate data to make sure time-equaled distribution
-    TotalNo = Freq_samp*(TimeSpan[-1]-TimeSpan[0])*2 #make NO of snapshot twice larger
+    TotalNo = Freq_samp*(TimeSpan[-1]-TimeSpan[0]) #make NO of snapshot twice larger
     if (TotalNo > np.size(TimeSpan)):
         warnings.warn("PSD results are not accurate due to too few snapshots",\
                       UserWarning)

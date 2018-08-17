@@ -83,9 +83,9 @@ class DataPost(object):
     def AddUGrad(self, WallSpace):
         self._DataTab['UGrad'] = self._DataTab['u']/(0.5*WallSpace)
 
-    def AddMach(self):
+    def AddMach(self, Ma_inf):
         c = self._DataTab['u']**2+self._DataTab['v']**2+self._DataTab['w']**2
-        self._DataTab['Mach'] = np.sqrt(c/self._DataTab['T'])
+        self._DataTab['Mach'] = Ma_inf * np.sqrt(c/self._DataTab['T'])
 
     @classmethod
     def SutherlandLaw (cls, T, T_inf = None, UnitMode = True):
@@ -277,10 +277,8 @@ class DataPost(object):
             "qx:{} is not a string".format(qx.__class__.__name__)
         assert isinstance(qy, str), \
             "qy:{} is not a string".format(qy.__class__.__name__)
-        start_time = time.clock()
         qval = self._DataTab.loc[self._DataTab[qx] == Iso_qx, qy]
         xval = self._DataTab.loc[self._DataTab[qx] == Iso_qx, qx]
-        print("The cost time of extracting data: ", time.clock()-start_time)
         return (xval, qval)
 
     #   Obtain variables profile with an equal array (x,y)
@@ -291,12 +289,10 @@ class DataPost(object):
             "qz:{} is not a string".format(qz.__class__.__name__)
         assert isinstance(qy, str), \
             "qy:{} is not a string".format(qy.__class__.__name__)
-        start_time = time.clock()
         DataTab1  = self._DataTab.loc[self._DataTab[qx] == Iso_qx]
         xval  = DataTab1.loc[DataTab1[qz] == Iso_qz, qx]
         zval  = DataTab1.loc[DataTab1[qz] == Iso_qz, qz]
         qval  = DataTab1.loc[DataTab1[qz] == Iso_qz, qy]
-        print("The cost time of extracting data: ", time.clock()-start_time)
         return (xval, zval, qval)
 #        index = np.where (qx[:] == EquVal)
 #        if (np.size(index) == 0):    # xval does not exist

@@ -58,6 +58,7 @@ matplotlib.rc('font', **font)
 #MeanFlowZ0.to_hdf(path2 + "MeanFlowZ0.h5", 'w', format='fixed')
 
 #%% Load Data
+
 MeanFlowZ0 = DataPost()
 MeanFlowZ0.UserDataBin(path2+'MeanFlowZ0.h5')
 
@@ -68,14 +69,14 @@ omegaz = griddata((MeanFlowZ0.x, MeanFlowZ0.y), MeanFlowZ0.vorticity_3, (x, y))
 corner = (x<0.0) & (y<0.0)
 omegaz[corner] = np.nan
 textsize = 18
-numsize  = 13
+numsize  = 14
 fig, ax = plt.subplots(figsize=(12,4))
 matplotlib.rc('font', size=textsize)
 plt.tick_params(labelsize=numsize)
 lev1 = np.linspace(-5.0, 1.0, 30)
 cbar = ax.contourf(x, y, omegaz, cmap = 'rainbow', levels = lev1, extend="both") #rainbow_r
 ax.set_xlim(-10.0, 30.0)
-ax.set_ylim(-3.0,  10.0)
+ax.set_ylim(-3.0, 8.0)
 cbar.cmap.set_under('b')
 cbar.cmap.set_over('r')
 ax.set_xlabel(r'$x/\delta_0$', fontdict = font)
@@ -157,12 +158,12 @@ plt.savefig(path2+'Vorticity3XZ.svg', bbox_inches='tight')
 MeanFlowX3 = DataPost()
 MeanFlowX3.UserDataBin(path2 + 'MeanFlowX3.h5')
 
-#%% Plot contour of the mean flow field in the xy plane
+#%% Plot contour of the mean flow field in the zy plane
 z, y = np.meshgrid(np.unique(MeanFlowX3.z), np.unique(MeanFlowX3.y))
 omegax = griddata((MeanFlowX3.z, MeanFlowX3.y), MeanFlowX3.vorticity_1, (z, y))
 textsize = 18
 numsize = 13
-fig, ax = plt.subplots(figsize=(4, 3))
+fig, ax = plt.subplots(figsize=(4, 2.5))
 matplotlib.rc('font', size=textsize)
 plt.tick_params(labelsize=numsize)
 lev1 = np.linspace(-0.1, 0.1, 30)

@@ -43,7 +43,7 @@ xcoord = np.array([-40, -20, 0, 5, 10, 15, 20, 30, 40])
 num = np.size(xcoord)
 xtick = np.zeros(num+1)
 xtick[-1] = 1.0
-fig, ax = plt.subplots(figsize=(7, 3))
+fig, ax = plt.subplots(figsize=(8, 3))
 matplotlib.rc('font', size=14)
 ax.plot(np.arange(num+1), np.zeros(num+1), 'w-')
 ax.set_xlim([0, num+0.5])
@@ -56,24 +56,26 @@ ax.set_xticklabels(["$%d$"%f for f in xtick])
 for i in range(num):
     y0, q0 = MeanFlow.BLProfile('x', xcoord[i], 'u')
     ax.plot(q0+i, y0, 'k-')
-    ax.text(i+0.75, 3.0, r'$x/\delta_0={}$'.format(xcoord[i]), rotation=90, fontdict=font)
+    ax.text(i+0.75, 3.0, r'$x/\delta_0={}$'.format(xcoord[i]), 
+            rotation=90, fontdict=font, fontsize=12) #fontdict=font)
 plt.tick_params(labelsize=12)
 ax.set_xlabel(r'$u/u_{\infty}$', fontsize=14)
-ax.set_ylabel(r'$y/\delta_0$', fontsize=14)
+ax.set_ylabel(r'$\Delta y/\delta_0$', fontsize=14)
 ax.grid (b=True, which='both', linestyle=':')
 plt.show()
 plt.savefig(path2 + 'StreamwiseBLProfile.svg', bbox_inches='tight', pad_inches=0.1)
 
 # %% Compare van Driest transformed mean velocity profile
 # xx = np.arange(27.0, 60.0, 0.25)
-z0 = -0.5
-MeanFlow.UserDataBin(path + 'MeanFlow4.h5')
-MeanFlow.ExtraSeries('z', z0, z0)
+#z0 = -0.5
+#MeanFlow.UserDataBin(path + 'MeanFlow4.h5')
+#MeanFlow.ExtraSeries('z', z0, z0)
 MeanFlow.AddWallDist(3.0)
 MeanFlow.AddMu(13718)
 x0 = 43.0
 # %%
 # for x0 in xx:
+x0 = 30.0
 BLProf = copy.copy(MeanFlow)
 BLProf.ExtraSeries('x', x0, x0)
 # BLProf.SpanAve()
@@ -84,7 +86,7 @@ Re_theta = '2000'
 StdUPlus1, StdUPlus2 = fv.StdWallLaw()
 ExpUPlus = fv.ExpWallLaw(Re_theta)[0]
 CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
-fig, ax = plt.subplots(figsize=(4, 3.6))
+fig, ax = plt.subplots(figsize=(4, 3.5))
 textsize = 16
 numsize = 14
 matplotlib.rc('font', size=textsize)
@@ -109,7 +111,7 @@ plt.show()
 # %% Compare Reynolds stresses in Morkovin scaling
 ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
     fv.ExpWallLaw(Re_theta)
-fig, ax = plt.subplots(figsize=(4, 3.6))
+fig, ax = plt.subplots(figsize=(4, 3.5))
 matplotlib.rc('font', size=textsize)
 plt.tick_params(labelsize=numsize)
 ax.scatter(ExpUrmsPlus[:, 0], ExpUrmsPlus[:, 1], linewidth = 0.8, \

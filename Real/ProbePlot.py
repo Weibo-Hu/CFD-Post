@@ -109,7 +109,7 @@ def func(t, A, B):
 popt, pcov = Probe0.fit_func(func, Probe0.time, getattr(Probe0, var), guess=None)
 A, B = popt
 fitfunc = lambda t: A / t + B
-#ax.plot(Probe0.time, fitfunc(Probe0.time), 'b', linewidth=1.5)
+ax.plot(Probe0.time, fitfunc(Probe0.time), 'b', linewidth=1.5)
 
 
 ax = fig.add_subplot(412)
@@ -163,7 +163,7 @@ plt.show()
 
 
 #%% Frequency Weighted Power Spectral Density
-Freq_samp = 30
+Freq_samp = 50
 fig = plt.figure()
 ax = fig.add_subplot(221)
 ax.set_title(xlabel.format(xloc[0], yloc[0]), fontdict = font1)
@@ -235,16 +235,16 @@ for j in range(np.size(xzone)):
     gamma[j] = fv.Intermittency(sigma, p0, ProbeID.p, ProbeID.time)
     alpha[j] = fv.Alpha3(ProbeID.p)
 
-fig3, ax3 = plt.subplots()
+fig3, ax3 = plt.subplots(figsize=(4, 3.5))
 ax3.plot(xzone, gamma, 'ko')
-ax3.set_xlabel (r'$x/\delta_0$', fontdict = font3)
-ax3.set_ylabel (r'$\gamma$', fontdict = font3)
+ax3.set_xlabel (r'$x/\delta_0$', fontdict=font3)
+ax3.set_ylabel (r'$\gamma$', fontdict=font3)
 #ax3.set_ylim([0.0, 1.0])
-ax3.grid (b=True, which = 'both', linestyle = ':')
+ax3.grid(b=True, which = 'both', linestyle = ':')
 ax3.axvline(x=0.0, color='k', linestyle='--', linewidth=1.0)
 ax3.axvline(x=12.7, color='k', linestyle='--', linewidth=1.0)
-plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 1)
-fig3.set_size_inches(6, 5, forward=True)
+plt.tight_layout(pad = 0.5, w_pad=0.5, h_pad =0.3)
+plt.tick_params(labelsize=14)
 plt.savefig (path3+'IntermittencyFactor.svg', dpi = 300)
 plt.show()
 

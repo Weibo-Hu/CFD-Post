@@ -75,7 +75,7 @@ class DMD(object):
         V: the right singular vectors, VH = V.T.conj()
         """
         tn = self.tn
-        if fluc == 'True':
+        if fluc == True:
             self.snapshots = self.snapshots - np.transpose(
                 np.tile(np.mean(self.snapshots, axis=1), (tn, 1)))
         snapshots = self.snapshots
@@ -106,7 +106,7 @@ class DMD(object):
     def dmd_amplitude(self, opt=None):
         snapshots = self.snapshots
         tn = self.tn
-        if opt == 'False':
+        if opt == False:
             self.amplit = np.linalg.lstsq(
                 self.modes, snapshots.T[0], rcond=-1)[0]
         else:  # min(var-phi@coeff@Vand)-->min(UT@V1-UT@U@eigvec@coeff@Vand)
@@ -158,8 +158,8 @@ class DMD(object):
         # ss = np.trace(self._DM.T.conj() @ self._DM)
         # Opitmal vector of amplitudes (amplit)
         # amplit = P^-1 q (P amplit = q)
-        # amplit = sp.linalg.cho_solve(sp.linalg.cho_factor(P), q)
-        amplit = sp.linalg.solve(P, q)
+        amplit = sp.linalg.cho_solve(sp.linalg.cho_factor(P), q)
+        # amplit = sp.linalg.solve(P, q)
         self.q = q
         self.P = P
         self.s = ss
