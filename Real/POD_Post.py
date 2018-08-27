@@ -41,21 +41,21 @@ matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', **font)
 textsize = 18
-numsize = 14
+numsize = 15
 # %% load data
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/POD/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-NewFrame = DataFrame.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
+NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
 #NewFrame = DataFrame.query("x>=9.0 & x<=13.0 & y>=-3.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = NewFrame['x']
 yval = NewFrame['y']
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 x1 = -5.0
-x2 = 15.0
+x2 = 20.0
 y1 = -3.0
 y2 = 5.0
 # set range to do POD and DMD: (x:-5~8, y:-3~5, make some tests)
@@ -64,20 +64,20 @@ y2 = 5.0
 #with timer("Load Data"):
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
-    
-Snapshots = DataFrame['u']
+var = 'p'    
+Snapshots = DataFrame[var]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         TempFrame = pd.read_hdf(InFolder + dirs[i+1])
         if np.shape(TempFrame) != np.shape(DataFrame):
             sys.exit('The input snapshots does not match!!!')
-        Snapshots = np.vstack((Snapshots, TempFrame['u']))
+        Snapshots = np.vstack((Snapshots, TempFrame[var]))
         DataFrame += TempFrame
 Snapshots = Snapshots.T   
-AveFlow = DataFrame/np.size(dirs)
-meanflow = AveFlow.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
 Snapshots = Snapshots[ind, :]
 m, n = np.shape(Snapshots)
+AveFlow = DataFrame/np.size(dirs)
+meanflow = AveFlow.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
 # %% POD
 timepoints = np.arange(450, 699.5 + 0.5, 0.5)
 with timer("POD computing"):
@@ -94,7 +94,7 @@ ax1.scatter(
     EFrac[:N_modes],
     c='black',
     marker='o',
-    s=EFrac[:N_modes]*2,
+    s=15.0,
 )   # fraction energy of every eigval mode
 #ax1.legend('E_i')
 ax1.set_ylim(bottom=0)
@@ -111,7 +111,7 @@ ax2.set_ylim([0, 100])
 ax2.set_ylabel(r'$ES_i$')
 ax2.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.savefig(path+'PODEigSpectrum.svg', bbox_inches='tight')
+plt.savefig(path+var+'_PODEigSpectrum.svg', bbox_inches='tight')
 plt.show()
 
 # %% Add isoline for boudary layer edge
@@ -136,7 +136,7 @@ meanma = griddata((meanflow.x, meanflow.y), meanflow.Mach, (x, y))
 meanma[corner] = np.nan
 
 # %% specific mode in space
-ind = 6
+ind = 9
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
 u = griddata((xval, yval), newflow, (x, y))
@@ -144,8 +144,8 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6, 2))
-c1 = -0.043
-c2 = 0.049
+c1 = -2.4e-4
+c2 = 2.4e-4
 print("The limit value: ", np.min(newflow), np.max(newflow))
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
@@ -167,13 +167,16 @@ rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.18, 0.76, 0.24, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", 
                      ticks=rg2)
-cbar1.set_label(r'$\varphi (u)$', rotation=0, fontdict=font)
+cbar1.formatter.set_powerlimits((0, 0))
+cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
+cbar1.update_ticks()
+cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=numsize)
 ax.contour(x, y, meanu, levels=0.0,
            linewidths=1.0, linestyles=':', colors='k')
 ax.contour(x, y, meanma, levels=1.0,
            linewidths=1.0, linestyles=':', colors='green')
-plt.savefig(path+'PODMode'+str(ind)+'.svg', bbox_inches='tight')
+plt.savefig(path+var+'_PODMode'+str(ind)+'.svg', bbox_inches='tight')
 plt.show()
 # %% First several modes with time and WPSD
 fig, ax = plt.subplots(figsize=(6, 3))
@@ -181,7 +184,7 @@ matplotlib.rc('font', size=textsize)
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 lab = []
-NO = [1, 3]
+NO = [8, 9]
 ax.plot(timepoints, coeff[NO[0]-1, :], 'k-')
 lab.append('Mode '+str(NO[0]))
 ax.plot(timepoints, coeff[NO[1]-1, :], 'k:')
@@ -192,22 +195,23 @@ ax.set_xlabel(r'$tu_\infty/\delta_0$')
 ax.set_ylabel(r'$\phi (u)$')
 ax.tick_params(labelsize=numsize)
 plt.grid(b=True, which='both', linestyle=':')
-plt.savefig(path + 'PODModeTemp' + str(NO[0]) + '.svg', bbox_inches='tight')
+plt.savefig(path+var+'_PODModeTemp' + str(NO[0]) + '.svg', bbox_inches='tight')
 plt.show()
 
 fig, ax = plt.subplots(figsize=(6, 5))
-matplotlib.rc('font', size=textsize)
+matplotlib.rc('font', size=numsize)
 freq, psd = fv.FW_PSD(coeff[NO[0]-1, :], timepoints, 2)
 ax.semilogx(freq, psd, 'k-')
 freq, psd = fv.FW_PSD(coeff[NO[1]-1, :], timepoints, 2)
 ax.semilogx(freq, psd, 'k:')
 ax.legend(lab, fontsize=14, frameon=False)
+ax.yaxis.offsetText.set_fontsize(numsize)
 plt.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
-ax.set_xlabel(r'$f\delta_0/U_\infty$')
-ax.set_ylabel('WPSD, unitless')
+ax.set_xlabel(r'$f\delta_0/U_\infty$', fontsize=textsize)
+ax.set_ylabel('WPSD, unitless', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 plt.grid(b=True, which='both', linestyle=':')
-plt.savefig(path + 'POD_WPSDModeTemp' + str(NO[0]) + '.svg', bbox_inches='tight')
+plt.savefig(path+var+'_POD_WPSDModeTemp' + str(NO[0]) + '.svg', bbox_inches='tight')
 plt.show()
 # %% Reconstruct flow field using POD
 tind = 0
@@ -237,7 +241,7 @@ cbaxes = fig.add_axes([0.16, 0.76, 0.18, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.set_label(r'$u/u_{\infty}$', rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=numsize)
-plt.savefig(path+'PODReconstructFlow.svg', bbox_inches='tight')
+plt.savefig(path+var+'_PODReconstructFlow.svg', bbox_inches='tight')
 plt.show()
 
 reconstruct = phi @ coeff

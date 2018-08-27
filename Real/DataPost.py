@@ -112,11 +112,11 @@ class DataPost(object):
         start_time = time.clock()
         #Infile = open(InputFile, 'r')
         self._DataTab = pd.read_csv(Infile, sep = ' ', index_col = False, \
-                                    header = None, names=VarName, \
+                                    header=None, names=VarName, \
                                     skiprows=SkipHeader, skipinitialspace=True)
         if Sep is not None:
             self._DataTab = pd.read_csv(Infile, sep = Sep, index_col = False,\
-                                header = None, names=VarName, \
+                                header=None, names=VarName, \
                                 skiprows=SkipHeader, skipinitialspace=True)
 
         self._DataTab = self._DataTab.dropna(axis=1, how='all')
@@ -160,7 +160,7 @@ class DataPost(object):
         return (FileName)
 
 #%% Read probe data from the INCA results
-    def LoadProbeData (self, xx, yy, zz, path, Uniq = True):
+    def LoadProbeData (self, xx, yy, zz, path, Uniq=True):
         varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'walldist', 'p']
         FileName = self.GetProbeName(xx, yy, zz, path)
         self.UserData(varname, path + FileName, 1)

@@ -119,8 +119,8 @@ def ExpWallLaw(Re_theta):
     return(UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
 
 def UTau(walldist, u, rho, mu):
-    rho_wall= rho[0]
-    mu_wall = mu[0]
+    rho_wall= rho[1]
+    mu_wall = mu[1]
     tau_wall  = mu_wall*u[1]/walldist[1]
     u_tau = np.sqrt(np.abs(tau_wall/rho_wall))
     return u_tau
@@ -133,8 +133,8 @@ def DirestWallLaw(walldist, u, rho, mu):
     if((np.diff(walldist) < 0.0).any()):
         sys.exit("the WallDist must be in ascending order!!!")
     m = np.size(u)
-    rho_wall= rho[0]
-    mu_wall = mu[0]
+    rho_wall= rho[1]
+    mu_wall = mu[1]
     u_tau = UTau(walldist, u, rho, mu)
     u_van  = np.zeros(m)
     for i in range(m):

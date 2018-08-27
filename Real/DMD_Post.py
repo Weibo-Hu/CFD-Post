@@ -231,7 +231,7 @@ plt.show()
 
 # %% growth rate of a specific mode
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(7, 4.5))
+fig1, ax1 = plt.subplots(figsize=(6, 4.5))
 beta = predmd.beta
 ind1 = freq > 0.0
 ax1.set_xscale("log")

@@ -160,7 +160,13 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
     return(df)
 
 
-def frame2tec(dataframe, SaveFolder, FileName, z=None, float_format='%.8f'):
+def frame2tec(dataframe,
+              SaveFolder,
+              FileName,
+              time=None,
+              z=None,
+              zonename=None,
+              float_format='%.8f'):
     if not os.path.exists(SaveFolder):
         raise IOError('ERROR: directory does not exist: %s' % SaveFolder)
     SavePath = os.path.join(SaveFolder, FileName)
@@ -173,8 +179,11 @@ def frame2tec(dataframe, SaveFolder, FileName, z=None, float_format='%.8f'):
     I = np.size(x)
     J = np.size(y)
     K = np.size(z)
-    zone_name = "Zone_000"+str(K)
-    zone = 'ZONE T= "{}" \n\n'.format(zone_name)
+    if zonename is None:
+        zone_name = "Zone_"+FileName
+    else:
+        zone_name = "Zone_0000"+str(zonename)
+    zone = 'ZONE T= "{}" \n'.format(zone_name)
     xx, yy = np.meshgrid(x, y, indexing='ij')
     # xx, yy, zz = np.meshgrid(x, y, z, indexing='ij')
     new = np.zeros((I*J*K, np.size(dataframe.columns)))
@@ -201,6 +210,11 @@ def frame2tec(dataframe, SaveFolder, FileName, z=None, float_format='%.8f'):
     with open(SavePath + '.dat', 'w') as f:
         f.write(header+'\n')
         f.write(zone)
+        if time is not None:
+            time = np.float64(time)
+            f.write(' StrandID=1, SolutionTime={}\n\n'.format(time))
+        else:
+            f.write('\n')
         f.write('I = {}, J = {}, K = {}\n'.format(I, J, K))
         newframe = pd.DataFrame(new, columns=dataframe.columns)
         newframe.to_csv(f, sep='\t', index=False, header=False,
@@ -220,13 +234,25 @@ def tec2szplt(Folder, InFile, OutFile):
     tp.data.save_tecplot_szl(Folder + OutFile + '.szplt', dataset=dataset)
 
 
-def frame2plt(dataframe, SaveFolder, OutFile, z=None, float_format='%.8f'):
-    frame2tec(dataframe, SaveFolder, OutFile, z)
+def frame2plt(dataframe,
+              SaveFolder,
+              OutFile,
+              time=None,
+              z=None,
+              zonename=None,
+              float_format='%.8f'):
+    frame2tec(dataframe, SaveFolder, OutFile, time, z, zonename, float_format)
     tec2plt(SaveFolder, OutFile, OutFile)
 
 
-def frame2szplt(dataframe, SaveFolder, OutFile, z=None, float_format='%.8f'):
-    frame2tec(dataframe, SaveFolder, OutFile, z)
+def frame2szplt(dataframe,
+                SaveFolder,
+                OutFile,
+                time=None,
+                z=None,
+                zonename=None,
+                float_format='%.8f'):
+    frame2tec(dataframe, SaveFolder, OutFile, time, z, zonename, float_format)
     tec2szplt(SaveFolder, OutFile, OutFile)
 
 
