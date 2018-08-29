@@ -64,7 +64,8 @@ y2 = 5.0
 #with timer("Load Data"):
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
-var = 'p'    
+var = 'u'    
+fa = 1.7*1.7*1.4
 Snapshots = DataFrame[var]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
@@ -75,6 +76,7 @@ with timer("Load Data"):
         DataFrame += TempFrame
 Snapshots = Snapshots.T   
 Snapshots = Snapshots[ind, :]
+Snapshots = Snapshots*fa
 m, n = np.shape(Snapshots)
 AveFlow = DataFrame/np.size(dirs)
 meanflow = AveFlow.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
@@ -136,7 +138,7 @@ meanma = griddata((meanflow.x, meanflow.y), meanflow.Mach, (x, y))
 meanma[corner] = np.nan
 
 # %% specific mode in space
-ind = 9
+ind = 8
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
 u = griddata((xval, yval), newflow, (x, y))
@@ -144,8 +146,8 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6, 2))
-c1 = -2.4e-4
-c2 = 2.4e-4
+c1 = -4.2e-3
+c2 = 4.2e-3
 print("The limit value: ", np.min(newflow), np.max(newflow))
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
@@ -167,7 +169,7 @@ rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.18, 0.76, 0.24, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", 
                      ticks=rg2)
-cbar1.formatter.set_powerlimits((0, 0))
+cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
 cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0, fontdict=font)
@@ -184,15 +186,15 @@ matplotlib.rc('font', size=textsize)
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 lab = []
-NO = [8, 9]
+NO = [3, 4]
 ax.plot(timepoints, coeff[NO[0]-1, :], 'k-')
 lab.append('Mode '+str(NO[0]))
 ax.plot(timepoints, coeff[NO[1]-1, :], 'k:')
 lab.append('Mode '+str(NO[1]))
 ax.legend(lab, ncol=2, loc='upper right', fontsize=14,
           bbox_to_anchor=(1., 1.12), borderaxespad=0., frameon=False)
-ax.set_xlabel(r'$tu_\infty/\delta_0$')
-ax.set_ylabel(r'$\phi (u)$')
+ax.set_xlabel(r'$tu_\infty/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$a_{}$'.format(var), fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 plt.grid(b=True, which='both', linestyle=':')
 plt.savefig(path+var+'_PODModeTemp' + str(NO[0]) + '.svg', bbox_inches='tight')

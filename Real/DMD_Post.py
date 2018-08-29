@@ -24,39 +24,43 @@ font = {
 
 matplotlib.rc('font', **font)
 textsize = 18
-numsize = 14
+numsize = 15
 # %% load data
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/DMD/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-NewFrame = DataFrame.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
+NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
 #NewFrame = DataFrame.query("x>=9.0 & x<=13.0 & y>=-3.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = NewFrame['x']
 yval = NewFrame['y']
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 x1 = -5.0
-x2 = 15.0
+x2 = 20.0
 y1 = -3.0
 y2 = 5.0
 #with timer("Load Data"):
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
-Snapshots = DataFrame['u']
+var = 'v'
+fa = 1.7*1.7*1.4
+Snapshots = DataFrame[var]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         TempFrame = pd.read_hdf(InFolder + dirs[i+1])
         if np.shape(TempFrame) != np.shape(DataFrame):
             sys.exit('The input snapshots does not match!!!')
-        Snapshots = np.vstack((Snapshots, TempFrame['u']))
+        Snapshots = np.vstack((Snapshots, TempFrame[var]))
         DataFrame += TempFrame
-Snapshots = Snapshots.T   
-AveFlow = DataFrame/np.size(dirs)
-meanflow = AveFlow.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
-Snapshots = Snapshots[ind, :]
+Snapshots = Snapshots.T  
+Snapshots = Snapshots[ind, :] 
+Snapshots = Snapshots*fa
 m, n = np.shape(Snapshots)
+AveFlow = DataFrame/np.size(dirs)
+meanflow = AveFlow.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
+
 # %%   
 Snapshots1 = Snapshots[:, :-1]
 timepoints = np.arange(450, 699.5 + 0.5, 0.5)
@@ -76,7 +80,7 @@ print("The residuals of DMD is ", residual)
 with timer("Precompute SPDMD amplitudes"):
     predmd.spdmd_amplitude()
 # %% SPDMD
-gamma = [415, 418] # np.logspace(2.7, 3.0, 5) # around the value of snapshots NO
+gamma = [900, 1000] # np.logspace(2.7, 3.0, 5) # around the value of snapshots NO
 with timer("SPDMD computing"):
     ans = predmd.compute_spdmd(gamma=gamma)
 print("The nonzero amplitudes of each gamma:", ans.Nz)
@@ -182,7 +186,7 @@ cbar.cmap.set_over('#67001f')
 rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.18, 0.76, 0.24, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
-cbar1.set_label(r'$\Re(\phi)$', rotation=0, fontdict=font)
+cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=numsize)
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
@@ -218,7 +222,7 @@ cbar.cmap.set_over('#67001f')
 rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.18, 0.76, 0.24, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
-cbar1.set_label(r'$\Im(\phi)$', rotation=0, fontdict=font)
+cbar1.set_label(r'$\Im(\phi_{})$'.format(var), rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=numsize)
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)

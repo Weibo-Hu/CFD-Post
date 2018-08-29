@@ -41,13 +41,11 @@ class DMD(object):
         self.spdmd_loss = None
         self.r = 0.0
         self.ng = 0.0
-        self._dim = np.shape(self.snapshots)[0]
-        self._tn = np.shape(self.snapshots)[1]
-        self._U = None
-        self._V = None
-        self._VH = None
-        self._D = None
-        self._DM = None
+        self.U = None
+        self.V = None
+        self.VH = None
+        self.D = None
+        self.DM = None
 
     @property
     def dim(self):
@@ -56,10 +54,6 @@ class DMD(object):
     @property
     def tn(self):
         return np.shape(self.snapshots)[1]
-
-    @property
-    def U(self):
-        return self._U
 
     @property
     def dmd_residual(self):
@@ -79,8 +73,8 @@ class DMD(object):
             self.snapshots = self.snapshots - np.transpose(
                 np.tile(np.mean(self.snapshots, axis=1), (tn, 1)))
         snapshots = self.snapshots
-        V1 = snapshots[:, :-1]
-        V2 = snapshots[:, 1:]
+        V1 = np.float128(snapshots[:, :-1])
+        V2 = np.float128(snapshots[:, 1:])
         U, D, VH = sp.linalg.svd(V1, full_matrices=False)  # use min(m, n)
         V = VH.conj().T
         DM = np.diag(D)
@@ -95,11 +89,11 @@ class DMD(object):
         self.eigval, self.eigvec = sp.linalg.eig(S)
         self.modes = U @ self.eigvec  # projected dynamic modes
 
-        self._U = U
-        self._D = D
-        self._V = V
-        self._VH = V.T.conj()
-        self._DM = DM
+        self.U = U
+        self.D = D
+        self.V = V
+        self.VH = V.T.conj()
+        self.DM = DM
         return (self.eigval, self.modes)
 
     # convex optimization problem
@@ -109,13 +103,16 @@ class DMD(object):
         if opt == False:
             self.amplit = np.linalg.lstsq(
                 self.modes, snapshots.T[0], rcond=-1)[0]
+        elif opt == 'spdmd':
+            self.amplit = self.spdmd_amplitude()
         else:  # min(var-phi@coeff@Vand)-->min(UT@V1-UT@U@eigvec@coeff@Vand)
             A = self.eigvec @ np.diag(self.eigval**0)
             for i in range(tn - 2):
                 a2 = self.eigvec @ np.diag(self.eigval**(i + 1))
                 A = np.vstack([A, a2])
             b = np.reshape(
-                self._U.T.conj() @ snapshots[:, :-1], (-1, ), order='F')
+                self.U.T.conj() @ snapshots[:, :-1], (-1, ), order='F')
+            #b = np.reshape(self.D * self.VH, (-1, ), order='F')
             self.amplit = np.linalg.lstsq(A, b, rcond=-1)[0]
         return self.amplit
 
@@ -151,11 +148,11 @@ class DMD(object):
         # the dmd modes
         # Can be formulated : min ||sigma Vh - eigvec diag(amplit) Vand||_F^2
         p1 = (self.eigvec.T.conj() @ self.eigvec)
-        p2 = (Vand.T.conj() @ Vand).conj()
+        p2 = (Vand @ Vand.T.conj()).conj()
         P = p1 * p2
-        q = np.diag(Vand @ self._V @ self._DM.T.conj() @ self.eigvec).conj()
-        ss = (np.linalg.norm(self._D))**2
-        # ss = np.trace(self._DM.T.conj() @ self._DM)
+        q = np.diag(Vand @ self.V @ self.DM.T.conj() @ self.eigvec).conj()
+        ss = (np.linalg.norm(self.D))**2
+        # ss = np.trace(self.DM.T.conj() @ self.DM)
         # Opitmal vector of amplitudes (amplit)
         # amplit = P^-1 q (P amplit = q)
         amplit = sp.linalg.cho_solve(sp.linalg.cho_factor(P), q)
@@ -246,7 +243,7 @@ class DMD(object):
             'Ploss': polished_performance_loss,
         }
 
-    def admm(self, z, y, gamma):
+    def admm(self, z, y, gamma, opt=None):
         """Alternating direction method of multipliers. 
         Sec. III A, Appendix B"""
         # There are two complexity sources:
@@ -260,7 +257,15 @@ class DMD(object):
         #   http://docs.cython.org/src/userguide/numpy_tutorial.html
         # - use two cores, with one core performing the admm and
         #   the other watching for convergence.
-
+        k = (gamma / self.rho)
+        if opt is None:
+            # precompute cholesky decomposition
+            C = sp.linalg.cholesky(self.Prho, lower=False)
+            # link directly to LAPACK fortran solver for positive
+            # definite symmetric system with precomputed cholesky decomp:
+            potrs, = sp.linalg.get_lapack_funcs(('potrs', ), arrays=(C, self.q))
+            # simple norm of a 1d vector, called directly from BLAS
+            norm, = sp.linalg.get_blas_funcs(('nrm2', ), arrays=(self.q, ))
         # %% square root outside of the loop
         root_r = np.sqrt(self.r)
         for ADMMstep in range(self.maxiter):
@@ -270,28 +275,37 @@ class DMD(object):
             # Solve Prho x = qs (x = Prho^-1 qs), using fact that Prho
             # is hermitian and positive definite and
             # assuming Prho is well behaved (no inf or nan).
-            xnew = sp.linalg.inv(self.Prho) @ qs
-
+            if opt is not None:
+                xnew = sp.linalg.inv(self.Prho) @ qs
+            else:
+                xnew = potrs(C, qs, lower=False, overwrite_b=False)[0]
             # %%z-minimization step (beta minimisation)
             v = xnew + (1 / self.rho) * y
             # Soft-thresholding of v
             # zero for |v| < k
             # v - k for v > k
             # v + k for v < -k
-            k = (gamma / self.rho)
             abs_v = np.abs(v)
             znew = ((1 - k / abs_v) * v) * (abs_v > k)
 
             # %% Lagrange multiplier update step
             y = y + self.rho * (xnew - znew)
             # %% Test convergence of admm
-            res_prim = np.linalg.norm(xnew - znew)  # Primal residuals
-            res_dual = self.rho * np.linalg.norm(znew - z)  # dual residuals
-            # Stopping criteria
-            eps_prim = root_r * self.eps_abs \
-                + self.eps_rel * max(np.linalg.norm(xnew),
-                                     np.linalg.norm(znew))
-            eps_dual = root_r * self.eps_abs + self.eps_rel * np.linalg.norm(y)
+            if opt is not None:
+                res_prim = np.linalg.norm(xnew - znew)  # Primal residuals
+                res_dual = self.rho * np.linalg.norm(znew - z)  # dual residuals
+                # Stopping criteria
+                eps_prim = root_r * self.eps_abs \
+                           + self.eps_rel * max(np.linalg.norm(xnew),
+                                                np.linalg.norm(znew))
+                eps_dual = root_r * self.eps_abs + self.eps_rel \
+                           * np.linalg.norm(y)
+            else:
+                res_prim = norm(xnew - znew)
+                res_dual = self.rho * norm(znew - z)
+                eps_prim = root_r * self.eps_abs \
+                           + self.eps_rel * max(norm(xnew), norm(znew))
+                eps_dual = root_r * self.eps_abs + self.eps_rel * norm(y)
             if (res_prim < eps_prim) & (res_dual < eps_dual):
                 return z
             else:
@@ -309,11 +323,14 @@ class DMD(object):
         E = np.identity(self.r)[:, ind_zero]
         # form KKT system for the optimality conditions
         KKT = np.vstack((np.hstack((self.P, E)),
-                         np.hstack((E.T.conj(), np.zeros((m, m))))
+                         np.hstack((E.T, np.zeros((m, m))))
                          ))
         rhs = np.hstack((self.q, np.zeros(m)))
         # solve KKT system (Appendix C)
-        return sp.linalg.solve(KKT, rhs)
+        # res = sp.linalg.cho_solve(sp.linalg.cholesky(KKT), rhs)
+        res = sp.linalg.solve(KKT, rhs)
+        return res
+
 
     def spdmd_residual(self, x):
         """Calculate the residuals from a minimised
