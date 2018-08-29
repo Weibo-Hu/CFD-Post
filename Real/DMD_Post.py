@@ -26,31 +26,32 @@ matplotlib.rc('font', **font)
 textsize = 18
 numsize = 15
 # %% load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots/"
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots1/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/DMD/"
+timepoints = np.arange(700, 949.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
+NewFrame = DataFrame.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
 #NewFrame = DataFrame.query("x>=9.0 & x<=13.0 & y>=-3.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = NewFrame['x']
 yval = NewFrame['y']
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 x1 = -5.0
-x2 = 20.0
+x2 = 15.0
 y1 = -3.0
 y2 = 5.0
 #with timer("Load Data"):
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
 var = 'v'
-fa = 1.7*1.7*1.4
+fa = 1.0
 Snapshots = DataFrame[var]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         TempFrame = pd.read_hdf(InFolder + dirs[i+1])
-        if np.shape(TempFrame) != np.shape(DataFrame):
+        if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
         Snapshots = np.vstack((Snapshots, TempFrame[var]))
         DataFrame += TempFrame
@@ -59,14 +60,13 @@ Snapshots = Snapshots[ind, :]
 Snapshots = Snapshots*fa
 m, n = np.shape(Snapshots)
 AveFlow = DataFrame/np.size(dirs)
-meanflow = AveFlow.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
+meanflow = AveFlow.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
 
-# %%   
+# %% DMD 
 Snapshots1 = Snapshots[:, :-1]
-timepoints = np.arange(450, 699.5 + 0.5, 0.5)
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
-# %% DMD
+
 predmd = DMD(Snapshots)
 with timer("DMD computing"):
     eigval, phi = predmd.dmd_standard(fluc=True)
@@ -80,7 +80,7 @@ print("The residuals of DMD is ", residual)
 with timer("Precompute SPDMD amplitudes"):
     predmd.spdmd_amplitude()
 # %% SPDMD
-gamma = [900, 1000] # np.logspace(2.7, 3.0, 5) # around the value of snapshots NO
+gamma = [200, 300] # np.logspace(2.7, 3.0, 5) # around the value of snapshots NO
 with timer("SPDMD computing"):
     ans = predmd.compute_spdmd(gamma=gamma)
 print("The nonzero amplitudes of each gamma:", ans.Nz)
@@ -128,7 +128,7 @@ ind2 = ans.nonzero[:, sp] & ind1
 ax1.scatter(freq[ind2], phi1[ind2], marker='o',
             facecolor='gray', edgecolors='gray', s=15.0)
 ax1.set_ylim(bottom=0.0)
-ax1.tick_params(labelsize=numsize)
+ax1.tick_params(labelsize=numsize, pad=6)
 plt.xlabel(r'$f \delta_0/u_\infty$')
 plt.ylabel(r'$|\phi_i|$')
 ax1.grid(b=True, which='both', linestyle=':')
@@ -152,8 +152,9 @@ meanu[rg1] = np.nan
 
 # %% Add Mach isoline for boudary layer edge
 Ma_inf = 1.7
-c = meanflow.u**2+meanflow.v**2+meanflow.w**2
-meanflow['Mach'] = Ma_inf * np.sqrt(c/meanflow['T'])
+c = np.float64(meanflow.u**2+meanflow.v**2+meanflow.w**2)
+#meanflow['Mach'] = Ma_inf * np.sqrt(c/meanflow['T'].values)
+meanflow = meanflow.assign(Mach=pd.Series(Ma_inf * np.sqrt(c/meanflow['T'])))
 meanma = griddata((meanflow.x, meanflow.y), meanflow.Mach, (x, y))
 meanma[corner] = np.nan
 

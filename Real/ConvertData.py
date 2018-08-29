@@ -29,8 +29,8 @@ VarList = [
     '|grad(rho)|',
     'T',
 ]
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/83/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/83/"
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/84/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/84/"
 NoBlock = 240
 dirs1 = os.listdir(FoldPath)
 dirs = os.scandir(FoldPath)

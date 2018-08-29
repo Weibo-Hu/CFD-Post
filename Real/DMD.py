@@ -73,9 +73,10 @@ class DMD(object):
             self.snapshots = self.snapshots - np.transpose(
                 np.tile(np.mean(self.snapshots, axis=1), (tn, 1)))
         snapshots = self.snapshots
-        V1 = np.float128(snapshots[:, :-1])
-        V2 = np.float128(snapshots[:, 1:])
-        U, D, VH = sp.linalg.svd(V1, full_matrices=False)  # use min(m, n)
+        V1 = np.float64(snapshots[:, :-1])
+        V2 = np.float64(snapshots[:, 1:])
+        #U, D, VH = sp.linalg.svd(V1, full_matrices=False, lapack_driver='gesvd')  # use min(m, n)
+        U, D, VH = np.linalg.svd(V1, full_matrices=False)  # use min(m, n)
         V = VH.conj().T
         DM = np.diag(D)
         rank = np.linalg.matrix_rank(DM)
@@ -86,7 +87,7 @@ class DMD(object):
             D = D[:rank]
             U = U[:, :rank]
         S = U.T.conj() @ V2 @ V * np.reciprocal(D)
-        self.eigval, self.eigvec = sp.linalg.eig(S)
+        self.eigval, self.eigvec = np.linalg.eig(S)
         self.modes = U @ self.eigvec  # projected dynamic modes
 
         self.U = U
@@ -323,7 +324,7 @@ class DMD(object):
         E = np.identity(self.r)[:, ind_zero]
         # form KKT system for the optimality conditions
         KKT = np.vstack((np.hstack((self.P, E)),
-                         np.hstack((E.T, np.zeros((m, m))))
+                         np.hstack((E.T.conj(), np.zeros((m, m))))
                          ))
         rhs = np.hstack((self.q, np.zeros(m)))
         # solve KKT system (Appendix C)
