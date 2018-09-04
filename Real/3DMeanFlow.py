@@ -14,7 +14,7 @@ import pandas as pd
 import FlowVar as fv
 import copy
 from DataPost import DataPost
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, splev, splprep
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, AutoMinorLocator
 from scipy.interpolate import griddata
 from scipy.interpolate import spline
@@ -38,7 +38,7 @@ font = {'family' : 'Times New Roman',
 path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
 path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
-
+path3 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 textsize = 18
@@ -46,18 +46,115 @@ numsize = 15
 matplotlib.rc('font', size=textsize)
 
 
-# %% Load Data for time- spanwise-averaged results 
+# %% Load Data for time- spanwise-averaged results
 MeanFlow = DataPost()
-VarName = ['x', 'y', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', 'uv',
-           'uw', 'vv', 'vw', 'ww', 'Q-criterion', 'L2-criterion', 'gradp']
-MeanFlow.UserData(VarName, path2+'Meanflow.dat', 1, Sep='\t')
-# MeanFlow.UserDataBin(VarName, path+'Meanflow.h5')
+#VarName = ['x', 'y', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', 'uv',
+#           'uw', 'vv', 'vw', 'ww', 'Q-criterion', 'L2-criterion', 'gradp']
+# MeanFlow.UserData(VarName, path2+'Meanflow.dat', 1, Sep='\t')
+#VarName = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', 'uv',
+#           'uw', 'vv', 'vw', 'ww', 'Q-criterion', 'L2-criterion', 'gradp']
+MeanFlow.UserDataBin(path3+'MeanFlow.h5') #, VarName=VarName)
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
+corner = (x<0.0) & (y<0.0)
+# %% Determine Dividing, Sonic, Boundary, Shock Line
+# Add iosline for Mach number
+"""
+fig, ax = plt.subplots(figsize=(10, 4))
+MeanFlow.AddMach(1.7)
+cs = ax.tricontour(MeanFlow.x, MeanFlow.y, MeanFlow.Mach,
+              levels=1.0, linestyles='--', linewidths=1.5, colors='w')
+header = 'x, y'
+xycor = [0, 0]
+for isoline in cs.collections[0].get_paths():
+    xy = isoline.vertices
+    xycor = np.vstack((xycor, xy))
+np.savetxt(path3+"SonicLine.dat", xycor[1:,:], fmt='%.8e', 
+           delimiter='  ', header=header)
+# Add isoline for boudary layer edge
+u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
+umax = u[-1,:]
+rg2  = (x[1,:]<10.375) # in front of the shock wave
+umax[rg2] = 1.0
+rg1  = (x[1,:]>=10.375)
+umax[rg1] = 0.95
+u  = u/(np.transpose(umax))
+u[corner] = np.nan # mask the corner
+rg1 = (y>0.3*np.max(y)) # remove the upper part
+u[rg1] = np.nan
+cs = ax.contour(x, y, u, levels=0.99, linewidths=1.2, colors='k')
+header = 'x, y'
+xycor = [0, 0]
+for isoline in cs.collections[0].get_paths():
+    xy = isoline.vertices
+    xycor = np.vstack((xycor, xy))
+np.savetxt(path3+"BoundaryLayer.dat", xycor[1:,:], fmt='%.8e', 
+           delimiter='  ', header=header)
+# Add isoline for dividing line
+cs1 = ax.contour(x, y, u, levels=0.0,
+           linewidths=1.5, linestyles='--', colors='k')
+header = 'x, y'
+xycor = [0, 0]
+for isoline in cs1.collections[0].get_paths():
+    xy = isoline.vertices
+    xycor = np.vstack((xycor, xy))
+#xycor = xycor[xycor[:, 0].argsort()]
+np.savetxt(path3+"DividingLine.dat", xycor[1:,:], fmt='%.8e', 
+           delimiter='  ', header=header)
+# Add shock wave
+matplotlib.rc('font', size=textsize)
+x0 = np.unique(MeanFlow.x)
+y0 = np.unique(MeanFlow.y)
+x1 = x0[x0 > 10.0]
+x1 = x1[x1 <= 30.0]
+y1 = y0[y0 > -2.5]
+xini, yini = np.meshgrid(x1, y1)
+gradp = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.DataTab['|gradp|'], (xini, yini))
+corner1 = (xini<0.0) & (yini<0.0)
+gradp[corner1] = np.nan
+cs = ax.contour(xini, yini, gradp, levels=0.06, linewidths=1.2, colors='gray')
+header = 'x, y'
+xycor = [0, 0]
+for isoline in cs.collections[0].get_paths():
+    xy = isoline.vertices
+    xycor = np.vstack((xycor, xy))
+    ax.plot(xy[:, 0], xy[:, 1], 'r:')
+np.savetxt(path3+"IsoGradP.dat", xycor, fmt='%.8e', delimiter='  ', header=header)
+ax.set_xlim(10, 30.0)
+ax.set_ylim(-3.0, 10.0)
+#ii = np.arange(len(xycor[1:, 0]))
+#interpi = np.linspace(0, ii.max(), 2*np.size(ii))
+#xnew = interp1d(ii, xycor[1:, 0], kind='cubic')(interpi)
+#ynew = interp1d(ii, xycor[1:, 1], kind='cubic')(interpi)
+ind1 = np.where(xycor[1:, 1]==0.0)[0]
+x1 = np.mean(xycor[ind1, 0])
+shock1 = [x1, 0.0]
+ind2 = np.where(xycor[1:, 1]==5.0)[0]
+x2 = np.mean(xycor[ind2, 0])
+shock2 = [x2, 5.0]
+
+cen = int(np.size(xycor[:, 0])/2)
+pts1 = xycor[1:cen-3,:]
+pts2 = xycor[cen+5:-7, :]
+tck, u = splprep(pts1.T, u=None, s=2.0, per=0)
+u_new = np.linspace(u.min(), u.max(), 100)
+xnew1, ynew1 = splev(u_new, tck, der=0)
+
+tck, u = splprep(pts2.T, u=None, s=2.0, per=0)
+u_new = np.linspace(u.min(), u.max(), 100)
+xnew2, ynew2 = splev(u_new, tck, der=0)
+
+xnew = np.hstack((xnew1, xnew2))
+ynew = np.hstack((ynew1, ynew2))
+ax.plot(xnew, ynew, 'o')
+ax.plot(x1, 0.0, '*', x2, 5.0, '*')
+np.savetxt(path3+"ShockPosition.dat", np.vstack((xnew, ynew)).T, fmt='%.8e',
+           delimiter='  ', header=header)
+plt.show()
+"""
 # %% Plot rho contour of the mean flow field
 rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 print("rho_max=", np.max(MeanFlow.rho))
 print("rho_min=", np.min(MeanFlow.rho))
-corner = (x<0.0) & (y<0.0)
 rho[corner] = np.nan
 fig, ax = plt.subplots(figsize=(10, 4))
 matplotlib.rc('font', size=textsize)
@@ -76,62 +173,39 @@ cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
 cbar.set_label(r'$\langle \rho \rangle/\rho_{\infty}$',
                rotation=0, fontdict=font)
-# Add iosline for Mach number
-MeanFlow.AddMach(1.7)
-ax.tricontour(MeanFlow.x, MeanFlow.y, MeanFlow.Mach,
-              levels=1.0, linestyles='--', linewidths=1.5, colors='gray')
-# Add isoline for boudary layer edge
-u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
-umax = u[-1,:]
-# umax = np.amax(u, axis = 0)
-rg2  = (x[1,:]<10.375) # in front of the shock wave
-umax[rg2] = 1.0
-rg1  = (x[1,:]>=10.375)
-umax[rg1] = 0.95
-u  = u/(np.transpose(umax))
-u[corner] = np.nan # mask the corner
-rg1 = (y>0.3*np.max(y)) # remove the upper part
-u[rg1] = np.nan
-ax.contour(x, y, u, levels=0.99, linewidths=1.2, colors='k')
-ax.contour(x, y, u, levels=0.0,
-           linewidths=1.5, linestyles=':', colors='k')
-#% Add isoline for grad(p)
-"""
-fig1, ax1 = plt.subplots(figsize=(10, 4))
-matplotlib.rc('font', size=textsize)
-gradp = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.DataTab['gradp'], (x, y))
-corner = (x<0.0) & (y<0.0)
-gradp[corner] = np.nan
-cs = ax1.contour(x, y, gradp, levels=0.06, linewidths=1.2, colors='gray')
-xcor = []
-ycor = []
-f = open("IsoGradP.dat", 'w')
-f.write('gradp=0.06\t')
-f.write('x, y\t')
-f = open("IsoGradP.dat", 'a')
-for isoline in cs.collections[0].get_paths():
-    xcor = isoline.vertices[:, 0]
-    ycor = isoline.vertices[:, 1]
-    np.savetxt(f, xcor, ycor)
-    ax1.plot(xcor, ycor, 'r:')
-    
-#isoline = cs.collections[0].get_paths()[1]
-#xcor, ycor = isoline.vertices.T
-ax1.set_xlim(-10.0, 30.0)
-ax1.set_ylim(-3.0, 10.0)
-"""
+# Add shock wave
+shock = np.loadtxt(path3+'ShockPosition.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], 'w', linewidth=1.5)
+# Add sonic line
+sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
+ax.plot(sonic[:, 0], sonic[:, 1], 'w--', linewidth=1.5)
+# Add boundary layer
+boundary = np.loadtxt(path3+'BoundaryLayer.dat', skiprows=1)
+ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.5)
+# Add dividing line(separation line)
+dividing = np.loadtxt(path3+'DividingLine.dat', skiprows=1)
+ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.5)
+
 plt.savefig(path2+'MeanFlow.svg', bbox_inches='tight')
 plt.show()
 
+
 # %% Plot rms contour of the mean flow field
-uu  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.uu, (x, y))
-print("uu_max=", np.max(np.sqrt(np.abs(MeanFlow.uu))))
-print("uu_min=", np.min(np.sqrt(np.abs(MeanFlow.uu))))
+MeanFlow = DataPost()
+VarName = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', 'uv',
+           'uw', 'vv', 'vw', 'ww', 'Q-criterion', 'L2-criterion', 'gradp']
+MeanFlow.UserData(VarName, path3+'MeanFlow.dat', 1, Sep='\t')
+x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
+corner = (x<0.0) & (y<0.0)
+var = 'vv'
+uu  = griddata((MeanFlow.x, MeanFlow.y), getattr(MeanFlow, var), (x, y))
+print("uu_max=", np.max(np.sqrt(np.abs(getattr(MeanFlow, var)))))
+print("uu_min=", np.min(np.sqrt(np.abs(getattr(MeanFlow, var)))))
 corner = (x<0.0) & (y<0.0)
 uu[corner] = np.nan
 fig, ax = plt.subplots(figsize=(10, 4))
 matplotlib.rc('font', size=textsize)
-rg1 = np.linspace(0.0, 0.22, 21)
+rg1 = np.linspace(0.0, 0.16, 21)
 cbar = ax.contourf(x, y, np.sqrt(np.abs(uu)), cmap='rainbow', levels=rg1) #rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
@@ -140,23 +214,26 @@ ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 plt.gca().set_aspect('equal', adjustable='box')
 # Add colorbar
-rg2 = np.linspace(0.0, 0.22, 3)
+rg2 = np.linspace(0.0, 0.16, 3)
 cbaxes = fig.add_axes([0.17, 0.70, 0.18, 0.07])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
-cbar.set_label(r'$\sqrt{|\langle u^\prime u^\prime \rangle|}$',
+cbar.set_label(r'$\sqrt{|\langle v^\prime v^\prime \rangle|}$',
                rotation=0, fontsize=textsize)
+# Add shock wave
+shock = np.loadtxt(path3+'ShockPosition.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], 'w', linewidth=1.5)
+# Add sonic line
+sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
+ax.plot(sonic[:, 0], sonic[:, 1], 'w--', linewidth=1.5)
+# Add boundary layer
+boundary = np.loadtxt(path3+'BoundaryLayer.dat', skiprows=1)
+ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.5)
+# Add dividing line(separation line)
+dividing = np.loadtxt(path3+'DividingLine.dat', skiprows=1)
+ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.5)
 
-# Add isoline for boudary layer edge
-u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
-u[corner] = np.nan # mask the corner
-ax.contour(x, y, u, levels=0.0,
-           linewidths=1.5, linestyles=':', colors='k')
-# Add iosline for Mach number
-MeanFlow.AddMach(1.7)
-ax.tricontour(MeanFlow.x, MeanFlow.y, MeanFlow.Mach,
-              levels=1.0, linestyles='--', linewidths=1.5, colors='gray')
-plt.savefig(path2+'MeanFlowRMS.svg', bbox_inches='tight')
+plt.savefig(path2+'MeanFlowRMSUV.svg', bbox_inches='tight')
 plt.show()
 
 #%% Load Data for time-averaged results
@@ -240,8 +317,8 @@ lev1 = np.linspace(-1.0, 1.0, 4)
 cbar1 = ax.contourf(x, z, omegaz, cmap='RdBu_r', levels=lev1, extend="both") #rainbow_r
 ax.set_xlim(0.0, 10.0)
 ax.set_ylim(-2.5,  2.5)
-cbar.cmap.set_under('#053061') # 
-cbar.cmap.set_over('#67001f') # 
+cbar.cmap.set_under('#053061') #
+cbar.cmap.set_over('#67001f') #
 ax.set_xlabel(r'$x/\delta_0$')
 ax.set_ylabel(r'$z/\delta_0$')
 plt.gca().set_aspect('equal', adjustable='box')
@@ -314,6 +391,50 @@ ax.streamplot(zbox, ybox, w, v, density=[2.5, 1.5], color='k', \
 plt.show()
 plt.savefig(path2 + 'vorticity1.svg', bbox_inches='tight', pad_inches=0)
 
+# %% Plot contour and streamline of spanwise-averaged flow
+path = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/7/"
+path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+#MeanFlowZ = DataPost()
+#MeanFlowZ.UserDataBin(path+'SolTime772.50.h5')
+time = '779.50'
+MeanFlowZ = pd.read_hdf(path+'SolTime'+time+'.h5')
+xval = np.linspace(0.0, 10, 100)
+yval = np.linspace(-3.0, 0.0, 30)
+x, y = np.meshgrid(xval, yval)
+u = griddata((MeanFlowZ.x, MeanFlowZ.y), MeanFlowZ.u, (x, y))
+# Contour
+fig, ax = plt.subplots(figsize=(10, 3))
+matplotlib.rc('font', size=textsize)
+plt.tick_params(labelsize=numsize)
+lev1 = np.linspace(-0.4, 1.2, 30)
+cbar = ax.contourf(x, y, u, cmap = 'rainbow', levels=lev1) #rainbow_r
+ax.set_xlim(0.0, 10.0)
+ax.set_ylim(-3.0, 0.0)
+#cbar.cmap.set_under('b')
+#cbar.cmap.set_over('r')
+ax.set_xlabel(r'$x/\delta_0$', fontdict = font)
+ax.set_ylabel(r'$y/\delta_0$', fontdict = font)
+plt.gca().set_aspect('equal', adjustable='box')
+# Add colorbar
+rg2 = np.linspace(-0.4, 1.2, 3)
+#divider = make_axes_locatable(ax)
+#cax = divider.append_axes('right', size='3%', pad=0.1)
+#cax = fig.add_axes([0.6, 0.63, 0.25, 0.03])  # x, y, width, height
+cax = fig.add_axes([0.6, 0.8, 0.25, 0.05])  # x, y, width, height
+cbar = plt.colorbar(cbar, cax=cax, orientation="horizontal", ticks=rg2)
+#cbar.ax.set_title(r'$u/u_\infty$', fontsize=textsize)
+#cbar.set_label(r'$u/u_\infty$', rotation=0, x=-0.42, labelpad=-26, fontsize=textsize)
+cbar.set_label(r'$u/u_\infty$', rotation=0, x=-0.20, labelpad=-28, fontsize=textsize)
+plt.tick_params(labelsize=numsize)
+# Streamline
+v = griddata((MeanFlowZ.x, MeanFlowZ.y), MeanFlowZ.v, (x, y))
+# x, y must be equal spaced
+ax.streamplot(x, y, u, v, density=[6, 3], color='w', arrowsize=0.5, \
+              linewidth=0.6, integration_direction='both')
+plt.savefig(path2+'StreamVortex'+time+'.svg', bbox_inches='tight', pad_inches=0)
+plt.show()
+
 
 #%% Isosurface of vorticity1 criterion
 Isosurf = MeanFlow._DataTab.query("vorticity_1 <= 0.101 & vorticity_1 >= 0.099")
@@ -321,7 +442,7 @@ xx, yy = np.mgrid[-0.0:30.0:50j, -3.0:0.0:30j]
 zz = griddata((Isosurf.x, Isosurf.y), Isosurf.z, (xx, yy))
 fig = plt.figure(figsize=(5,3))
 ax = fig.gca(projection='3d')
-surf = ax.plot_surface(xx, yy, zz, rstride=1, cstride=1, 
+surf = ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
                        linewidth=0)
 plt.show()
 

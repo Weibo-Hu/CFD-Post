@@ -29,23 +29,25 @@ numsize = 15
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots1/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/DMD/"
-timepoints = np.arange(700, 949.5 + 0.5, 0.5)
+timepoints = np.arange(725, 974.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-NewFrame = DataFrame.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
+DataFrame['walldist'] = DataFrame['y']
+DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
+NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & walldist>0.0 & y<=5.0")
 #NewFrame = DataFrame.query("x>=9.0 & x<=13.0 & y>=-3.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = NewFrame['x']
 yval = NewFrame['y']
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 x1 = -5.0
-x2 = 15.0
+x2 = 20.0
 y1 = -3.0
 y2 = 5.0
 #with timer("Load Data"):
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
-var = 'v'
+var = 'u'
 fa = 1.0
 Snapshots = DataFrame[var]
 with timer("Load Data"):
@@ -60,7 +62,7 @@ Snapshots = Snapshots[ind, :]
 Snapshots = Snapshots*fa
 m, n = np.shape(Snapshots)
 AveFlow = DataFrame/np.size(dirs)
-meanflow = AveFlow.query("x>=-5.0 & x<=15.0 & y>=-3.0 & y<=5.0")
+meanflow = AveFlow.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
 
 # %% DMD 
 Snapshots1 = Snapshots[:, :-1]
@@ -188,6 +190,9 @@ rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.18, 0.76, 0.24, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, fontdict=font)
+cbar1.formatter.set_powerlimits((-2, 2))
+cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
+cbar1.update_ticks()
 cbaxes.tick_params(labelsize=numsize)
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)

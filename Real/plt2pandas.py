@@ -8,6 +8,7 @@ Created on Sat Jun 9 10:24:50 2018
 import tecplot as tp
 import pandas as pd
 import os
+import sys
 import numpy as np
 from scipy.interpolate import griddata
 from DataPost import DataPost
@@ -89,13 +90,16 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
 
 
 def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
-                    SpanAve=None, OutFile=None):
+                    SpanAve=None, OutFile=None, Equ=None):
     os.chdir(FoldPath)
     FileName = sorted(os.listdir(FoldPath))
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+    #dataset = tp.data.load_tecplot(FoldPath, read_data_option=2)
+    if Equ is not None:
+        tp.data.operate.execute_equation(Equ)
     SolTime = dataset.solution_times[0]
-    if (np.size(FileName) != BlockNO):
-        sys.exit("You're missing some blocks!!!")
+    #if (np.size(FileName) != BlockNO):
+    #    sys.exit("You're missing some blocks!!!")
     for j in range(BlockNO):
         zone = dataset.zone
         zonename = zone(j).name
@@ -110,7 +114,7 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
             ZoneRow = VarCol
         else:
             ZoneRow = np.row_stack((ZoneRow, VarCol))
-    del FileName, dataset, zone, zonename, var
+    del dataset, zone, zonename, var
     df = pd.DataFrame(data=ZoneRow, columns=VarList)
     #print(SolTime)
     #df.to_csv(OutFile+".dat", index=False, sep = '\t')
@@ -122,8 +126,8 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
     if OutFile is None:
         df.to_hdf(FoldPath2+"SolTime"+"%0.2f"%SolTime+".h5", \
                   'w', format= 'fixed')
-    #else:
-    #    df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
+    else:
+        df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
     return (df)
 
 

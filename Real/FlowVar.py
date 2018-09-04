@@ -49,6 +49,55 @@ def Alpha3(WallPre):
     alpha  = np.sum(temp1)/n/np.power(sigma, 3)
     return alpha
 
+# Obtain shock position
+def Shock(path):
+    """
+    fig1, ax1 = plt.subplots(figsize=(10, 4))
+    matplotlib.rc('font', size=textsize)
+    x0 = np.unique(MeanFlow.x)
+    x1 = x0[x0 > 10.0]
+    x1 = x1[x1 <= 30.0]
+    xini, yini = np.meshgrid(x1, np.unique(MeanFlow.y))
+    gradp = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.DataTab['gradp'], (xini, yini))
+    corner = (xini<0.0) & (yini<0.0)
+    gradp[corner] = np.nan
+    cs = ax1.contour(xini, yini, gradp, levels=0.06, linewidths=1.2, colors='gray')
+    header = 'x, y'
+    xycor = [0, 0]
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+        ax1.plot(xy[:, 0], xy[:, 1], 'r:')
+    np.savetxt("IsoGradP.dat", xycor, fmt='%.8e', delimiter='  ', header=header)    
+    ax1.set_xlim(5, 30.0)
+    ax1.set_ylim(-3.0, 10.0)
+    #ii = np.arange(len(xycor[1:, 0]))
+    #interpi = np.linspace(0, ii.max(), 2*np.size(ii))
+    #xnew = interp1d(ii, xycor[1:, 0], kind='cubic')(interpi)
+    #ynew = interp1d(ii, xycor[1:, 1], kind='cubic')(interpi)
+    cen = int(np.size(xycor[:, 0])/2)
+    pts1 = xycor[1:cen-3,:]
+    pts2 = xycor[cen+5:-7, :]
+    tck, u = splprep(pts1.T, u=None, s=2.0, per=0)
+    u_new = np.linspace(u.min(), u.max(), 100)
+    xnew1, ynew1 = splev(u_new, tck, der=0)
+    tck, u = splprep(pts2.T, u=None, s=2.0, per=0)
+    u_new = np.linspace(u.min(), u.max(), 100)
+    xnew2, ynew2 = splev(u_new, tck, der=0)
+    xnew = np.hstack((xnew1, xnew2))
+    ynew = np.hstack((ynew1, ynew2))
+    ax1.plot(xnew, ynew, 'o')
+    np.savetxt("ShockPosition.dat", np.vstack((xnew, ynew)).T, fmt='%.8e',
+               delimiter='  ', header=header)
+    plt.savefig(path2+'ShockPosition.svg', bbox_inches='tight')
+    plt.show()
+    """
+    path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+    data = np.loadtxt(path+'ShockPosition.dat', skiprows=1)
+    xval = data[:, 0]
+    yval = data[:, 1]
+    return (xval, yval)
+    
 # Obtain nondimensinal dynamic viscosity
 def Viscosity(Re_delta, T): # nondimensional T
     mu = 1.0/Re_delta*np.power(T, 0.75)

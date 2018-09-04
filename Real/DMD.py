@@ -17,7 +17,7 @@ class DMD(object):
         self.eigval = None
         self.eigvec = None
         self.modes = None
-        self.snapshots = snapshots
+        self.snapshots = np.float64(snapshots)
         self.amplit = None
         self.Vand = None
         self.dynamics = None

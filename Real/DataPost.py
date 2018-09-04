@@ -86,6 +86,7 @@ class DataPost(object):
     def AddMach(self, Ma_inf):
         c = self._DataTab['u']**2+self._DataTab['v']**2+self._DataTab['w']**2
         self._DataTab['Mach'] = Ma_inf * np.sqrt(c/self._DataTab['T'])
+    
 
     @classmethod
     def SutherlandLaw (cls, T, T_inf = None, UnitMode = True):
@@ -129,12 +130,15 @@ class DataPost(object):
         print("The cost time of reading: ", Infile, time.clock()-start_time)
         #Infile.close()
 
-    def UserDataBin(self, Infile, Uniq=True):
+    def UserDataBin(self, Infile, Uniq=True, VarName=None):
         self._DataTab = pd.read_hdf(Infile)
         self._DataTab = self._DataTab.dropna(axis=1, how='all')
         if Uniq == True:
             self._DataTab = self._DataTab.drop_duplicates(keep='last')
-        VarName = list(self._DataTab.columns.values)
+        if VarName is not None:
+            self._DataTab.columns = VarName
+        else:
+            VarName = list(self._DataTab.columns.values)
         if ('z' in VarName):
             self._DataTab = self._DataTab.sort_values(by=['x', 'y', 'z'])
         else:
@@ -254,6 +258,10 @@ class DataPost(object):
     @property
     def UGrad(self):
         return self._DataTab['UGrad'].values
+    
+    @property
+    def rhoGrad(self):
+        return self._DataTab['|grad(rho)|'].values
 
     @property
     def vorticity_1(self):

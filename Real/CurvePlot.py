@@ -256,7 +256,34 @@ with timer("Computing reattaching point"):
         frame = pd.read_hdf(InFolder + dirs[i])
         frame = frame.iloc[ind]
         xarr[i] = frame.loc[frame['u']>=0.0, 'x'].head(1)
-        
+
+#%% Temporal shock position
+fig1, ax1 = plt.subplots(figsize=(10, 4))
+matplotlib.rc('font', size=textsize)
+x0 = np.unique(MeanFlow.x)
+x1 = x0[x0 > 10.0]
+x1 = x1[x1 <= 30.0]
+xini, yini = np.meshgrid(x1, np.unique(MeanFlow.y))
+corner = (xini<0.0) & (yini<0.0)
+shock1 = [0.0, 0.0]
+shock2 = [0.0, 0.0]
+with timer('Computing shock position'):
+    for i in range(np.size(dirs)):
+        frame = pd.read_hdf(InFolder + dirs[i])
+        gradp = griddata((frame['x'], frame['y']), frame['gradp'], (xini, yini))
+        gradp[corner] = np.nan
+        cs = ax1.contour(xini, yini, gradp, levels=0.06, linewidths=1.2, colors='gray')
+        xycor = [0, 0]
+        for isoline in cs.collections[0].get_paths():
+            xy = isoline.vertices
+            xycor = np.vstack((xycor, xy))
+            ax1.plot(xy[:, 0], xy[:, 1], 'r:')  
+        ind1 = np.where(xycor[1:, 1]==0.0)[0]
+        x1 = np.mean(xycor[ind1, 0])
+        shock1 = np.vstack((shock1, [x1, 0.0]))
+        ind2 = np.where(xycor[1:, 1]==5.0)[0]
+        x2 = np.mean(xycor[ind2, 0])
+        shock2 = np.vstack((shock2, [x2, 5.0]))       
 #%%        
 fig, ax = plt.subplots(figsize=(12, 2))
 #spl = splrep(timezone, xarr, s=0.35)
@@ -301,4 +328,21 @@ ax.grid(b=True, which='both', linestyle=':')
 plt.tick_params(labelsize='medium')
 plt.savefig(path2 + '123.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
-        
+ 
+# %% POD convergence
+fig, ax = plt.subplots(figsize=(5,3)) 
+data = np.loadtxt(path2+'POD/PODConvergence.dat', skiprows=1)    
+ax.semilogy(data[0, :], data[1, :]/100, marker='o', color='k', linewidth=1.0) 
+ax.semilogy(data[0, :], data[2, :]/100, marker='^', color='k', linewidth=1.0) 
+ax.semilogy(data[0, :], data[3, :]/100, marker='*', color='k', linewidth=1.0) 
+ax.semilogy(data[0, :], data[4, :]/100, marker='s', color='k', linewidth=1.0)  
+lab = [r'$\lambda_1$', r'$\lambda_2$', r'$\lambda_3$', r'$\lambda_4$']
+ax.legend(lab, ncol=2, loc='upper right', fontsize=15)
+#          bbox_to_anchor=(1., 1.12), borderaxespad=0., frameon=False)
+ax.set_ylim([0.01, 1.0])
+ax.set_xlabel(r'$N$', fontsize=textsize)
+ax.set_ylabel(r'$\lambda_i/\sum_{k=1}^N \lambda_k$', fontsize=textsize)
+ax.grid(b=True, which='both', linestyle=':')
+plt.tick_params(labelsize=numsize)
+plt.savefig(path2 + 'POD/PODConvergence.svg', bbox_inches='tight', pad_inches=0.1)
+plt.show()

@@ -43,7 +43,7 @@ matplotlib.rc('font', **font)
 textsize = 18
 numsize = 15
 # %% load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots/"
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots1/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/POD/"
 dirs = sorted(os.listdir(InFolder))
@@ -65,12 +65,13 @@ y2 = 5.0
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
 var = 'u'    
-fa = 1.7*1.7*1.4
+fa = 1.0 #1.7*1.7*1.4
+timepoints = np.arange(650, 974.5 + 0.5, 0.5)
 Snapshots = DataFrame[var]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         TempFrame = pd.read_hdf(InFolder + dirs[i+1])
-        if np.shape(TempFrame) != np.shape(DataFrame):
+        if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
         Snapshots = np.vstack((Snapshots, TempFrame[var]))
         DataFrame += TempFrame
@@ -81,13 +82,16 @@ m, n = np.shape(Snapshots)
 AveFlow = DataFrame/np.size(dirs)
 meanflow = AveFlow.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
 # %% POD
-timepoints = np.arange(450, 699.5 + 0.5, 0.5)
+if np.size(dirs) != np.size(timepoints):
+    sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
+    
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
         rm.POD(Snapshots, SaveFolder, fluc='True', method='svd')
 
 # %% Eigvalue Spectrum
 EFrac, ECumu, N_modes = rm.POD_EigSpectrum(90, eigval)
+np.savetxt(path+'EnergyFraction650.dat', EFrac, fmt='%1.7e', delimiter='\t')
 matplotlib.rc('font', size=textsize)
 fig1, ax1 = plt.subplots(figsize=(6,5))
 xaxis = np.arange(0, N_modes + 1)
@@ -206,7 +210,7 @@ freq, psd = fv.FW_PSD(coeff[NO[0]-1, :], timepoints, 2)
 ax.semilogx(freq, psd, 'k-')
 freq, psd = fv.FW_PSD(coeff[NO[1]-1, :], timepoints, 2)
 ax.semilogx(freq, psd, 'k:')
-ax.legend(lab, fontsize=14, frameon=False)
+ax.legend(lab, fontsize=15, frameon=False)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
 ax.set_xlabel(r'$f\delta_0/U_\infty$', fontsize=textsize)
