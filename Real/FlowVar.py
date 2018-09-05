@@ -35,8 +35,11 @@ def Intermittency(sigma, Pressure0, WallPre, TimeZone):
     # DynamicP = 0.5*0.371304*469.852**2, ratio = 0.006/(1+0.13*1.7**2)**0.64
     # sigma1 = DynamicP*ratio
     # threshold value for turbulence
-    sign      = (WallPre-threshold)/abs(WallPre-threshold)
-    sign      = np.maximum(0, sign[:])
+    sign = np.zeros(np.size(WallPre))
+    ind = np.where(WallPre > threshold)[0]
+    sign[ind] = 1.0
+    #sign = (WallPre-threshold)/abs(WallPre-threshold)
+    #sign      = np.maximum(0, sign[:])
     gamma      = np.trapz(sign, TimeZone)/(TimeZone[-1]-TimeZone[0])
     return gamma
 

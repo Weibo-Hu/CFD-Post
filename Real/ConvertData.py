@@ -38,9 +38,9 @@ VarList = [
 #    '<w`w`>', '<Q-criterion>', '<lambda_2>', '|<gradp>|'
 #]
 
-equ = '{|<gradp>|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)'
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/TP_stat/"
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/5/"
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/8/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/8/"
 NoBlock = 240
 # dirs1 = os.listdir(FoldPath)
 dirs = os.scandir(FoldPath)
@@ -48,10 +48,10 @@ for folder in dirs:
     path = FoldPath+folder.name+"/"
     with timer("Read "+folder.name+" data"):
         DataFrame = p2p.NewReadINCAResults(NoBlock, path, VarList,
-                                           FoldPath, SpanAve="Yes", Equ=equ)
+                                           OutFolder, SpanAve="Yes", Equ=equ)
         
-DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False, 
-                 header=VarList, float_format='%.10e')
+#DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False, 
+#                 header=VarList, float_format='%.10e')
 
 # %% Save time-averaged flow field
 """

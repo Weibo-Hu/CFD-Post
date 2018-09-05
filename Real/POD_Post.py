@@ -43,7 +43,7 @@ matplotlib.rc('font', **font)
 textsize = 18
 numsize = 15
 # %% load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Snapshots1/"
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/POD/"
 dirs = sorted(os.listdir(InFolder))
@@ -66,7 +66,7 @@ y2 = 5.0
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
 var = 'u'    
 fa = 1.0 #1.7*1.7*1.4
-timepoints = np.arange(650, 974.5 + 0.5, 0.5)
+timepoints = np.arange(700, 949.5 + 0.5, 0.5)
 Snapshots = DataFrame[var]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
