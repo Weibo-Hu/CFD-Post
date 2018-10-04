@@ -16,6 +16,7 @@ from timer import timer
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 from scipy.interpolate import griddata
 import os
+import sys
 
 plt.close("All")
 plt.rc('text', usetex=True)
@@ -46,6 +47,7 @@ numsize = 15
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/POD/"
+path3 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
 NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
@@ -64,9 +66,9 @@ y2 = 5.0
 #with timer("Load Data"):
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
-var = 'u'    
+var = 'p'    
 fa = 1.0 #1.7*1.7*1.4
-timepoints = np.arange(700, 949.5 + 0.5, 0.5)
+timepoints = np.arange(650.0, 899.5 + 0.5, 0.5)
 Snapshots = DataFrame[var]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
@@ -91,16 +93,16 @@ with timer("POD computing"):
 
 # %% Eigvalue Spectrum
 EFrac, ECumu, N_modes = rm.POD_EigSpectrum(90, eigval)
-np.savetxt(path+'EnergyFraction650.dat', EFrac, fmt='%1.7e', delimiter='\t')
+#np.savetxt(path+'EnergyFraction650.dat', EFrac, fmt='%1.7e', delimiter='\t')
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(6,5))
+fig1, ax1 = plt.subplots(figsize=(5,4))
 xaxis = np.arange(0, N_modes + 1)
 ax1.scatter(
     xaxis[1:],
     EFrac[:N_modes],
     c='black',
     marker='o',
-    s=15.0,
+    s=10.0,
 )   # fraction energy of every eigval mode
 #ax1.legend('E_i')
 ax1.set_ylim(bottom=0)
@@ -120,38 +122,17 @@ plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
 plt.savefig(path+var+'_PODEigSpectrum.svg', bbox_inches='tight')
 plt.show()
 
-# %% Add isoline for boudary layer edge
-meanu = griddata((meanflow.x, meanflow.y), meanflow.u, (x, y))
-umax = meanu[-1,:]
-# umax = np.amax(u, axis = 0)
-rg2  = (x[1,:]<10.375) # in front of the shock wave
-umax[rg2] = 1.0
-rg1  = (x[1,:]>=10.375)
-umax[rg1] = 0.95
-meanu  = meanu/(np.transpose(umax))
-corner = (x < 0.0) & (y < 0.0)
-meanu[corner] = np.nan # mask the corner
-rg1 = (y>0.3*np.max(y)) # remove the upper part
-meanu[rg1] = np.nan
-
-# %% Add Mach isoline for boudary layer edge
-Ma_inf = 1.7
-c = meanflow.u**2+meanflow.v**2+meanflow.w**2
-meanflow['Mach'] = Ma_inf * np.sqrt(c/meanflow['T'])
-meanma = griddata((meanflow.x, meanflow.y), meanflow.Mach, (x, y))
-meanma[corner] = np.nan
-
 # %% specific mode in space
-ind = 8
+ind = 4
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
 u = griddata((xval, yval), newflow, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
-fig, ax = plt.subplots(figsize=(6, 2))
-c1 = -4.2e-3
-c2 = 4.2e-3
+fig, ax = plt.subplots(figsize=(5, 2))
+c1 = -0.0032
+c2 = -c1 #0.063
 print("The limit value: ", np.min(newflow), np.max(newflow))
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
@@ -178,20 +159,29 @@ cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
 cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=numsize)
-ax.contour(x, y, meanu, levels=0.0,
-           linewidths=1.0, linestyles=':', colors='k')
-ax.contour(x, y, meanma, levels=1.0,
-           linewidths=1.0, linestyles=':', colors='green')
+# Add shock wave
+shock = np.loadtxt(path3+'ShockPosition.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], 'g', linewidth=1.0)
+# Add sonic line
+sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
+ax.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.0)
+# Add boundary layer
+boundary = np.loadtxt(path3+'BoundaryLayer.dat', skiprows=1)
+ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
+# Add dividing line(separation line)
+dividing = np.loadtxt(path3+'DividingLine.dat', skiprows=1)
+ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
+
 plt.savefig(path+var+'_PODMode'+str(ind)+'.svg', bbox_inches='tight')
 plt.show()
 # %% First several modes with time and WPSD
-fig, ax = plt.subplots(figsize=(6, 3))
+fig, ax = plt.subplots(figsize=(5, 3))
 matplotlib.rc('font', size=textsize)
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 lab = []
 NO = [3, 4]
-ax.plot(timepoints, coeff[NO[0]-1, :], 'k-')
+ax.plot(timepoints, coeff[NO[0]-1, :], 'k-', linewidth=1.0)
 lab.append('Mode '+str(NO[0]))
 ax.plot(timepoints, coeff[NO[1]-1, :], 'k:')
 lab.append('Mode '+str(NO[1]))
@@ -204,10 +194,10 @@ plt.grid(b=True, which='both', linestyle=':')
 plt.savefig(path+var+'_PODModeTemp' + str(NO[0]) + '.svg', bbox_inches='tight')
 plt.show()
 
-fig, ax = plt.subplots(figsize=(6, 5))
+fig, ax = plt.subplots(figsize=(5, 4))
 matplotlib.rc('font', size=numsize)
 freq, psd = fv.FW_PSD(coeff[NO[0]-1, :], timepoints, 2)
-ax.semilogx(freq, psd, 'k-')
+ax.semilogx(freq, psd, 'k-', linewidth=1.0)
 freq, psd = fv.FW_PSD(coeff[NO[1]-1, :], timepoints, 2)
 ax.semilogx(freq, psd, 'k:')
 ax.legend(lab, fontsize=15, frameon=False)
@@ -229,7 +219,7 @@ u = griddata((xval, yval), meanflow+newflow, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
-fig, ax = plt.subplots(figsize=(12, 4))
+fig, ax = plt.subplots(figsize=(10, 4))
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 lev1 = np.linspace(-0.20, 1.15, 18)

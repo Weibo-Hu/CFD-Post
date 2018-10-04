@@ -159,7 +159,7 @@ print("rho_min=", np.min(MeanFlow.rho))
 rho[corner] = np.nan
 fig, ax = plt.subplots(figsize=(10, 4))
 matplotlib.rc('font', size=textsize)
-rg1 = np.linspace(0.33, 1.03, 21)
+rg1 = np.linspace(0.33, 1.03, 41)
 cbar = ax.contourf(x, y, rho, cmap='rainbow', levels=rg1) #rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
@@ -190,7 +190,6 @@ ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.5)
 plt.savefig(path2+'MeanFlow.svg', bbox_inches='tight')
 plt.show()
 
-del MeanFlow
 
 # %% Plot rms contour of the mean flow field
 MeanFlow = DataPost()

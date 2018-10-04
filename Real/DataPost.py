@@ -167,7 +167,7 @@ class DataPost(object):
     def LoadProbeData (self, xx, yy, zz, path, Uniq=True):
         varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'walldist', 'p']
         FileName = self.GetProbeName(xx, yy, zz, path)
-        self.UserData(varname, path + FileName, 1)
+        self.UserData(varname, path + FileName, 2)
         self._DataTab = self._DataTab.sort_values(by=['time'])
         if Uniq == True:
             self._DataTab = self._DataTab.drop_duplicates(keep='last')

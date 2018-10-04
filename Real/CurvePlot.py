@@ -37,7 +37,7 @@ font1 = {
 }
 path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/"
 path3 = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/"
 path4 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 
@@ -101,7 +101,7 @@ Re_theta = '2000'
 StdUPlus1, StdUPlus2 = fv.StdWallLaw()
 ExpUPlus = fv.ExpWallLaw(Re_theta)[0]
 CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
-fig, ax = plt.subplots(figsize=(6, 5))
+fig, ax = plt.subplots(figsize=(5, 4))
 # matplotlib.rc('font', size=textsize)
 ax.plot(StdUPlus1[:, 0], StdUPlus1[:,1], 'k--', \
         StdUPlus2[:, 0], StdUPlus2[:,1], 'k--', linewidth=1.5)
@@ -129,7 +129,7 @@ plt.show()
 U_inf = 469.852
 ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
     fv.ExpWallLaw(Re_theta)
-fig, ax = plt.subplots(figsize=(6, 5))
+fig, ax = plt.subplots(figsize=(5, 4))
 ax.scatter(ExpUrmsPlus[:, 0], ExpUrmsPlus[:, 1], linewidth=0.8, \
            s=8.0, facecolor="none", edgecolor='k')
 ax.scatter(ExpVrmsPlus[:, 0], ExpVrmsPlus[:, 1], linewidth=0.8, \
@@ -166,9 +166,10 @@ plt.show()
 # %% Plot streamwise skin friction
 MeanFlow.AddWallDist(3.0)
 WallFlow = MeanFlow.DataTab.groupby("x", as_index=False).nth(1)
+WallFlow = WallFlow[WallFlow.x != -0.0078125]
 mu = fv.Viscosity(13718, WallFlow['T'])
 Cf = fv.SkinFriction(mu, WallFlow['u'], WallFlow['walldist'])
-fig2, ax2 = plt.subplots(figsize=(5, 4))
+fig2, ax2 = plt.subplots(figsize=(10, 4))
 # fig = plt.figure(figsize=(8, 3.5))
 matplotlib.rc('font', size=textsize)
 # plt.tick_params(labelsize=numsize)
@@ -177,9 +178,9 @@ matplotlib.rc('font', size=textsize)
 ax2.plot(WallFlow['x'], Cf, 'k', linewidth=1.5)
 ax2.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax2.set_ylabel(r'$\langle C_f \rangle$', fontsize=textsize)
-# ax2.set_xlim([-40.0, 70.0])
+ax2.set_xlim([-40.0, 60.0])
 ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-ax2.axvline(x=10.8, color='gray', linestyle='--', linewidth=1.0)
+ax2.axvline(x=10.9, color='gray', linestyle='--', linewidth=1.0)
 ax2.grid(b=True, which='both', linestyle=':')
 ax2.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
@@ -188,14 +189,14 @@ plt.show()
 
 # %% pressure coefficiency
 fa = 1.7 * 1.7 * 1.4
-fig3, ax3 = plt.subplots(figsize=(5, 4))
+fig3, ax3 = plt.subplots(figsize=(10, 4))
 # ax3 = fig.add_subplot(122)
 ax3.plot(WallFlow['x'], WallFlow['p'] * fa, 'k', linewidth=1.5)
 ax3.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax3.set_ylabel(r'$\langle p_w \rangle/p_{\infty}$', fontsize=textsize)
-# ax3.set_xlim([-40.0, 70.0])
+ax3.set_xlim([-40.0, 60.0])
 ax3.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-ax3.axvline(x=10.8, color='gray', linestyle='--', linewidth=1.0)
+ax3.axvline(x=10.9, color='gray', linestyle='--', linewidth=1.0)
 ax3.grid(b=True, which='both', linestyle=':')
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
@@ -224,55 +225,73 @@ alpha = np.zeros(np.size(xzone))
 p0 = Snapshots[0, :]
 sigma = np.std(p0)
 timezone = np.arange(600, 999.5 + 0.5, 0.5)
+dt = 0.5
 for j in range(np.size(Snapshots[:, 0])):
     gamma[j] = fv.Intermittency(sigma, p0, Snapshots[j, :], timezone)
     alpha[j] = fv.Alpha3(Snapshots[j, :])
+
 # %% Plot Intermittency factor
+# universal intermittency distribution
+x2 = np.linspace(15, 60, 50)
+ksi = (x2-15)/15
+ga2 = 1-np.exp(-0.412*ksi**2)
+x1 = np.linspace(-40, 15, 50)
+ga1 = x1-x1
+
+XminorLocator = MultipleLocator(10)
+YminorLocator = MultipleLocator(0.1)
 xarr = np.linspace(-40.0, 70.0, 111)
 spl = splrep(xzone, gamma, s=0.35)
 yarr = splev(xarr, spl)
 fig3, ax3 = plt.subplots(figsize=(10, 3))
 # ax3.plot(xzone, gamma, 'k-')
 ax3.plot(xarr, yarr, 'k-')
+ax3.scatter(x1, ga1, c='black', marker='o', s=10)
+ax3.scatter(x2, ga2, c='black', marker='o', s=10)
 ax3.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax3.set_ylabel(r'$\gamma$', fontdict=font)
 ax3.set_xlim([-40.0, 60.0])
-#ax3.set_ylim([0.0, 1.0])
+ax3.set_ylim([-0.1, 1.0])
+ax3.xaxis.set_minor_locator(XminorLocator)
+ax3.yaxis.set_minor_locator(YminorLocator)
 ax3.grid(b=True, which='both', linestyle=':')
 ax3.axvline(x=0.0, color='k', linestyle='--', linewidth=1.0)
-ax3.axvline(x=10.8, color='k', linestyle='--', linewidth=1.0)
+ax3.axvline(x=10.6, color='k', linestyle='--', linewidth=1.0)
 plt.tick_params(labelsize='medium')
 plt.savefig(path2 + 'Intermittency.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 
 #%% Temporal variation of reattachment point
+"""
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
-dirs = sorted(os.listdir(InFolder))
-data = pd.read_hdf(InFolder + dirs[0])
-NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
-ind = NewFrame.index.values
+OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
 timezone = np.arange(600, 999.5 + 0.5, 0.5)
-xarr = np.zeros(np.size(timezone))
-# xzone = np.linspace(-40.0, 70.0, 111)
 with timer("Computing reattaching point"):
-    for i in range(np.size(dirs)):
-        frame = pd.read_hdf(InFolder + dirs[i])
-        frame = frame.iloc[ind]
-        xarr[i] = frame.loc[frame['u']>=0.0, 'x'].head(1)
-reatt = np.vstack((timezone, xarr))
-np.savetxt(path2+"Reattach.dat", reatt, fmt='%.8e', delimiter='  ', header="t, x")
-#%%  Plot reattachment point with time      
+    fv.ReattachLoc(InFolder, OutFolder, timezone)
+
+#%% Temporal shock position
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/6/"
+OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
+timezone = np.arange(660, 769.50 + 0.5, 0.5)
+fv.ShockLoc(InFolder, OutFolder, timezone)
+"""
+#%%  Plot reattachment point with time     
 fig, ax = plt.subplots(figsize=(10, 2))
 #spl = splrep(timezone, xarr, s=0.35)
 #xarr1 = splev(timezone[0::5], spl)
-ax.plot(timezone, xarr, 'k-')
+reatt = np.loadtxt(OutFolder+"Reattach.dat", skiprows=1)
+timezone = reatt[:, 0]
+Xr = reatt[:, 1]
+ax.plot(timezone, Xr, 'k-')
+ax.set_xlim([600, 1000])
 ax.set_xlabel(r'$t u_\infty/\delta_0$', fontsize=textsize)
 ax.set_ylabel(r'$x/\delta_0$', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
-xmean = np.mean(xarr)
+xmean = np.mean(Xr)
+print("The mean value: ", xmean)
 ax.axhline(y=xmean, color='k', linestyle='--', linewidth=1.0)
-plt.tick_params(labelsize='medium')
+plt.tick_params(labelsize=numsize)
 plt.savefig(path2 + 'Xr.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
@@ -281,50 +300,55 @@ ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
 ax.set_ylabel ('Weighted PSD, unitless', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
-Fre, FPSD = fv.FW_PSD(xarr, timezone, 2.0)
+Fre, FPSD = fv.FW_PSD(Xr, dt, 2.0)
 ax.semilogx(Fre, FPSD, 'k', linewidth=1.0)
+ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(path2+'XrFWPSD.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
-#%% Temporal shock position
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/5/"
-dirs = sorted(os.listdir(InFolder))
-fig1, ax1 = plt.subplots(figsize=(10, 4))
-matplotlib.rc('font', size=textsize)
-x0 = np.unique(data['x'])
-x1 = x0[x0 > 10.0]
-x1 = x1[x1 <= 30.0]
-y0 = np.unique(data['y'])
-y1 = y0[y0 > -2.5]
-xini, yini = np.meshgrid(x1, y1)
-corner = (xini<0.0) & (yini<0.0)
-shock1 = np.empty(shape=[0, 2])
-shock2 = np.empty(shape=[0, 2])
-timepoints = np.arange(650.0, 899.5 + 0.5, 0.5)
-if np.size(timepoints) != np.size(dirs):
-    sys.exit('The input snapshots does not match!!!')
-for i in range(np.size(dirs)):
-    with timer('Shock position at '+dirs[i]):
-        frame = pd.read_hdf(InFolder + dirs[i])
-        gradp = griddata((frame['x'], frame['y']), frame['|gradp|'], (xini, yini))
-        gradp[corner] = np.nan
-        cs = ax1.contour(xini, yini, gradp, levels=0.06, linewidths=1.2, colors='gray')
-        xycor = np.empty(shape=[0, 2])
-        for isoline in cs.collections[0].get_paths():
-            xy = isoline.vertices
-            xycor = np.append(xycor, xy, axis=0)
-            ax1.plot(xy[:, 0], xy[:, 1], 'r:')  
-        ind1 = np.where(xycor[:, 1]==0.0)[0]
-        x1 = np.mean(xycor[ind1, 0])
-        shock1 = np.append(shock1, [timepoints[i], x1, 0.0])
-        ind2 = np.where(xycor[:, 1]==5.0)[0]
-        x2 = np.mean(xycor[ind2, 0])
-        shock2 = np.append(shock2, [timepoints[i], x2, 5.0])     
-np.savetxt(path2+"Shock1.dat", shock1, fmt='%.8e', delimiter='  ', header="t, x, y")
-np.savetxt(path2+"Shock2.dat", shock2, fmt='%.8e', delimiter='  ', header="t, x, y")
+#%% Kelvin Helholmz fluctuation
+# B:K-H, C:X_reattach, D:turbulence
+probe = np.loadtxt(OutFolder+'ProbeB.dat', skiprows=1)
+func = interp1d(probe[:, 1], probe[:, 2])
+Xr = func(timezone)
 
+#%%  Plot shock location with time      
+fig, ax = plt.subplots(figsize=(10, 2))
+#spl = splrep(timezone, xarr, s=0.35)
+#xarr1 = splev(timezone[0::5], spl)
+shock1 = np.loadtxt(OutFolder+"Shock1.dat", skiprows=1)
+shock2 = np.loadtxt(OutFolder+"Shock2.dat", skiprows=1)
+angle = np.arctan(5/(shock2[:, 1]-shock1[:, 1]))
+foot = shock2[:, 1] - 8.0/np.tan(angle)
+Xs = angle*180/np.pi #shock2[:, 1]
+ax.plot(timezone, Xs, 'k-')
+ax.set_xlim([600, 1000])
+ax.set_xlabel(r'$t u_\infty/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$x/\delta_0$', fontsize=textsize)
+ax.grid(b=True, which='both', linestyle=':')
+xmean = np.mean(Xs)
+print("The mean value: ", xmean)
+ax.axhline(y=xmean, color='k', linestyle='--', linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(path2 + 'Shockangle.svg', bbox_inches='tight', pad_inches=0.1)
+plt.show()
+print("Corelation: ", fv.Correlate(Xr,foot))
+
+fig, ax = plt.subplots(figsize=(5, 4))
+ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
+ax.yaxis.major.formatter.set_powerlimits((0, 3))
+ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
+ax.set_ylabel ('Weighted PSD, unitless', fontsize=textsize)
+ax.grid(b=True, which='both', linestyle=':')
+Fre, FPSD = fv.FW_PSD(Xs, dt, 2.0)
+ax.semilogx(Fre, FPSD, 'k', linewidth=1.0)
+ax.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(path2+'ShockangleFWPSD.svg', bbox_inches='tight', pad_inches=0.1)
+plt.show()
 
 # %% Streamwise evolution of variable
 # Load Data for time-averaged results
@@ -356,6 +380,7 @@ lab = [r'$\lambda_1$', r'$\lambda_2$', r'$\lambda_3$', r'$\lambda_4$']
 ax.legend(lab, ncol=2, loc='upper right', fontsize=15)
 #          bbox_to_anchor=(1., 1.12), borderaxespad=0., frameon=False)
 ax.set_ylim([0.01, 1.0])
+ax.set_xlim([280, 700])
 ax.set_xlabel(r'$N$', fontsize=textsize)
 ax.set_ylabel(r'$\lambda_i/\sum_{k=1}^N \lambda_k$', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
@@ -383,3 +408,4 @@ ax.grid(b=True, which='both', linestyle=':')
 plt.tick_params(labelsize=numsize)
 plt.savefig(path2 + 'Wavelen' + time + '.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
+#%%

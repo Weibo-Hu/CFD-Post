@@ -44,24 +44,27 @@ font3 = {'family' : 'Times New Roman',
 }
 
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path1 = "/media/weibo/Data2/BFS1.7S_test/probes/"
+path2 = "/media/weibo/Data2/BFS1.7S_test/DataPost/"
+path3 = "/media/weibo/Data2/BFS1.7S_test/DataPost/"
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
-texsize = 18
+textsize = 18
 labsize = 15
 t0 = 600
-t1 = 600 #960
-t2 = 1000.0 #
+t1 = 100 #600 #960
+t2 = 200 #1000.0 #
 
 #%% Read data for Streamwise variations of frequency of a specific variable
 Probe0 = DataPost()
-xloc = [-40.0, 3.481, 11.0, 60.0]
+xloc = [-40.0, 3.481, 10.0, 60.0]
 yloc = [0.0, -0.943, -3.0, -3.0]
-Probe0.LoadProbeData(xloc[0], yloc[0], 0.0, path1, Uniq=True)
+#xloc = [-30.0, -20, -10.0, -5.0]
+#yloc = [0.0, 0.0, 0.0, 0.0]
+Probe0.LoadProbeData(xloc[0], yloc[1], 0.0, path1, Uniq=True)
 Probe0.ExtraSeries('time', t1, t2)
+#Probe0.DataTab.to_csv(OutFolder+'ProbeE3.dat', sep='\t', index=False, float_format='%.8e')
 #Probe0.AveAtSameXYZ('All')
 #time1 = Probe0.time
 Probe10 = DataPost()
@@ -69,12 +72,14 @@ Probe10.LoadProbeData(xloc[1], yloc[1], 0.0, path1, Uniq=True)
 #Probe10.unique_rows()
 Probe10.ExtraSeries('time', t1, t2)
 #Probe10.AveAtSameXYZ('All')
+
 Probe20 = DataPost()
 Probe20.LoadProbeData(xloc[2], yloc[2], 0.0, path1, Uniq=True)
 #Probe20.unique_rows()
 Probe20.ExtraSeries('time', t1, t2)
 #Probe20.AveAtSameXYZ('All')
 #time2 = Probe20.time
+
 Probe30 = DataPost()
 Probe30.LoadProbeData(xloc[3], yloc[3], 0.0, path1, Uniq=True)
 #Probe30.unique_rows()
@@ -92,7 +97,7 @@ ytitle = r'$p/p_\infty$'
 var = 'p'
 ax.set_title(xlabel.format(xloc[0], yloc[0]), fontdict=font1)
 ax.set_xlim([t1, t2])
-ax.set_ylim([0.99, 1.01])
+#ax.set_ylim([0.99, 1.01])
 ax.set_xticklabels('')
 #ax.set_xlabel (r'$t u_\infty/\delta$', fontdict = font1)
 ax.set_ylabel(ytitle, fontsize=textsize)
@@ -106,7 +111,8 @@ ax.grid(b=True, which='both', linestyle=':')
 #ax.plot (time0, grow0, 'k', linewidth = 1.5)
 #Probe0.AddUGrad(0.015625)
 ax.plot(Probe0.time, getattr(Probe0, var)*fa, 'k', linewidth=1.0)
-ax.annotate("(a)", xy=(-0.05, 1.2), xycoords='axes fraction', fontsize=labsize)
+
+#ax.annotate("(a)", xy=(-0.05, 1.2), xycoords='axes fraction', fontsize=labsize)
 plt.tick_params(labelsize=14)
 # fit curve
 def func(t, A, B):
@@ -130,7 +136,7 @@ ax.grid(b=True, which='both', linestyle = ':')
 #ax.plot (time10, grow10, 'k', linewidth = 1.5)
 #Probe10.AddUGrad(0.015625)
 ax.plot(Probe10.time, getattr(Probe10, var)*fa, 'k', linewidth=1.0)
-ax.annotate("(b)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
+#ax.annotate("(b)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
 plt.tick_params(labelsize=14)
 
 ax = fig.add_subplot(413)
@@ -146,7 +152,7 @@ ax.grid(b=True, which ='both', linestyle =':')
 #ax.plot (time20, grow20, 'k', linewidth = 1.5)
 #Probe20.AddUGrad(0.015625)
 ax.plot(Probe20.time, getattr(Probe20, var)*fa, 'k', linewidth=1.0)
-ax.annotate("(c)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
+#ax.annotate("(c)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
 plt.tick_params(labelsize=14)
 
 ax = fig.add_subplot(414)
@@ -161,16 +167,16 @@ ax.grid(b=True, which='both', linestyle=':')
 #grow40, time40 = Probe40.GrowthRate(Probe40.time, Probe40P)
 #Probe30.AddUGrad(0.015625)
 ax.plot(Probe30.time, getattr(Probe30, var)*fa, 'k', linewidth=1.0)
-ax.annotate("(d)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
+#ax.annotate("(d)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
 #ax.plot (Probe40.time, Probe40.p, 'k', linewidth = 1.5)
 plt.tick_params(labelsize=labsize)
 plt.rc('text', usetex=True)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.savefig (path3+'StreamwiseTimeEvolution.svg', bbox_inches='tight')
+plt.savefig(path3+'StreamwiseTimeEvolution.svg', bbox_inches='tight')
 plt.show()
 
 
-#%% Frequency Weighted Power Spectral Density
+# %% Frequency Weighted Power Spectral Density
 Freq_samp = 50
 fig = plt.figure(figsize=(10,8))
 matplotlib.rc('font', size=textsize)
@@ -187,7 +193,7 @@ ax.grid(b=True, which='both', linestyle=':')
 #Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var), Probe0.time, Freq_samp)
 Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var)-fitfunc(Probe0.time), Probe0.time, Freq_samp)
 ax.semilogx(Fre0, FPSD0, 'k', linewidth=1.0)
-ax.annotate("(a)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
+#ax.annotate("(a)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
 ax.yaxis.offsetText.set_fontsize(labsize)
 plt.tick_params(labelsize=labsize)
 #ax.psd(Probe0.p-np.mean(Probe0.p), 100, 10)
@@ -200,7 +206,7 @@ ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax.grid(b=True, which='both', linestyle=':')
 Fre10, FPSD10 = fv.FW_PSD (getattr(Probe10, var), Probe10.time, Freq_samp)
 ax.semilogx(Fre10, FPSD10, 'k', linewidth=1.0)
-ax.annotate("(b)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
+#ax.annotate("(b)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
 ax.yaxis.offsetText.set_fontsize(labsize)
 plt.tick_params(labelsize=labsize)
 
@@ -214,7 +220,7 @@ ax.set_ylabel('WPSD, unitless', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
 Fre20, FPSD20 = fv.FW_PSD(getattr(Probe20, var), Probe20.time, Freq_samp)
 ax.semilogx (Fre20, FPSD20, 'k', linewidth = 1.0)
-ax.annotate("(c)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
+#ax.annotate("(c)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
 ax.yaxis.offsetText.set_fontsize(labsize)
 plt.tick_params(labelsize=labsize)
 
@@ -229,7 +235,7 @@ ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
 Fre30, FPSD30 = fv.FW_PSD(getattr(Probe30, var), Probe30.time, Freq_samp)
 ax.semilogx(Fre30, FPSD30, 'k', linewidth=1.0)
-ax.annotate("(d)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
+#ax.annotate("(d)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
 ax.yaxis.offsetText.set_fontsize(labsize)
 plt.tick_params(labelsize=labsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
