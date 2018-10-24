@@ -169,7 +169,7 @@ WallFlow = MeanFlow.DataTab.groupby("x", as_index=False).nth(1)
 WallFlow = WallFlow[WallFlow.x != -0.0078125]
 mu = fv.Viscosity(13718, WallFlow['T'])
 Cf = fv.SkinFriction(mu, WallFlow['u'], WallFlow['walldist'])
-fig2, ax2 = plt.subplots(figsize=(10, 4))
+fig2, ax2 = plt.subplots(figsize=(11.0, 2.5))
 # fig = plt.figure(figsize=(8, 3.5))
 matplotlib.rc('font', size=textsize)
 # plt.tick_params(labelsize=numsize)
@@ -178,9 +178,9 @@ matplotlib.rc('font', size=textsize)
 ax2.plot(WallFlow['x'], Cf, 'k', linewidth=1.5)
 ax2.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax2.set_ylabel(r'$\langle C_f \rangle$', fontsize=textsize)
-ax2.set_xlim([-40.0, 60.0])
+ax2.set_xlim([-20.0, 40.0])
 ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-ax2.axvline(x=10.9, color='gray', linestyle='--', linewidth=1.0)
+ax2.axvline(x=11.0, color='gray', linestyle='--', linewidth=1.0)
 ax2.grid(b=True, which='both', linestyle=':')
 ax2.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
@@ -189,12 +189,12 @@ plt.show()
 
 # %% pressure coefficiency
 fa = 1.7 * 1.7 * 1.4
-fig3, ax3 = plt.subplots(figsize=(10, 4))
+fig3, ax3 = plt.subplots(figsize=(10, 2.5))
 # ax3 = fig.add_subplot(122)
 ax3.plot(WallFlow['x'], WallFlow['p'] * fa, 'k', linewidth=1.5)
 ax3.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax3.set_ylabel(r'$\langle p_w \rangle/p_{\infty}$', fontsize=textsize)
-ax3.set_xlim([-40.0, 60.0])
+ax3.set_xlim([-20.0, 40.0])
 ax3.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax3.axvline(x=10.9, color='gray', linestyle='--', linewidth=1.0)
 ax3.grid(b=True, which='both', linestyle=':')
@@ -263,26 +263,35 @@ plt.show()
 
 
 #%% Temporal variation of reattachment point
-"""
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
-timezone = np.arange(600, 999.5 + 0.5, 0.5)
-with timer("Computing reattaching point"):
-    fv.ReattachLoc(InFolder, OutFolder, timezone)
+timezone = np.arange(600, 1000 + 0.5, 0.5)
+fv.ReattachLoc(InFolder, OutFolder, timezone)
 
 #%% Temporal shock position
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/6/"
+dt = 0.5
+fs = 2.0
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
-timezone = np.arange(660, 769.50 + 0.5, 0.5)
+timezone = np.arange(600, 1000 + 0.5, 0.5)
 fv.ShockLoc(InFolder, OutFolder, timezone)
-"""
-#%%  Plot reattachment point with time     
-fig, ax = plt.subplots(figsize=(10, 2))
-#spl = splrep(timezone, xarr, s=0.35)
-#xarr1 = splev(timezone[0::5], spl)
+
+#%% Kelvin Helholmz fluctuation
+# B:K-H, C:X_reattach, D:turbulence
+probe = np.loadtxt(OutFolder+'ProbeB.dat', skiprows=1)
+func = interp1d(probe[:, 1], probe[:, 8])
+#timezone = probe[:, 1]
+Xk = func(timezone) # probe[:, 8]
+
+#%% reattachment location with time 
 reatt = np.loadtxt(OutFolder+"Reattach.dat", skiprows=1)
 timezone = reatt[:, 0]
 Xr = reatt[:, 1]
+
+#%%  Plot Xr with time     
+fig, ax = plt.subplots(figsize=(10, 2))
+#spl = splrep(timezone, xarr, s=0.35)
+#xarr1 = splev(timezone[0::5], spl)
 ax.plot(timezone, Xr, 'k-')
 ax.set_xlim([600, 1000])
 ax.set_xlabel(r'$t u_\infty/\delta_0$', fontsize=textsize)
@@ -300,7 +309,7 @@ ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
 ax.set_ylabel ('Weighted PSD, unitless', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
-Fre, FPSD = fv.FW_PSD(Xr, dt, 2.0)
+Fre, FPSD = fv.FW_PSD(Xr, dt, 2.0, opt=1)
 ax.semilogx(Fre, FPSD, 'k', linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
@@ -308,21 +317,19 @@ plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(path2+'XrFWPSD.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
-#%% Kelvin Helholmz fluctuation
-# B:K-H, C:X_reattach, D:turbulence
-probe = np.loadtxt(OutFolder+'ProbeB.dat', skiprows=1)
-func = interp1d(probe[:, 1], probe[:, 2])
-Xr = func(timezone)
 
-#%%  Plot shock location with time      
-fig, ax = plt.subplots(figsize=(10, 2))
+#%%  load data of shock location with time      
 #spl = splrep(timezone, xarr, s=0.35)
 #xarr1 = splev(timezone[0::5], spl)
 shock1 = np.loadtxt(OutFolder+"Shock1.dat", skiprows=1)
 shock2 = np.loadtxt(OutFolder+"Shock2.dat", skiprows=1)
 angle = np.arctan(5/(shock2[:, 1]-shock1[:, 1]))
-foot = shock2[:, 1] - 8.0/np.tan(angle)
-Xs = angle*180/np.pi #shock2[:, 1]
+shockloc = shock2[:, 1] - 8.0/np.tan(angle)
+foot = np.loadtxt(OutFolder+"ShockFoot.dat", skiprows=1)
+Xs = foot[:, 1] #shockloc #  #angle*180/np.pi #shock2[:, 1]
+
+# plot Xs with time
+fig, ax = plt.subplots(figsize=(10, 2))
 ax.plot(timezone, Xs, 'k-')
 ax.set_xlim([600, 1000])
 ax.set_xlabel(r'$t u_\infty/\delta_0$', fontsize=textsize)
@@ -332,24 +339,79 @@ xmean = np.mean(Xs)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color='k', linestyle='--', linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + 'Shockangle.svg', bbox_inches='tight', pad_inches=0.1)
+plt.savefig(path2 + 'Shockfoot.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
-print("Corelation: ", fv.Correlate(Xr,foot))
+print("Corelation: ", fv.Correlate(Xr,Xs))
 
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-ax.yaxis.major.formatter.set_powerlimits((0, 3))
+#ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
 ax.set_ylabel ('Weighted PSD, unitless', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
-Fre, FPSD = fv.FW_PSD(Xs, dt, 2.0)
+Fre, FPSD = fv.FW_PSD(Xs, dt, 2.0, opt=1)
 ax.semilogx(Fre, FPSD, 'k', linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2+'ShockangleFWPSD.svg', bbox_inches='tight', pad_inches=0.1)
+plt.savefig(path2+'ShockfootFWPSD.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
+# %% plot coherence and phase for var1 & var2
+OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/Data/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/Data/"
+probe1 = np.loadtxt(OutFolder+'ShockFootE.dat', skiprows=1)
+probe2 = np.loadtxt(OutFolder+'ShockFootC.dat', skiprows=1)
+probe11 = np.loadtxt(OutFolder+'ShockFootE.dat', skiprows=1)
+probe21 = np.loadtxt(OutFolder+'ShockFootD.dat', skiprows=1)
+probe12 = np.loadtxt(OutFolder+'ShockFootE.dat', skiprows=1)
+probe22 = np.loadtxt(OutFolder+'ShockFootF.dat', skiprows=1)
+timezone = np.arange(600, 1000 + 0.5, 0.5)
+dt = 0.5
+fs = 2
+Xs = probe1[:,1]
+Xr = probe2[:,1]
+Xs1 = probe11[:,1]
+Xr1 = probe21[:,1]
+Xs2 = probe12[:,1]
+Xr2 = probe22[:,1]
+
+fig = plt.figure(figsize=(10,4))
+matplotlib.rc('font', size=textsize)
+ax = fig.add_subplot(121)
+Fre, coher = fv.Coherence(Xr, Xs, dt, fs)
+Fre1, coher1 = fv.Coherence(Xr1, Xs1, dt, fs)
+Fre2, coher2 = fv.Coherence(Xr2, Xs2, dt, fs)
+ax.semilogx(Fre, coher, 'k-', linewidth=1.0)
+ax.semilogx(Fre1, coher1, 'k:', linewidth=1.0)
+ax.semilogx(Fre2, coher2, 'k--', linewidth=1.0)
+ax.set_ylim([0.0, 1.0])
+#ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
+ax.get_yaxis().get_major_formatter().set_useOffset(False)
+ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
+ax.set_ylabel (r'$C$', fontsize=textsize)
+ax.grid(b=True, which='both', linestyle=':')
+plt.tick_params(labelsize=numsize)
+ax.annotate("(a)", xy=(-0.15, 1.0), xycoords='axes fraction', fontsize=numsize)
+
+ax = fig.add_subplot(122)
+Fre, cpsd = fv.Cro_PSD(Xr, Xs, dt, fs)
+Fre1, cpsd1 = fv.Cro_PSD(Xr1, Xs1, dt, fs)
+Fre2, cpsd2 = fv.Cro_PSD(Xr2, Xs2, dt, fs)
+ax.semilogx(Fre, np.arctan(cpsd.imag, cpsd.real), 'k-', linewidth=1.0)
+ax.semilogx(Fre, np.arctan(cpsd1.imag, cpsd1.real), 'k:', linewidth=1.0)
+ax.semilogx(Fre, np.arctan(cpsd2.imag, cpsd2.real), 'k--', linewidth=1.0)
+ax.set_ylim([-1.0, 1.0])
+ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
+ax.set_ylabel (r'$\theta$'+'(rad)', fontsize=textsize)
+ax.grid(b=True, which='both', linestyle=':')
+ax.annotate("(b)", xy=(-0.20, 1.0), xycoords='axes fraction', fontsize=numsize)
+lab = [r'$\Delta y/\delta_0 = 1.0$', r'$\Delta y/\delta_0 = 1.5$', r'$\Delta y/\delta_0 =4.0$']
+ax.legend(lab, ncol=1, loc='upper right', fontsize=numsize)
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(path2+'Statistic.svg', bbox_inches='tight', pad_inches=0.1)
+plt.show()
 # %% Streamwise evolution of variable
 # Load Data for time-averaged results
 MeanFlow = DataPost()

@@ -89,8 +89,7 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
     return(df)
 
 
-def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
-                    SpanAve=None, OutFile=None, Equ=None):
+def NewReadINCAResults(BlockNO, FoldPath, VarList, SavePath=None, Equ=None):
     os.chdir(FoldPath)
     FileName = sorted(os.listdir(FoldPath))
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)
@@ -116,23 +115,26 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
             ZoneRow = np.row_stack((ZoneRow, VarCol))
     del dataset, zone, zonename, var
     df = pd.DataFrame(data=ZoneRow, columns=VarList)
-    #print(SolTime)
-    #df.to_csv(OutFile+".dat", index=False, sep = '\t')
-    if SpanAve is not None:
+    if SavePath is not None:
+        df.to_hdf(SavePath+"SolTime"+"%0.2f"%SolTime+".h5",
+                  'w', format='fixed')
+    return (df, SolTime)
+
+
+def SaveSlice(df, SolTime, SpanAve, SavePath):
+    if SpanAve == float('Inf'):  # span-averaged
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
-
-#        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
-    if OutFile is None:
-        df.to_hdf(FoldPath2+"SolTime"+"%0.2f"%SolTime+".h5", \
-                  'w', format= 'fixed')
-    else:
-        df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
-    return (df)
+    else:  # extract a slice at z=SpanAve
+        df = df.loc[df['z'] == SpanAve].reset_index(drop=True)
+    df.to_hdf(SavePath+"Slice"+"%0.1f"%SpanAve+"SolTime"+"%0.2f"%SolTime+".h5",
+              'w', format='fixed')
+    return df
 
 
-def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2, \
-                    SpanAve=None, OutFile=None):
+
+def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2,
+                      SpanAve=None, OutFile=None):
     os.chdir(FoldPath)
     FileName = os.listdir(FoldPath)
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)

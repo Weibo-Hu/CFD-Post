@@ -152,6 +152,7 @@ np.savetxt(path3+"ShockPosition.dat", np.vstack((xnew, ynew)).T, fmt='%.8e',
            delimiter='  ', header=header)
 plt.show()
 """
+
 # %% Plot rho contour of the mean flow field
 rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 print("rho_max=", np.max(MeanFlow.rho))
@@ -161,7 +162,7 @@ fig, ax = plt.subplots(figsize=(10, 4))
 matplotlib.rc('font', size=textsize)
 rg1 = np.linspace(0.33, 1.03, 41)
 cbar = ax.contourf(x, y, rho, cmap='rainbow', levels=rg1) #rainbow_r
-ax.set_xlim(-10.0, 30.0)
+ax.set_xlim(-10.0, 25.0)
 ax.set_ylim(-3.0, 10.0)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
@@ -169,13 +170,13 @@ ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 plt.gca().set_aspect('equal', adjustable='box')
 # Add colorbar
 rg2 = np.linspace(0.33, 1.03, 3)
-cbaxes = fig.add_axes([0.17, 0.70, 0.18, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.17, 0.72, 0.18, 0.07])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
 cbar.set_label(r'$\langle \rho \rangle/\rho_{\infty}$',
                rotation=0, fontdict=font)
 # Add shock wave
-shock = np.loadtxt(path3+'ShockPosition.dat', skiprows=1)
+shock = np.loadtxt(path3+'Shock.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], 'w', linewidth=1.5)
 # Add sonic line
 sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
@@ -186,11 +187,53 @@ ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.5)
 # Add dividing line(separation line)
 dividing = np.loadtxt(path3+'DividingLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.5)
+# streamlines
+x1 = np.linspace(0.0, 12.0, 120)
+y1 = np.linspace(-3.0, -0.0, 100)
+seeds = np.array([[6.83, 5.93, 5.35, 3.85, 2.50, 1.42,  0.76], 
+                  [-2.1, -1.8, -1.6, -1.14, -0.8, -0.54, -0.35]])
+xbox, ybox = np.meshgrid(x1, y1)
+u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (xbox, ybox))
+v = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.v, (xbox, ybox))
+ax.streamplot(xbox, ybox, u, v, color='w', density=[3.0, 2.0], arrowsize=0.7,
+              start_points=seeds.T, maxlength=30.0, linewidth=1.0)
 
 plt.savefig(path2+'MeanFlow.svg', bbox_inches='tight')
 plt.show()
 
+# %% Plot schematic of the mean flow field
+rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
+print("rho_max=", np.max(MeanFlow.rho))
+print("rho_min=", np.min(MeanFlow.rho))
+rho[corner] = np.nan
+fig, ax = plt.subplots(figsize=(10, 4))
+matplotlib.rc('font', size=textsize)
+rg1 = np.linspace(0.33, 1.03, 41)
+#cbar = ax.contourf(x, y, rho, cmap='rainbow', levels=rg1) #rainbow_r
+ax.set_xlim(-10.0, 30.0)
+ax.set_ylim(-3.0, 10.0)
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
+ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
+plt.gca().set_aspect('equal', adjustable='box')
+# Add shock wave
+shock = np.loadtxt(path3+'Shock.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], 'r', linewidth=1.5)
+# Add sonic line
+sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
+ax.plot(sonic[:, 0], sonic[:, 1], 'b--', linewidth=1.5)
+# Add boundary layer
+boundary = np.loadtxt(path3+'BoundaryLayer.dat', skiprows=1)
+ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.5)
+u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
+cs = ax.contour(x, y, u, levels=[0.0, 0.8], colors='k')
+ax.clabel(cs, fmt='%2.1f', colors='k', fontsize=numsize)
 
+ax.hlines(0, 0, 30, colors='k', linestyles=':')
+ax.hlines(5, -10, 30, colors='k', linestyles=':')
+ax.grid(b=True, which='both', linestyle=':')
+plt.savefig(path2+'Schematic.svg', bbox_inches='tight')
+plt.show()
 # %% Plot rms contour of the mean flow field
 MeanFlow = DataPost()
 VarName = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', 'uv',
@@ -228,7 +271,7 @@ cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
 cbar.set_label(r'$\sqrt{|\langle v^\prime v^\prime \rangle|}$',
                rotation=0, fontsize=textsize)
 # Add shock wave
-shock = np.loadtxt(path3+'ShockPosition.dat', skiprows=1)
+shock = np.loadtxt(path3+'Shock.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], 'w', linewidth=1.5)
 # Add sonic line
 sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)

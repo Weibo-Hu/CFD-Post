@@ -160,7 +160,7 @@ cbar1.update_ticks()
 cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0, fontdict=font)
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
-shock = np.loadtxt(path3+'ShockPosition.dat', skiprows=1)
+shock = np.loadtxt(path3+'Shock.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], 'g', linewidth=1.0)
 # Add sonic line
 sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)

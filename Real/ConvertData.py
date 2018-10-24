@@ -39,16 +39,27 @@ VarList = [
 #]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data2/BFS_M1.7L_0506/4/"
-OutFolder = "/media/weibo/Data2/BFS_M1.7L_0506/SpanAve/4/"
+FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/5/3/"
+OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
+OutFolder2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5B/"
+OutFolder3 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5C/"
+OutFolder4 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5D/"
+OutFolder5 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5E/"
+OutFolder6 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5F/"
 NoBlock = 240
 # dirs1 = os.listdir(FoldPath)
 dirs = os.scandir(FoldPath)
 for folder in dirs:
     path = FoldPath+folder.name+"/"
     with timer("Read "+folder.name+" data"):
-        DataFrame = p2p.NewReadINCAResults(NoBlock, path, VarList,
-                                           OutFolder, SpanAve="Yes", Equ=equ)
+        DataFrame, time = p2p.NewReadINCAResults(NoBlock, path, 
+                                                 VarList, Equ=equ)
+        df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
+        #df2 = p2p.SaveSlice(DataFrame, time, 1.5, OutFolder1)
+        #df3 = p2p.SaveSlice(DataFrame, time, 1.0, OutFolder1)
+        #df4 = p2p.SaveSlice(DataFrame, time, 0.5, OutFolder1)
+        #df5 = p2p.SaveSlice(DataFrame, time, 0.0, OutFolder1)
+        #df6 = p2p.SaveSlice(DataFrame, time, -2.0, OutFolder1)
 
 #DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False,
 #                 header=VarList, float_format='%.10e')
