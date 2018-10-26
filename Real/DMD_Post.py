@@ -26,13 +26,13 @@ font = {
 }
 
 matplotlib.rc('font', **font)
-textsize = 18
-numsize = 15
+textsize = 24
+numsize = 20
 
 # %% load data
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
-path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/DMD1/"
+path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/3AF/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 timepoints = np.arange(650.0, 949.50 + 0.5, 0.5)
 dirs = sorted(os.listdir(InFolder))
@@ -48,7 +48,7 @@ xval = DataFrame['x'][ind] # NewFrame['x']
 yval = DataFrame['y'][ind] # NewFrame['y']
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 x1 = -5.0
-x2 = 30.0
+x2 = 25.0
 y1 = -3.0
 y2 = 5.0
 #with timer("Load Data"):
@@ -101,7 +101,7 @@ with timer("SPDMD computing"):
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
 
 # %% 
-sp = 1
+sp = 2
 bfs1.sparse.Nz[sp]
 bfs1.sparse.gamma[sp] 
 r = np.size(eigval)
@@ -112,7 +112,7 @@ var = var0
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(5, 4.5))
+fig1, ax1 = plt.subplots(figsize=(6, 4))
 unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
                          label='unit circle', linewidth=7.0, alpha=0.5)
 ax1.add_artist(unit_circle)
@@ -141,7 +141,7 @@ coeff = bfs.amplitudes
 
 # %% Mode frequency specturm
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(7, 4.5))
+fig1, ax1 = plt.subplots(figsize=(10, 4))
 psi = np.abs(coeff)/np.max(np.abs(coeff))
 ind1 = freq > 0.0 
 ax1.set_xscale("log")
@@ -160,28 +160,28 @@ plt.show()
 # %% specific mode in real space
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-fa = 1.0 # 1.7*1.7*1.4
-ind = 15
+fa = 1.7*1.7*1.4
+ind = 7
 num = sp_ind[ind-1] # ind from small to large->freq from low to high
 name = str(round(freq[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
 tempflow = phi[:, num].real
 print('The frequency is', freq[num])
-var = var1
+var = var2
 modeflow = tempflow[varset[var][0]:varset[var][1]]
 print("The limit value: ", np.min(modeflow)*fa, np.max(modeflow)*fa)
 u = griddata((xval, yval), modeflow, (x, y))*fa
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
+
 matplotlib.rc('font', size=textsize)
-fig, ax = plt.subplots(figsize=(5, 2))
-c1 = -0.007 #-0.024
-c2 = 0.007  #0.018
+fig, ax = plt.subplots(figsize=(10, 4))
+c1 = -0.011 #-0.024
+c2 = 0.011  #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
-ax.grid(b=True, which='both', linestyle=':')
 ax.set_xlim(x1, x2)
 ax.set_ylim(y1, y2)
 ax.tick_params(labelsize=numsize)
@@ -191,13 +191,13 @@ ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.28, 0.76, 0.34, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.23, 0.76, 0.30, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
 cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, 
-                x=-0.23, labelpad=-29, fontsize=textsize)
+                x=-0.16, labelpad=-40, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
 shock = np.loadtxt(path1+'Shock.dat', skiprows=1)
@@ -215,23 +215,28 @@ ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
 plt.savefig(path+var+'DMDMode'+name+'Real.svg', bbox_inches='tight')
 plt.show()
 
-# % specific mode in imaginary space
+# %% specific mode in imaginary space
+fa = 1.7*1.7*1.4
+ind = 1
+var = var2
+num = sp_ind[ind-1] # ind from small to large->freq from low to high
+name = str(round(freq[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
 tempflow = phi[:, num].imag
 imagflow = tempflow[varset[var][0]:varset[var][1]]
 print("The limit value: ", np.min(imagflow)*fa, np.max(imagflow)*fa)
 u = griddata((xval, yval), imagflow, (x, y))*fa
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
-matplotlib.rc('font', size=18)
-fig, ax = plt.subplots(figsize=(5, 2))
-c1 = -0.007 #-0.024
-c2 = 0.007 #0.018
+
+matplotlib.rc('font', size=textsize)
+fig, ax = plt.subplots(figsize=(10, 4))
+c1 = -0.009 #-0.024
+c2 = 0.009 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
-ax.grid(b=True, which='both', linestyle=':')
 ax.set_xlim(x1, x2)
 ax.set_ylim(y1, y2)
 ax.tick_params(labelsize=numsize)
@@ -239,12 +244,13 @@ cbar.cmap.set_under('#053061')
 cbar.cmap.set_over('#67001f')
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.28, 0.76, 0.34, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.23, 0.76, 0.30, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
-cbar1.set_label(r'$\Im(\phi_{})$'.format(var), rotation=0, x=-0.23, labelpad=-29, fontsize=textsize)
+cbar1.set_label(r'$\Im(\phi_{})$'.format(var), rotation=0, 
+                x=-0.16, labelpad=-40, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)

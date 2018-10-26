@@ -57,10 +57,10 @@ MeanFlow.AddWallDist(3.0)
 
 
 #%% Temporal shock position
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots2/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
 timezone = np.arange(600, 999.50 + 0.5, 0.5)
-fv.ShockFoot(InFolder, OutFolder, timezone, 0.8, -1.875)
+fv.ShockFoot(InFolder, OutFolder, timezone, -1.875, 0.7)
 
 
 

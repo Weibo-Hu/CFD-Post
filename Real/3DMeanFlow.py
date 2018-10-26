@@ -38,12 +38,12 @@ font = {'family' : 'Times New Roman',
 
 path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/3AF/"
 path3 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-textsize = 18
-numsize = 15
+textsize = 22
+numsize = 18
 matplotlib.rc('font', size=textsize)
 
 
@@ -514,8 +514,9 @@ plt.show()
 #plt.show()
 
 #%%
-"""
+
 #%% Isosurface of lambda2 criterion
+"""
 MeanFlow = DataPost()
 MeanFlow.UserDataBin(path+'MeanFlow2.h5')
 

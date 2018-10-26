@@ -37,14 +37,14 @@ font1 = {
 }
 path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/"
+path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/3AF/"
 path3 = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/"
 path4 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-textsize = 18
-numsize = 15
+textsize = 24
+numsize = 20
 matplotlib.rc('font', size=textsize)
 #%% Load Data
 VarName = [
