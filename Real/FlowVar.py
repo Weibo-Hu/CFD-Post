@@ -18,9 +18,9 @@ import matplotlib
 import warnings
 import pandas as pd
 from DataPost import DataPost
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, griddata
+from scipy.integrate import trapz, simps
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-from scipy.interpolate import griddata
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
 import sys
@@ -74,19 +74,22 @@ def SkinFriction(mu, du, dy):
 # obtain Power Spectral Density
 def PSD(VarZone, dt, Freq_samp, opt=2):
     TotalNo = np.size(VarZone)
-    if (np.size(dt) > 1):
-        TotalNo = Freq_samp*(dt[-1]-dt[0])
-        if (TotalNo > np.size(dt)):
-            warnings.warn("PSD results are not accurate as too few snapshots",\
-                           UserWarning)
+    if np.size(dt) > 1:
+        TotalNo = Freq_samp * (dt[-1] - dt[0])
+        if TotalNo > np.size(dt):
+            warnings.warn(
+                "PSD results are not accurate as too few snapshots", UserWarning
+            )
         TimeZone = np.linspace(dt[0], dt[-1], TotalNo)
-        VarZone  = VarZone-np.mean(VarZone)
+        VarZone = VarZone - np.mean(VarZone)
         Var = np.interp(TimeZone, dt, VarZone)
     else:
-        if (Freq_samp > 1 / dt):
-            warnings.warn("PSD results are not accurate as too few snapshots",
-                           UserWarning)
-        elif (Freq_samp == 1 / dt):
+        if Freq_samp > 1 / dt:
+            warnings.warn(
+                "PSD results are not accurate as too few snapshots", UserWarning
+            )
+            Var = VarZone - np.mean(VarZone)
+        elif Freq_samp == 1 / dt:
             Var = VarZone - np.mean(VarZone)
         else:
             TimeSpan = np.arange(0, np.size(VarZone) * dt, dt)
@@ -94,18 +97,20 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
             TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
             VarZone = VarZone - np.mean(VarZone)
             # interpolate data to make sure time-equaled distribution
-            Var = np.interp(TimeZone, TimeSpan,
-                            VarZone)  # time space must be equal
+            Var = np.interp(
+                TimeZone, TimeSpan, VarZone
+            )  # time space must be equal
     # POD, fast fourier transform and remove the half
     if opt == 2:
         Var_fft = np.fft.rfft(Var)[1:]  # remove value at 0 frequency
-        Var_psd = np.abs(Var_fft)**2 / (Freq_samp * TotalNo)
+        Var_psd = np.abs(Var_fft) ** 2 / (Freq_samp * TotalNo)
         num = np.size(Var_fft)
         Freq = np.linspace(Freq_samp / TotalNo, Freq_samp / 2, num)
     if opt == 1:
         ns = TotalNo // 4
         Freq, Var_psd = signal.welch(
-            Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns//2)
+            Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // 2
+        )
         Freq = Freq[1:]
         Var_psd = Var_psd[1:]
     return (Freq, Var_psd)
@@ -121,12 +126,13 @@ def FW_PSD(VarZone, dt, Freq_samp, opt=2):
 # Obtain cross-power sepectral density
 def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
     TotalNo = np.size(Var1)
-    if (np.size(Var1) != np.size(Var2)):
+    if np.size(Var1) != np.size(Var2):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
-    if (Freq_samp > 1 / dt):
-        warnings.warn("PSD results are not accurate due to too few snapshots",
-                      UserWarning)
-    elif (Freq_samp == 1 / dt):
+    if Freq_samp > 1 / dt:
+        warnings.warn(
+            "PSD results are not accurate due to too few snapshots", UserWarning
+        )
+    elif Freq_samp == 1 / dt:
         NVar1 = Var1 - np.mean(Var1)
         NVar2 = Var2 - np.mean(Var2)
     else:
@@ -135,14 +141,17 @@ def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
         TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
         VarZone1 = Var1 - np.mean(Var1)
         VarZone2 = Var2 - np.mean(Var2)
-        NVar1 = np.interp(TimeZone, TimeSpan,
-                          VarZone1)  # time space must be equal
-        NVar2 = np.interp(TimeZone, TimeSpan,
-                          VarZone2)  # time space must be equal
+        NVar1 = np.interp(
+            TimeZone, TimeSpan, VarZone1
+        )  # time space must be equal
+        NVar2 = np.interp(
+            TimeZone, TimeSpan, VarZone2
+        )  # time space must be equal
     if opt == 1:
         ns = TotalNo // 6
         Freq, Cpsd = signal.csd(
-            NVar1, NVar2, Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns//4)
+            NVar1, NVar2, Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // 4
+        )
         Freq = Freq[1:]
         Cpsd = Cpsd[1:]
     if opt == 2:
@@ -156,12 +165,13 @@ def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
 
 def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
     TotalNo = np.size(Var1)
-    if (np.size(Var1) != np.size(Var2)):
+    if np.size(Var1) != np.size(Var2):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
-    if (Freq_samp > 1 / dt):
-        warnings.warn("PSD results are not accurate due to too few snapshots",
-                      UserWarning)
-    elif (Freq_samp == 1 / dt):
+    if Freq_samp > 1 / dt:
+        warnings.warn(
+            "PSD results are not accurate due to too few snapshots", UserWarning
+        )
+    elif Freq_samp == 1 / dt:
         NVar1 = Var1 - np.mean(Var1)
         NVar2 = Var2 - np.mean(Var2)
     else:
@@ -170,22 +180,29 @@ def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
         TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
         VarZone1 = Var1 - np.mean(Var1)
         VarZone2 = Var2 - np.mean(Var2)
-        NVar1 = np.interp(TimeZone, TimeSpan,
-                          VarZone1)  # time space must be equal
-        NVar2 = np.interp(TimeZone, TimeSpan,
-                          VarZone2)  # time space must be equal
+        NVar1 = np.interp(
+            TimeZone, TimeSpan, VarZone1
+        )  # time space must be equal
+        NVar2 = np.interp(
+            TimeZone, TimeSpan, VarZone2
+        )  # time space must be equal
     if opt == 1:
         ns = TotalNo // 6
         Freq, gamma = signal.coherence(
-            NVar1, NVar2, fs=Freq_samp, nperseg=ns, 
-            nfft=TotalNo, noverlap=ns//4)
+            NVar1,
+            NVar2,
+            fs=Freq_samp,
+            nperseg=ns,
+            nfft=TotalNo,
+            noverlap=ns // 4,
+        )
         Freq = Freq[1:]
         gamma = gamma[1:]
     if opt == 2:
         Freq, cor = Cro_PSD(NVar1, NVar2, dt, Freq_samp)
         psd1 = PSD(NVar1, dt, Freq_samp)[1]
         psd2 = PSD(NVar2, dt, Freq_samp)[1]
-        gamma = abs(cor)**2 / psd1 / psd2
+        gamma = abs(cor) ** 2 / psd1 / psd2
     return (Freq, gamma)
 
 
@@ -209,7 +226,7 @@ def ExpWallLaw(Re_theta):
     if isinstance(Re_theta, str):
         ExpData = np.loadtxt("vel_" + Re_theta + "_dns.prof", skiprows=14)
     else:
-        sys.exit('Re_theta must be a string!!!')
+        sys.exit("Re_theta must be a string!!!")
     m, n = ExpData.shape
     y_delta = ExpData[:, 0]
     y_plus = ExpData[:, 1]
@@ -238,7 +255,7 @@ def UTau(walldist, u, rho, mu):
 # incompressible, Van Direst transformed
 # boundary profile from mean reults
 def DirestWallLaw(walldist, u, rho, mu):
-    if ((np.diff(walldist) < 0.0).any()):
+    if (np.diff(walldist) < 0.0).any():
         sys.exit("the WallDist must be in ascending order!!!")
     m = np.size(u)
     rho_wall = rho[1]
@@ -246,12 +263,12 @@ def DirestWallLaw(walldist, u, rho, mu):
     u_tau = UTau(walldist, u, rho, mu)
     u_van = np.zeros(m)
     for i in range(m):
-        u_van[i] = np.trapz(rho[:i + 1] / rho_wall, u[:i + 1])
+        u_van[i] = np.trapz(rho[: i + 1] / rho_wall, u[: i + 1])
     u_plus_van = u_van / u_tau
     y_plus = u_tau * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
     UPlusVan = np.column_stack((y_plus, u_plus_van))
-    return (UPlusVan)
+    return UPlusVan
 
 
 # Obtain reattachment location with time
@@ -260,65 +277,69 @@ def ReattachLoc(InFolder, OutFolder, timezone):
     data = pd.read_hdf(InFolder + dirs[0])
     # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
     NewFrame = data.query("x>=8.0 & x<=13.0")
-    TemFrame = NewFrame.loc[NewFrame['y'] == -2.99703717231750488]
+    TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
     ind = TemFrame.index.values
     xarr = np.zeros(np.size(timezone))
     with timer("Computing reattaching point"):
         for i in range(np.size(dirs)):
             frame = pd.read_hdf(InFolder + dirs[i])
             frame = frame.iloc[ind]
-            xarr[i] = frame.loc[frame['u'] >= 0.0, 'x'].head(1)
+            xarr[i] = frame.loc[frame["u"] >= 0.0, "x"].head(1)
     reatt = np.vstack((timezone, xarr)).T
     np.savetxt(
         OutFolder + "Reattach.dat",
         reatt,
-        fmt='%.8e',
-        delimiter='  ',
-        header="t, x")
+        fmt="%.8e",
+        delimiter="  ",
+        header="t, x",
+    )
 
 
 def ExtractPoint(InFolder, OutFolder, timezone, xy, col=None):
     if col is None:
-        col = ['u', 'v', 'w', 'p', 'vorticity_1', 'vorticity_2', 'vorticity_3']
+        col = ["u", "v", "w", "p", "vorticity_1", "vorticity_2", "vorticity_3"]
     dirs = sorted(os.listdir(InFolder))
     data = pd.read_hdf(InFolder + dirs[0])
-    NewFrame = data.loc[data['x'] == xy[0]]
-    TemFrame = NewFrame.loc[NewFrame['y'] == xy[1]]
+    NewFrame = data.loc[data["x"] == xy[0]]
+    TemFrame = NewFrame.loc[NewFrame["y"] == xy[1]]
     ind = TemFrame.index.values[0]
-    xarr = np.zeros((np.size(timezone), np.size(col)))  
+    xarr = np.zeros((np.size(timezone), np.size(col)))
     with timer("Extracting probes"):
         for i in range(np.size(dirs)):
             frame = pd.read_hdf(InFolder + dirs[i])
             frame = frame.iloc[ind]
             xarr[i, :] = frame[col].values
     probe = np.hstack((timezone.reshape(-1, 1), xarr))
-    col.insert(0, 't')
+    col.insert(0, "t")
     np.savetxt(
-        OutFolder + 'x'+str(xy[0])+'y'+str(xy[1])+'.dat',
+        OutFolder + "x" + str(xy[0]) + "y" + str(xy[1]) + ".dat",
         probe,
-        fmt='%.8e',
-        delimiter='  ',
-        header=', '.join(col))
+        fmt="%.8e",
+        delimiter="  ",
+        header=", ".join(col),
+    )
+
 
 # Obtain shock location inside the boudary layer with time
 def ShockFoot(InFolder, OutFolder, timepoints, yval, var):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timepoints))
-    if (np.size(timepoints) != np.size(dirs)):
-        sys.exit('The input snapshots does not match!!!')
+    if np.size(timepoints) != np.size(dirs):
+        sys.exit("The input snapshots does not match!!!")
     with timer("Computing shock foot location"):
         for i in range(np.size(dirs)):
             frame = pd.read_hdf(InFolder + dirs[i])
-            NewFrame = frame.loc[frame['y'] == yval]
-            temp = NewFrame.loc[NewFrame['u'] >= var, 'x']
+            NewFrame = frame.loc[frame["y"] == yval]
+            temp = NewFrame.loc[NewFrame["u"] >= var, "x"]
             xarr[i] = temp.head(1)
     foot = np.vstack((timepoints, xarr)).T
     np.savetxt(
         OutFolder + "ShockFoot.dat",
         foot,
-        fmt='%.8e',
-        delimiter='  ',
-        header="t, x")
+        fmt="%.8e",
+        delimiter="  ",
+        header="t, x",
+    )
 
 
 # Obtain shock location outside boundary layer with time
@@ -327,12 +348,12 @@ def ShockLoc(InFolder, OutFolder, timepoints):
     fig1, ax1 = plt.subplots(figsize=(10, 4))
     ax1.set_xlim([0.0, 30.0])
     ax1.set_ylim([-3.0, 10.0])
-    matplotlib.rc('font', size=18)
+    matplotlib.rc("font", size=18)
     data = pd.read_hdf(InFolder + dirs[0])
-    x0 = np.unique(data['x'])
+    x0 = np.unique(data["x"])
     x1 = x0[x0 > 10.0]
     x1 = x1[x1 <= 30.0]
-    y0 = np.unique(data['y'])
+    y0 = np.unique(data["y"])
     y1 = y0[y0 > -2.5]
     xini, yini = np.meshgrid(x1, y1)
     corner = (xini < 0.0) & (yini < 0.0)
@@ -341,60 +362,137 @@ def ShockLoc(InFolder, OutFolder, timepoints):
     ys1 = 0.0
     ys2 = 5.0
     if np.size(timepoints) != np.size(dirs):
-        sys.exit('The input snapshots does not match!!!')
+        sys.exit("The input snapshots does not match!!!")
     for i in range(np.size(dirs)):
-        with timer('Shock position at ' + dirs[i]):
+        with timer("Shock position at " + dirs[i]):
             frame = pd.read_hdf(InFolder + dirs[i])
-            gradp = griddata((frame['x'], frame['y']), frame['|gradp|'],
-                             (xini, yini))
+            gradp = griddata(
+                (frame["x"], frame["y"]), frame["|gradp|"], (xini, yini)
+            )
             gradp[corner] = np.nan
             cs = ax1.contour(
-                xini, yini, gradp, levels=0.06, linewidths=1.2, colors='gray')
+                xini, yini, gradp, levels=0.06, linewidths=1.2, colors="gray"
+            )
             xycor = np.empty(shape=[0, 2])
             for isoline in cs.collections[0].get_paths():
                 xy = isoline.vertices
                 xycor = np.append(xycor, xy, axis=0)
-                ax1.plot(xy[:, 0], xy[:, 1], 'r:')
+                ax1.plot(xy[:, 0], xy[:, 1], "r:")
             ind1 = np.where(np.around(xycor[:, 1], 8) == ys1)[0]
             x1 = np.mean(xycor[ind1, 0])
             shock1 = np.append(shock1, [[timepoints[i], x1, ys1]], axis=0)
             ind2 = np.where(np.around(xycor[:, 1], 8) == ys2)[0]
             x2 = np.mean(xycor[ind2, 0])
             shock2 = np.append(shock2, [[timepoints[i], x2, ys2]], axis=0)
-            ax1.plot(x1, ys1, 'g*')
+            ax1.plot(x1, ys1, "g*")
             ax1.axhline(y=ys1)
-            ax1.plot(x2, ys2, 'b^')
+            ax1.plot(x2, ys2, "b^")
             ax1.axhline(y=ys2)
     np.savetxt(
         OutFolder + "ShockA.dat",
         shock1,
-        fmt='%.8e',
-        delimiter='  ',
-        header="t, x, y")
+        fmt="%.8e",
+        delimiter="  ",
+        header="t, x, y",
+    )
     np.savetxt(
         OutFolder + "ShockB.dat",
         shock2,
-        fmt='%.8e',
-        delimiter='  ',
-        header="t, x, y")
+        fmt="%.8e",
+        delimiter="  ",
+        header="t, x, y",
+    )
 
 
+def DividingLine(dataframe):
+    NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
+    x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
+    u = griddata((NewFrame.x, NewFrame.y), NewFrame.u, (x, y))
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs1 = ax.contour(
+        x, y, u, levels=[0.0,], linewidths=1.5, linestyles="--", colors="k"
+    )
+    plt.close(fig)
+    header = "x, y"
+    xycor = np.empty(shape=[0, 2])
+    xylist = []
+    fig1, ax1 = plt.subplots(figsize=(10, 4))
+    for i, isoline in enumerate(cs1.collections[0].get_paths()):
+        xy = isoline.vertices
+        if(np.any(xy[:, 1] == -0.015625)):
+            ind = i           
+        xylist.append(xy)
+        xycor = np.vstack((xycor, xy))
+    xy = xylist[ind]
+    ax1.scatter(xy[:, 0], xy[:, 1])
+    #plt.show()
+    plt.close(fig1)
+    np.savetxt(
+        "DividingLine.dat",
+        xycor,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header,
+    )
+    
+    return xy
 
-def Correlate(x, y, method='Sample'):
-    if method == 'Population':
+
+def BubbleArea(InFolder, OutFolder):
+    dirs = sorted(os.listdir(InFolder))  
+    area = np.zeros(np.size(dirs))
+    for i in range(np.size(dirs)):
+        with timer("Bubble area at " + dirs[i]):
+            dataframe = pd.read_hdf(InFolder + dirs[i])
+            xy = DividingLine(dataframe)
+            area[i] = trapz(xy[:, 1]+3.0, xy[:, 0])
+    np.savetxt(
+        OutFolder + "BubbleArea.dat",
+        area,
+        fmt="%.8e",
+        delimiter="  ",
+        header='area',
+    )
+    return area
+
+
+def Correlate(x, y, method="Sample"):
+    if (np.size(x) != np.size(y)):
+        sys.exit("The size of two datasets do not match!!!")
+    if method == "Population":
         sigma1 = np.std(x, ddof=0)
         sigma2 = np.std(y, ddof=0)  # default population standard deviation
-        sigma12 = np.cov(
-            x, y, ddof=0)[0][1]  # default sample standard deviation
+        sigma12 = np.cov(x, y, ddof=0)[0][
+            1
+        ]  # default sample standard deviation
         correlation = sigma12 / sigma1 / sigma2
     else:
         sigma1 = np.std(x, ddof=1)
-        sigma2 = np.std(y, ddof=1)  # default population standard deviation
-        sigma12 = np.cov(
-            x, y, ddof=1)[0][1]  # default sample standard deviation
+        sigma2 = np.std(y, ddof=1)  # default Sample standard deviation
+        sigma12 = np.cov(x, y, ddof=1)[0][
+            1
+        ]  # default sample standard deviation
         correlation = sigma12 / sigma1 / sigma2
     return correlation
 
+
+def DelayCorrelate(x, y, dt, delay, method="Sample"):
+    if delay == 0.0:
+        correlation = Correlate(x, y, method=method) 
+    elif delay < 0.0:
+        delay = np.abs(delay)
+        num = int(delay//dt)
+        y1 = y[:-num]
+        x1 = x[num:]
+        correlation = Correlate(x1, y1, method=method)
+    else:
+        num = int(delay//dt)
+        x1 = x[:-num]
+        y1 = y[num:]  
+        correlation = Correlate(x1, y1, method=method)   
+    return correlation
+    
+    
 
 # Vorticity: omega=delta*v
 # omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
@@ -481,6 +579,11 @@ if __name__ == "__main__":
     plt.savefig(path2+'test.svg', bbox_inches='tight', pad_inches=0.1)
     plt.show()
     """
+    
+    # InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/10/"
+    # OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/"
+    # dataframe = pd.read_hdf(InFolder+"SolTime618.00.h5")
+    # BubbleArea(InFolder, OutFolder)
 
 # Fs = 1000
 # t = np.arange(0.0, 1-1.0/Fs, 1/Fs)

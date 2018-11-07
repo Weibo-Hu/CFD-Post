@@ -181,7 +181,6 @@ lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
-ax.grid(b=True, which='both', linestyle=':')
 ax.set_xlim(x1, x2)
 ax.set_ylim(y1, y2)
 ax.tick_params(labelsize=numsize)
@@ -231,7 +230,6 @@ lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
-ax.grid(b=True, which='both', linestyle=':')
 ax.set_xlim(x1, x2)
 ax.set_ylim(y1, y2)
 ax.tick_params(labelsize=numsize)
