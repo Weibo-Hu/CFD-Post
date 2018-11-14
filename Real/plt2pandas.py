@@ -132,9 +132,8 @@ def SaveSlice(df, SolTime, SpanAve, SavePath):
     return df
 
 
-
 def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2,
-                      SpanAve=None, OutFile=None):
+                       SpanAve=None, OutFile=None):
     os.chdir(FoldPath)
     FileName = os.listdir(FoldPath)
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)

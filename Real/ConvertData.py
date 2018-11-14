@@ -13,7 +13,7 @@ import pandas as pd
 import sys
 
 # %% Make spanwise-averaged snapshots
-
+"""
 VarList = [
     'x',
     'y',
@@ -63,28 +63,26 @@ for folder in dirs:
 
 #DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False,
 #                 header=VarList, float_format='%.10e')
-
-# %% Save time-averaged flow field
 """
+# %% Save time-averaged flow field
+
 VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
            'vorticity_2', 'vorticity_3', 'shear', 'Q-criterion',
            'L2-criterion', 'grad(rho)_1', 'grad(rho)_2', 'grad(rho)_3',
            '|grad(rho)|', 'Mach', 'entropy', 'T']
 FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/82/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/TimeAve/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/"
 dirs = os.scandir(FoldPath)
 num = np.size(os.listdir(FoldPath))
 for i, folder in enumerate(dirs):
     path = FoldPath+folder.name+"/"
     if i == 0:
         with timer("Read "+folder.name+" data"):
-            SumFrame = p2p.NewReadINCAResults(240, path, VarList,
-                                              OutFolder, OutFile=False)
+            SumFrame = p2p.NewReadINCAResults(240, path, VarList, OutFolder)
     else:
         with timer("Read "+folder.name+" data"):
-            DataFrame = p2p.NewReadINCAResults(240, path, VarList,
-                                               OutFolder, OutFile=False)
-        if np.size(DataFrame.x) != np.size(SumFrame.x):
+            DataFrame = p2p.NewReadINCAResults(240, path, VarList, OutFolder)
+        if (np.shape(DataFrame['x']) != np.shape(SumFrame['x'])):
             sys.exit("DataFrame does not match!!!")
         else:
             SumFrame = SumFrame + DataFrame
@@ -92,7 +90,7 @@ for i, folder in enumerate(dirs):
 MeanFrame = SumFrame/num
 
 MeanFrame.to_hdf(OutFolder+"MeanFlow8B.h5", 'w', format='fixed')
-"""
+
 # %% Time-average DataFrame
 """
 FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/Ave/"

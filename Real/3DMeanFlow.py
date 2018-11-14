@@ -28,8 +28,8 @@ path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
 path3 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 matplotlib.rcParams["xtick.direction"] = "out"
 matplotlib.rcParams["ytick.direction"] = "out"
-textsize = 24
-numsize = 20
+textsize = 18
+numsize = 14
 matplotlib.rc("font", size=textsize)
 
 # %% Load Data for time- spanwise-averaged results
@@ -180,7 +180,7 @@ ax.set_ylabel(r"$y/\delta_0$", fontdict=font)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
 rg2 = np.linspace(0.0, 0.20, 3)
-cbbox = fig.add_axes([0.14, 0.49, 0.24, 0.30], alpha=0.9)
+cbbox = fig.add_axes([0.14, 0.53, 0.24, 0.27], alpha=0.9)
 [cbbox.spines[k].set_visible(False) for k in cbbox.spines]
 cbbox.tick_params(
     axis="both",

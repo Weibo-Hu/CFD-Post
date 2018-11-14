@@ -2,7 +2,7 @@
 """
 Created on Tue May 1 10:24:50 2018
     This code for reading data from specific file to post-processing data
-    1. FileName (infile, VarName, (row1), (row2), (unique) ): sort data and 
+    1. FileName (infile, VarName, (row1), (row2), (unique) ): sort data and
     delete duplicates, SPACE is NOT allowed in VarName
     2. MergeFile (NameStr, FinalFile): NameStr-input file name to be merged
     3. GetMu (T): calculate Mu if not get from file
@@ -11,7 +11,6 @@ Created on Tue May 1 10:24:50 2018
 """
 
 import numpy as np
-import scipy as sp
 from scipy import signal
 import matplotlib.pyplot as plt
 import matplotlib
@@ -20,7 +19,6 @@ import pandas as pd
 from DataPost import DataPost
 from scipy.interpolate import interp1d, griddata
 from scipy.integrate import trapz, simps
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
 import sys
@@ -78,7 +76,8 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
         TotalNo = Freq_samp * (dt[-1] - dt[0])
         if TotalNo > np.size(dt):
             warnings.warn(
-                "PSD results are not accurate as too few snapshots", UserWarning
+                "PSD results are not accurate as too few snapshots",
+                UserWarning
             )
         TimeZone = np.linspace(dt[0], dt[-1], TotalNo)
         VarZone = VarZone - np.mean(VarZone)
@@ -86,7 +85,8 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
     else:
         if Freq_samp > 1 / dt:
             warnings.warn(
-                "PSD results are not accurate as too few snapshots", UserWarning
+                "PSD results are not accurate as too few snapshots",
+                UserWarning
             )
             Var = VarZone - np.mean(VarZone)
         elif Freq_samp == 1 / dt:
@@ -130,7 +130,8 @@ def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
     if Freq_samp > 1 / dt:
         warnings.warn(
-            "PSD results are not accurate due to too few snapshots", UserWarning
+            "PSD results are not accurate due to too few snapshots",
+            UserWarning
         )
     elif Freq_samp == 1 / dt:
         NVar1 = Var1 - np.mean(Var1)
@@ -169,7 +170,8 @@ def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
     if Freq_samp > 1 / dt:
         warnings.warn(
-            "PSD results are not accurate due to too few snapshots", UserWarning
+            "PSD results are not accurate due to too few snapshots",
+            UserWarning
         )
     elif Freq_samp == 1 / dt:
         NVar1 = Var1 - np.mean(Var1)
@@ -410,7 +412,7 @@ def DividingLine(dataframe):
     u = griddata((NewFrame.x, NewFrame.y), NewFrame.u, (x, y))
     fig, ax = plt.subplots(figsize=(10, 4))
     cs1 = ax.contour(
-        x, y, u, levels=[0.0,], linewidths=1.5, linestyles="--", colors="k"
+        x, y, u, levels=[0.0], linewidths=1.5, linestyles="--", colors="k"
     )
     plt.close(fig)
     header = "x, y"
@@ -419,45 +421,41 @@ def DividingLine(dataframe):
     fig1, ax1 = plt.subplots(figsize=(10, 4))
     for i, isoline in enumerate(cs1.collections[0].get_paths()):
         xy = isoline.vertices
-        if(np.any(xy[:, 1] == -0.015625)):
-            ind = i           
+        if np.any(xy[:, 1] == -0.015625):
+            ind = i
         xylist.append(xy)
         xycor = np.vstack((xycor, xy))
     xy = xylist[ind]
     ax1.scatter(xy[:, 0], xy[:, 1])
-    #plt.show()
+    # plt.show()
     plt.close(fig1)
     np.savetxt(
-        "DividingLine.dat",
-        xycor,
-        fmt="%.8e",
-        delimiter="  ",
-        header=header,
+        "DividingLine.dat", xycor, fmt="%.8e", delimiter="  ", header=header
     )
-    
+
     return xy
 
 
 def BubbleArea(InFolder, OutFolder):
-    dirs = sorted(os.listdir(InFolder))  
+    dirs = sorted(os.listdir(InFolder))
     area = np.zeros(np.size(dirs))
     for i in range(np.size(dirs)):
         with timer("Bubble area at " + dirs[i]):
             dataframe = pd.read_hdf(InFolder + dirs[i])
             xy = DividingLine(dataframe)
-            area[i] = trapz(xy[:, 1]+3.0, xy[:, 0])
+            area[i] = trapz(xy[:, 1] + 3.0, xy[:, 0])
     np.savetxt(
         OutFolder + "BubbleArea.dat",
         area,
         fmt="%.8e",
         delimiter="  ",
-        header='area',
+        header="area",
     )
     return area
 
 
 def Correlate(x, y, method="Sample"):
-    if (np.size(x) != np.size(y)):
+    if np.size(x) != np.size(y):
         sys.exit("The size of two datasets do not match!!!")
     if method == "Population":
         sigma1 = np.std(x, ddof=0)
@@ -478,22 +476,90 @@ def Correlate(x, y, method="Sample"):
 
 def DelayCorrelate(x, y, dt, delay, method="Sample"):
     if delay == 0.0:
-        correlation = Correlate(x, y, method=method) 
+        correlation = Correlate(x, y, method=method)
     elif delay < 0.0:
         delay = np.abs(delay)
-        num = int(delay//dt)
+        num = int(delay // dt)
         y1 = y[:-num]
         x1 = x[num:]
         correlation = Correlate(x1, y1, method=method)
     else:
-        num = int(delay//dt)
+        num = int(delay // dt)
         x1 = x[:-num]
-        y1 = y[num:]  
-        correlation = Correlate(x1, y1, method=method)   
+        y1 = y[num:]
+        correlation = Correlate(x1, y1, method=method)
     return correlation
-    
-    
 
+
+def Perturbations(orig, mean):
+    grouped = orig.groupby(['x', 'y', 'z'])
+    frame1 = grouped.mean().reset_index()
+    grouped = mean.groupby(['x', 'y', 'z'])
+    frame2 = grouped.mean().reset_index()
+    if (np.shape(frame1)[0] != np.shape(frame2)[0]):
+        sys.exit("The size of two datasets do not match!!!")
+    pert = frame1 - frame2
+    return pert
+
+
+def PertAtLoc(orig, mean, var, loc, val):
+    frame1 = orig.loc[orig[loc[0]] == val[0]]
+    frame1 = frame1.loc[np.around(frame1[loc[1]], 5) == val[1]]
+    grouped = frame1.groupby(['x', 'y', 'z'])
+    frame1 = grouped.mean().reset_index()
+    
+    frame2 = mean.loc[mean[loc[0]] == val[0]]
+    frame2 = frame2.loc[np.around(frame2[loc[1]], 5) == val[1]]
+    grouped = frame2.groupby(['x', 'y', 'z'])
+    frame2 = grouped.mean().reset_index()
+    print(np.shape(frame1)[0])
+    print(np.shape(frame2)[0])
+    if (np.shape(frame1)[0] != np.shape(frame2)[0]):
+        sys.exit("The size of two datasets do not match!!!")
+    ### z value in frame1 & frame2 is equal or not ???
+    frame = frame1
+    frame[var] = frame1[var] - frame2[var]
+    return frame
+
+
+def Amplit(orig, xyz, var, mean=None):
+    frame1 = orig.loc[orig['x']==xyz[0]]
+    frame2 = frame1.loc[np.around(frame1['y'], 5)==xyz[1]]
+    orig = frame2.loc[frame2['z']==xyz[2]]
+    if mean is None:
+        grouped = orig.groupby(['x', 'y', 'z'])
+        mean = grouped.mean().reset_index()
+    else:
+        frame1 = mean.loc[mean['x']==xyz[0]]
+        frame2 = frame1.loc[np.around(frame1['y'], 5)==xyz[1]]
+        mean = mean.loc[frame2['z']==xyz[2], var]
+    pert = orig[var].values - mean[var].values
+    amplit = np.max(np.abs(pert))
+    return amplit
+
+
+def GrowthRate(xarr, var):
+    dAmpli = SecOrdFDD(xarr, var)
+    growthrate = dAmpli/var
+    return growthrate
+
+
+#   Obtain finite differential derivatives of a variable (2nd order)
+def SecOrdFDD(xarr, var):
+    dvar = np.zeros(np.size(xarr))
+    for jj in range (1,np.size(xarr)):
+        if jj == 1:
+            dvar[jj-1]=(var[jj]-var[jj-1])/(xarr[jj]-xarr[jj-1])
+        elif jj == np.size(xarr):
+            dvar[jj-1]=(var[jj-1]-var[jj-2])/(xarr[jj-1]-xarr[jj-2])
+        else:
+            dy12 = xarr[jj-1] - xarr[jj-2];
+            dy23 = xarr[jj] - xarr[jj-1];
+            dvar1 = -dy23/dy12/(dy23+dy12)*var[jj-2];
+            dvar2 = (dy23-dy12)/dy23/dy12*var[jj-1];
+            dvar3 = dy12/dy23/(dy23+dy12)*var[jj];
+            dvar[jj-1] = dvar1 + dvar2 + dvar3;
+    return (dvar)
 # Vorticity: omega=delta*v
 # omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
 def Vorticity():
@@ -552,7 +618,8 @@ if __name__ == "__main__":
     ax.yaxis.offsetText.set_fontsize(numsize)
     plt.tick_params(labelsize=numsize)
     plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-    plt.savefig(path2+'ShockangleFWPSD.svg', bbox_inches='tight', pad_inches=0.1)
+    plt.savefig(path2+'ShockangleFWPSD.svg',
+                bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
     fre, cor = Cro_PSD(Xr, Xs, 0.5, 2.0)
@@ -579,7 +646,7 @@ if __name__ == "__main__":
     plt.savefig(path2+'test.svg', bbox_inches='tight', pad_inches=0.1)
     plt.show()
     """
-    
+
     # InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/10/"
     # OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/"
     # dataframe = pd.read_hdf(InFolder+"SolTime618.00.h5")
