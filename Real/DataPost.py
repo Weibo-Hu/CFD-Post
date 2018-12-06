@@ -731,6 +731,7 @@ class DataPost(object):
                 "maxcov": np.max(pcov), "rawres": (guess,popt,pcov)}
 
 #   fit data using a specific functions
+    @classmethod
     def fit_func(cls, function, tt, yy, guess=None):
         if guess is not None:
             popt, pcov = scipy.optimize.curve_fit(function, tt, yy, p0 = guess)

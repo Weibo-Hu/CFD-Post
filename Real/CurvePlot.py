@@ -68,7 +68,7 @@ MeanFlow.UserData(VarName, path4 + "MeanFlow.dat", 1, Sep="\t")
 MeanFlow.AddWallDist(3.0)
 
 # %% Plot BL profile along streamwise
-xcoord = np.array([-40, -5, 0, 5, 10, 15, 20, 30, 40])
+xcoord = np.array([-40, -5, 0, 5.0, 10, 15, 20, 30, 40])
 num = np.size(xcoord)
 xtick = np.zeros(num + 1)
 xtick[-1] = 1.0
@@ -97,9 +97,9 @@ ax.set_xlabel(r"$u/u_{\infty}$", fontsize=textsize)
 ax.set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
-plt.savefig(
-    path2 + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
-)
+#plt.savefig(
+#    path2 + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
+#)
 
 # %% Compare van Driest transformed mean velocity profile
 # xx = np.arange(27.0, 60.0, 0.25)
@@ -224,17 +224,55 @@ plt.savefig(
 )
 plt.show()
 
+# %% Plot BL edge & Gortler number
+fig3, ax3 = plt.subplots(figsize=(5, 2.5))
+xd = np.arange(0.5, 30, 0.25)
+num = np.size(xd)
+delta = np.zeros(num)
+theta = np.zeros(num)
+
+for i in range(num):
+    y0, u0 = MeanFlow.BLProfile("x", xd[i], "u")
+    y0, rho0 = MeanFlow.BLProfile("x", xd[i], "rho")
+    delta[i] = fv.BLThickness(y0.values, u0.values)
+    theta[i] = fv.BLThickness(y0.values, u0.values, rho0.values, opt='momentum')
+    
+# fit curve
+def func(t, A, B, C, D):
+    return A * t ** 3 + B * t **2 + C * t + D
+popt, pcov = DataPost.fit_func(func, xd, delta, guess=None)
+A, B, C, D = popt
+fitfunc = lambda t: A * t ** 3 + B * t **2 + C * t + D
+delta1 = fitfunc(xd)
+
+gortler = fv.Gortler(1.3718e7, xd, delta1, theta)
+
+ax3.plot(xd, delta, 'k-', linewidth=1.5)
+ax3.plot(xd, delta1, 'k--', linewidth=1.5)
+ax3.plot(xd, theta, 'k:', linewidth=1.5)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+ax3.set_xlim([0.0, 30.0])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax3.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
+ax3.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(path2 + "BLEdge.svg", dpi=300)
+plt.show()
+
+
 # %% Plot streamwise skin friction
 MeanFlow.AddWallDist(3.0)
 WallFlow = MeanFlow.DataTab.groupby("x", as_index=False).nth(1)
 WallFlow = WallFlow[WallFlow.x != -0.0078125]
 mu = fv.Viscosity(13718, WallFlow["T"])
 Cf = fv.SkinFriction(mu, WallFlow["u"], WallFlow["walldist"])
-fig2, ax2 = plt.subplots(figsize=(11.0, 2.5))
-# fig = plt.figure(figsize=(8, 3.5))
+# fig2, ax2 = plt.subplots(figsize=(5, 2.5))
+fig = plt.figure(figsize=(10, 3))
 matplotlib.rc("font", size=textsize)
-# plt.tick_params(labelsize=numsize)
-# ax2 = fig.add_subplot(121)
+ax2 = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)
 ax2.plot(WallFlow["x"], Cf, "k", linewidth=1.5)
 ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -245,13 +283,13 @@ ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "Cf.svg", bbox_inches="tight", pad_inches=0.1)
-plt.show()
+#plt.savefig(path2 + "Cf.svg", bbox_inches="tight", pad_inches=0.1)
+#plt.show()
 
-# %% pressure coefficiency
+# % pressure coefficiency
 fa = 1.7 * 1.7 * 1.4
-fig3, ax3 = plt.subplots(figsize=(10, 2.5))
-# ax3 = fig.add_subplot(122)
+# fig3, ax3 = plt.subplots(figsize=(5, 2.5))
+ax3 = fig.add_subplot(122)
 ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
@@ -262,11 +300,11 @@ ax3.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(path2 + "Cp.svg", dpi=300)
+plt.savefig(path2 + "CfCp.svg", dpi=300)
 plt.show()
 
 # %% Load data for Computing intermittency factor
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
+InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots2/"
 dirs = sorted(os.listdir(InFolder))
 data = pd.read_hdf(InFolder + dirs[0])
 data["walldist"] = data["y"]
@@ -311,16 +349,16 @@ fig3, ax3 = plt.subplots(figsize=(10, 3))
 ax3.plot(xarr, yarr, "k-")
 ax3.scatter(x1, ga1, c="black", marker="o", s=10)
 ax3.scatter(x2, ga2, c="black", marker="o", s=10)
-ax3.set_xlabel(r"$x/\delta_0$", fontdict=font)
-ax3.set_ylabel(r"$\gamma$", fontdict=font)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_ylabel(r"$\gamma$", fontsize=textsize)
 ax3.set_xlim([-40.0, 60.0])
 ax3.set_ylim([-0.1, 1.0])
 ax3.xaxis.set_minor_locator(XminorLocator)
 ax3.yaxis.set_minor_locator(YminorLocator)
 ax3.grid(b=True, which="both", linestyle=":")
 ax3.axvline(x=0.0, color="k", linestyle="--", linewidth=1.0)
-ax3.axvline(x=10.6, color="k", linestyle="--", linewidth=1.0)
-plt.tick_params(labelsize="medium")
+ax3.axvline(x=10.9, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
 plt.savefig(path2 + "Intermittency.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
@@ -339,16 +377,21 @@ func = interp1d(probe[:, 1], probe[:, 8])
 # timezone = probe[:, 1]
 Xk = func(timezone)  # probe[:, 8]
 
-# %%  load data of shock location with time
+# %% load data of shock location with time
 shock1 = np.loadtxt(OutFolder + "Shock1.dat", skiprows=1)
 shock2 = np.loadtxt(OutFolder + "Shock2.dat", skiprows=1)
 angle = np.arctan(5 / (shock2[:, 1] - shock1[:, 1]))
 shockloc = shock2[:, 1] - 8.0 / np.tan(angle)
-foot = np.loadtxt(OutFolder + "ShockFoot.dat", skiprows=1)
+foot = np.loadtxt(OutFolder + "ShockFoot0.8.dat", skiprows=1)
 Xl = shockloc
 Xf = foot[:, 1]
 
+# %% load data of separation bubble size
+bubble = np.loadtxt(OutFolder + "BubbleArea.dat", skiprows=1)
+Xb = bubble[:, 1]
+
 # %%  Plot Xr with time
+dt = 0.5
 fig, ax = plt.subplots(figsize=(10, 2))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
@@ -379,6 +422,34 @@ plt.show()
 
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
+
+# %%  Plot Xb with time
+fig, ax = plt.subplots(figsize=(10, 2))
+ax.plot(timezone, Xb, "k-")
+ax.set_xlim([600, 1000])
+ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$x/\delta_0$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+xmean = np.mean(Xb)
+print("The mean value: ", xmean)
+ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(path2 + "Xb.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+fig, ax = plt.subplots(figsize=(5, 4))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+Fre, FPSD = fv.FW_PSD(Xb, dt, 2.0, opt=1)
+ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
+ax.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(path2 + "XbFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
 # %% plot Xf with time
 fig, ax = plt.subplots(figsize=(10, 2))
 ax.plot(timezone, Xf, "k-")
@@ -468,24 +539,21 @@ plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(path2 + "Statistic.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
-# %% plot cross-correlation coeffiency of two variables
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
-bubble = np.loadtxt(OutFolder + "BubbleArea.dat", skiprows=1)
-Xb = bubble[:, 1]
+# %% plot cross-correlation coeffiency of two variables with time delay
 delay = np.arange(-100.0, 100+0.5, 0.5)
 cor = np.zeros(np.size(delay))
 for i, dt in enumerate(delay):
-    cor[i] = fv.DelayCorrelate(Xk, Xr, 0.5, dt)
+    cor[i] = fv.DelayCorrelate(Xr, Xl, 0.5, dt)
         
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.plot(delay, cor, "k-")
 ax.set_xlim([delay[0], delay[-1]])
 ax.set_xlabel(r"$\Delta t u_\infty/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$R_{12}$", fontsize=textsize)
+ax.set_ylabel(r"$R_{ij}$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "Cor_XkXr.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(path2 + "Cor_XrXl.pdf", bbox_inches="tight", pad_inches=0.1)
 plt.show()
     
 # %% Streamwise evolution of variable

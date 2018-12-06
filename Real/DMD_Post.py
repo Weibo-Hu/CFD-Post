@@ -9,6 +9,7 @@ Created on Thu Sep 27 16:59:58 2018
 # %% Load necessary module
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import numpy as np
 import pandas as pd
 from timer import timer
@@ -32,7 +33,7 @@ numsize = 15
 # %% load data
 InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
 SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
-path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/DMD1/"
+path = "/media/weibo/Data1/BFS_M1.7L_0505/temp/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 timepoints = np.arange(650.0, 949.50 + 0.5, 0.5)
 dirs = sorted(os.listdir(InFolder))
@@ -101,7 +102,7 @@ with timer("SPDMD computing"):
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
 
 # %% 
-sp = 1
+sp = 2
 bfs1.sparse.Nz[sp]
 bfs1.sparse.gamma[sp] 
 r = np.size(eigval)
@@ -112,7 +113,7 @@ var = var0
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(5, 4.5))
+fig1, ax1 = plt.subplots(figsize=(3.5, 3.5))
 unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
                          label='unit circle', linewidth=7.0, alpha=0.5)
 ax1.add_artist(unit_circle)
@@ -125,8 +126,8 @@ limit = np.max(np.absolute(eigval))+0.1
 ax1.set_xlim((-limit, limit))
 ax1.set_ylim((-limit, limit))
 ax1.tick_params(labelsize=numsize)
-plt.xlabel(r'$\Re(\mu_i)$')
-plt.ylabel(r'$\Im(\mu_i)$')
+ax1.set_xlabel(r'$\Re(\mu_i)$')
+ax1.set_ylabel(r'$\Im(\mu_i)$')
 ax1.grid(b=True, which='both', linestyle=':')
 plt.gca().set_aspect('equal', adjustable='box')
 plt.savefig(path+var+'DMDEigSpectrum.svg', bbox_inches='tight')
@@ -141,32 +142,32 @@ coeff = bfs.amplitudes
 
 # %% Mode frequency specturm
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(7, 4.5))
+fig2, ax2 = plt.subplots(figsize=(6.5, 3.5))
 psi = np.abs(coeff)/np.max(np.abs(coeff))
 ind1 = freq > 0.0 
-ax1.set_xscale("log")
-ax1.vlines(freq[ind1], [0], psi[ind1], color='k', linewidth=1.0)
+ax2.set_xscale("log")
+ax2.vlines(freq[ind1], [0], psi[ind1], color='k', linewidth=1.0)
 ind3 = bfs1.sparse.nonzero[:, sp] & ind1
-ax1.scatter(freq[ind3], psi[ind3], marker='o',
-            facecolor='gray', edgecolors='gray', s=15.0)
-ax1.set_ylim(bottom=0.0)
-ax1.tick_params(labelsize=numsize, pad=6)
-plt.xlabel(r'$f \delta_0/u_\infty$')
-plt.ylabel(r'$|\psi_i|$')
-ax1.grid(b=True, which='both', linestyle=':')
+ax2.scatter(freq[ind3], psi[ind3], marker='o',
+            facecolor='gray', edgecolors='gray', s=15)
+ax2.set_ylim(bottom=0.0)
+ax2.tick_params(labelsize=numsize, pad=6)
+ax2.set_xlabel(r'$f \delta_0/u_\infty$')
+ax2.set_ylabel(r'$|\psi_i|$')
+ax2.grid(b=True, which='both', linestyle=':')
 plt.savefig(path+var+'DMDFreqSpectrum.svg', bbox_inches='tight')
 plt.show()
 
 # %% specific mode in real space
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
+var = var0
 fa = 1.0 # 1.7*1.7*1.4
 ind = 15
 num = sp_ind[ind-1] # ind from small to large->freq from low to high
 name = str(round(freq[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
 tempflow = phi[:, num].real
 print('The frequency is', freq[num])
-var = var1
 modeflow = tempflow[varset[var][0]:varset[var][1]]
 print("The limit value: ", np.min(modeflow)*fa, np.max(modeflow)*fa)
 u = griddata((xval, yval), modeflow, (x, y))*fa

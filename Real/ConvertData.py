@@ -65,7 +65,7 @@ for folder in dirs:
 #                 header=VarList, float_format='%.10e')
 """
 # %% Save time-averaged flow field
-
+"""
 VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
            'vorticity_2', 'vorticity_3', 'shear', 'Q-criterion',
            'L2-criterion', 'grad(rho)_1', 'grad(rho)_2', 'grad(rho)_3',
@@ -90,7 +90,7 @@ for i, folder in enumerate(dirs):
 MeanFrame = SumFrame/num
 
 MeanFrame.to_hdf(OutFolder+"MeanFlow8B.h5", 'w', format='fixed')
-
+"""
 # %% Time-average DataFrame
 """
 FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/Ave/"
@@ -153,13 +153,21 @@ VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
            'vorticity_2', 'vorticity_3', 'shear', 'Q-criterion',
            'L2-criterion', 'grad(rho)_1', 'grad(rho)_2', 'grad(rho)_3',
            '|grad(rho)|', 'Mach', 'entropy', 'T']
-FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/7/"
+"""
+VarList = [
+    'x', 'y', 'z', '<u>', '<v>', '<w>', '<rho>', '<p>', '<T>', '<u`u`>',
+    '<u`v`>', '<u`w`>', '<v`v`>', '<v`w`>',
+    '<w`w`>', '<Q-criterion>', '<lambda_2>'
+]
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/TP_stat/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
 with timer("Read data"):
-    DataFrame = p2p.NewReadINCAResults(240, FoldPath+"TP_data_01030465/", VarList,
-                                       OutFolder)
-#DataFrame.to_hdf(OutFolder+"MeanFlow7.h5", 'w', format='fixed')
-"""
+    DataFrame, soltime = p2p.NewReadINCAResults(240, FoldPath, VarList)
+grouped = DataFrame.groupby(['x', 'y'])
+df = grouped.mean().reset_index()
+df.to_hdf(OutFolder+"SpanAveTP_stat.h5", 'w', format='fixed')
+
 
 """
 VarList = [

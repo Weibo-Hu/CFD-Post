@@ -438,8 +438,8 @@ class DataPost(object):
         np.savetxt (path2+outfile, AveGroup.values, \
                     fmt='%1.6e', delimiter = '\t', header = str(var))
         
-#   Obtain finite differential derivatives of a variable (2nd order)
-    def SecOrdFDD (self, yarr, var):
+#   Obtain finite differential derivatives of a variable (2nd order accuracy)
+    def SecOrdFDD(self, yarr, var):
         dvar = np.zeros(np.size(yarr))
         for jj in range (1,np.size(yarr)):
             if jj == 1:

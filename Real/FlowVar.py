@@ -62,6 +62,49 @@ def Viscosity(Re_delta, T):
     return mu
 
 
+# Obtain BL thickness, momentum thickness, displacement thickness
+def BLThickness(y, u, rho=None, opt=None):
+    ind1 = np.where(u[:] > 0.98)
+    err = np.diff(u)
+    ind2 = np.where(np.abs(err[:]) < 0.01)
+    ind = np.intersect1d(ind1, ind2)[0]
+    delta = y[ind]
+    u_d = u[ind]
+    if opt == None:
+        return delta
+    elif opt == 'displacement':
+        rho_d = rho[ind]
+        a1 = rho*u/rho_d/u_d
+        var = 1-a1[:ind]
+        delta_star = np.trapz(var, y[:ind])
+        return(delta_star)
+    elif opt == 'momentum':
+        rho_d = rho[ind]
+        a1 = 1-u/u_d
+        a2 = rho*u/rho_d/u_d
+        var = a1[:ind]*a2[:ind]
+        theta = np.trapz(var, y[:ind])
+        return theta
+    
+
+# Obtain radius of curvature
+def Radius(x, y):
+    y1 = DataPost.SecOrdFDD(x, y)
+    y2 = DataPost.SecOrdFDD(x, y1)
+    a1 = 1+(y1)**2
+    a2 = np.abs(y2)
+    radi = np.power(a1, 1.5)/a2
+    return radi
+
+
+# Obtain G\"ortler number
+def Gortler(Re_inf, x, y, theta, scale=0.001):
+    Re_theta = Re_inf*theta*scale
+    radi = Radius(x, y)
+    gortler = Re_theta*np.sqrt(theta/radi)
+    return gortler
+
+
 # Obtain skin friction coefficency
 def SkinFriction(mu, du, dy):
     # all variables are nondimensional
@@ -122,6 +165,15 @@ def FW_PSD(VarZone, dt, Freq_samp, opt=2):
     FPSD = Var_PSD * Freq
     return (Freq, FPSD)
 
+
+def FW_PSD_Map(orig, xyz, var, dt, Freq_samp, opt=2):
+    frame1 = orig.loc[orig['x'] == xyz[0]]
+    # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
+    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    orig = frame2.loc[frame2['z'] == xyz[2]]
+    varzone = orig[var]
+    Freq, FPSD = FW_PSD(varzone, dt, Freq_samp, opt=2)
+    return (Freq, FPSD)
 
 # Obtain cross-power sepectral density
 def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
@@ -502,37 +554,60 @@ def Perturbations(orig, mean):
     return pert
 
 
-def PertAtLoc(orig, mean, var, loc, val):
+def PertAtLoc(orig, var, loc, val, mean=None):
     frame1 = orig.loc[orig[loc[0]] == val[0]]
     frame1 = frame1.loc[np.around(frame1[loc[1]], 5) == val[1]]
     grouped = frame1.groupby(['x', 'y', 'z'])
     frame1 = grouped.mean().reset_index()
-    
-    frame2 = mean.loc[mean[loc[0]] == val[0]]
-    frame2 = frame2.loc[np.around(frame2[loc[1]], 5) == val[1]]
-    grouped = frame2.groupby(['x', 'y', 'z'])
-    frame2 = grouped.mean().reset_index()
     print(np.shape(frame1)[0])
-    print(np.shape(frame2)[0])
-    if (np.shape(frame1)[0] != np.shape(frame2)[0]):
-        sys.exit("The size of two datasets do not match!!!")
-    ### z value in frame1 & frame2 is equal or not ???
     frame = frame1
-    frame[var] = frame1[var] - frame2[var]
+    if mean is not None:
+        frame2 = mean.loc[mean[loc[0]] == val[0]]
+        frame2 = frame2.loc[np.around(frame2[loc[1]], 5) == val[1]]
+        grouped = frame2.groupby(['x', 'y', 'z'])
+        frame2 = grouped.mean().reset_index()
+        print(np.shape(frame2)[0])
+        if (np.shape(frame1)[0] != np.shape(frame2)[0]):
+            sys.exit("The size of two datasets do not match!!!")
+        ### z value in frame1 & frame2 is equal or not ???
+        frame[var] = frame1[var] - frame2[var]
+    else:
+        frame[var] = frame1[var]
+    return frame
+
+
+def MaxPertAlongY(orig, var, val, mean=None):
+    frame1 = orig.loc[orig['x'] == val[0]]
+    frame1 = frame1.loc[np.around(frame1['z'], 5) == val[1]]
+    grouped = frame1.groupby(['x', 'y', 'z'])
+    frame1 = grouped.mean().reset_index()
+    print(np.shape(frame1)[0])
+    if mean is not None:
+        frame2 = mean.loc[mean['x'] == val[0]]
+        frame2 = frame2.loc[np.around(frame2['z'], 5) == val[1]]
+        grouped = frame2.groupby(['x', 'y', 'z'])
+        frame2 = grouped.mean().reset_index()
+        print(np.shape(frame2)[0])
+        if (np.shape(frame1)[0] != np.shape(frame2)[0]):
+            sys.exit("The size of two datasets do not match!!!")
+        ### z value in frame1 & frame2 is equal or not ???
+        frame1[var] = frame1[var] - frame2[var]
+    frame = frame1.loc[frame1[var].idxmax()]
     return frame
 
 
 def Amplit(orig, xyz, var, mean=None):
-    frame1 = orig.loc[orig['x']==xyz[0]]
-    frame2 = frame1.loc[np.around(frame1['y'], 5)==xyz[1]]
-    orig = frame2.loc[frame2['z']==xyz[2]]
+    frame1 = orig.loc[orig['x'] == xyz[0]]
+    # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
+    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    orig = frame2.loc[frame2['z'] == xyz[2]]
     if mean is None:
         grouped = orig.groupby(['x', 'y', 'z'])
         mean = grouped.mean().reset_index()
     else:
-        frame1 = mean.loc[mean['x']==xyz[0]]
-        frame2 = frame1.loc[np.around(frame1['y'], 5)==xyz[1]]
-        mean = mean.loc[frame2['z']==xyz[2], var]
+        frame1 = mean.loc[mean['x'] == xyz[0]]
+        frame2 = frame1.loc[frame1['y'] == xyz[1]]
+        mean = mean.loc[frame2['z'] == xyz[2], var]
     pert = orig[var].values - mean[var].values
     amplit = np.max(np.abs(pert))
     return amplit
