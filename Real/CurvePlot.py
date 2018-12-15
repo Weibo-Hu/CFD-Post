@@ -97,9 +97,9 @@ ax.set_xlabel(r"$u/u_{\infty}$", fontsize=textsize)
 ax.set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
-#plt.savefig(
-#    path2 + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
-#)
+plt.savefig(
+    path2 + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
+)
 
 # %% Compare van Driest transformed mean velocity profile
 # xx = np.arange(27.0, 60.0, 0.25)
@@ -224,35 +224,54 @@ plt.savefig(
 )
 plt.show()
 
-# %% Plot BL edge & Gortler number
-fig3, ax3 = plt.subplots(figsize=(5, 2.5))
-xd = np.arange(0.5, 30, 0.25)
+# %% Compute BL edge & Gortler number
+# compute
+xd = np.arange(0.5, 40, 0.25)
 num = np.size(xd)
 delta = np.zeros(num)
+delta_star = np.zeros(num)
 theta = np.zeros(num)
 
 for i in range(num):
     y0, u0 = MeanFlow.BLProfile("x", xd[i], "u")
     y0, rho0 = MeanFlow.BLProfile("x", xd[i], "rho")
     delta[i] = fv.BLThickness(y0.values, u0.values)
+    delta_star[i] = fv.BLThickness(y0.values, u0.values, 
+                                   rho0.values, opt='displacement')
     theta[i] = fv.BLThickness(y0.values, u0.values, rho0.values, opt='momentum')
-    
+
+stream = np.loadtxt(path4+'Streamline.dat', skiprows=1)   
+stream[:, -1] = stream[:, -1] + 3.0
+func = interp1d(stream[:, 0], stream[:, 1], bounds_error=False, fill_value=0.0)
+yd = func(xd)
+xmax = np.max(stream[:, 0])
 # fit curve
 def func(t, A, B, C, D):
     return A * t ** 3 + B * t **2 + C * t + D
 popt, pcov = DataPost.fit_func(func, xd, delta, guess=None)
 A, B, C, D = popt
 fitfunc = lambda t: A * t ** 3 + B * t **2 + C * t + D
-delta1 = fitfunc(xd)
+delta_fit = fitfunc(xd)
 
-gortler = fv.Gortler(1.3718e7, xd, delta1, theta)
+popt, pcov = DataPost.fit_func(func, xd, yd, guess=None)
+A, B, C, D = popt
+fitfunc = lambda t: A * t ** 3 + B * t **2 + C * t + D
+yd = fitfunc(xd)
+# gortler = fv.Gortler(1.3718e7, xd, delta1, theta)
+radius = fv.Radius(xd[:-1], delta_fit[:-1])
+# radius = fv.Radius(xd[:-1], yd[:-1])
+gortler = fv.GortlerTur(theta[:-1], delta_star[:-1], radius)
 
+fig3, ax3 = plt.subplots(figsize=(5, 2.5))
 ax3.plot(xd, delta, 'k-', linewidth=1.5)
-ax3.plot(xd, delta1, 'k--', linewidth=1.5)
+ax3.plot(xd, delta_fit, 'k--', linewidth=1.5)
+ax3.plot(xd, yd, 'k--', linewidth=1.5)
 ax3.plot(xd, theta, 'k:', linewidth=1.5)
+# ax3.plot(xd[:-1], radius, 'k:', linewidth=1.5)
+ax3.plot(stream[:, 0], stream[:, 1], 'b--', linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
-ax3.set_xlim([0.0, 30.0])
+# ax3.set_xlim([0.0, 30.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
@@ -261,7 +280,40 @@ plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(path2 + "BLEdge.svg", dpi=300)
 plt.show()
+# %% Plot Gortler number
+# plot figure for delta/R
+fig = plt.figure(figsize=(10, 4))
+matplotlib.rc("font", size=textsize)
+ax2 = fig.add_subplot(121)
+matplotlib.rc("font", size=textsize)
+ax2.plot(xd[:-1], delta_fit[:-1]/radius, "k", linewidth=1.5)
+ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax2.set_ylabel(r"$\delta/R$", fontsize=textsize)
+ax2.set_xlim([0.0, 25.0])
+ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
+ax2.grid(b=True, which="both", linestyle=":")
+ax2.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
+#plt.savefig(path2 + "Cf.svg", bbox_inches="tight", pad_inches=0.1)
+#plt.show()
 
+# %% plot figure for Gortler number
+fig3, ax3 = plt.subplots(figsize=(5, 4))
+# ax3 = fig.add_subplot(122)
+ax3.plot(xd[:-1], gortler, "k", linewidth=1.5)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_ylabel(r"$G_t$", fontsize=textsize)
+ax3.set_xlim([0.0, 25.0])
+ax3.set_ylim([0.0, 1.0])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax3.axhline(y=0.58, color="gray", linestyle="--", linewidth=1.5)
+ax3.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(path2 + "Gortler.svg", dpi=300)
+plt.show()
 
 # %% Plot streamwise skin friction
 MeanFlow.AddWallDist(3.0)

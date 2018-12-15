@@ -105,6 +105,14 @@ def Gortler(Re_inf, x, y, theta, scale=0.001):
     return gortler
 
 
+def GortlerTur(theta, delta_star, radi):
+    # radi = Radius(x, y)
+    a1 = theta / 0.018 / delta_star
+    a2 = np.sqrt(theta / np.abs(radi))
+    gortler = a1 * a2 * np.sign(radi)
+    return gortler
+
+
 # Obtain skin friction coefficency
 def SkinFriction(mu, du, dy):
     # all variables are nondimensional

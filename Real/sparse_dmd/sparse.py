@@ -53,6 +53,9 @@ class SparseDMD(object):
             self.dmd = dmd
         elif not snapshots and not dmd:
             self.dmd = DMD()
+        if np.linalg.matrix_rank(self.dmd.modes) \
+           != np.shape(self.dmd.modes)[1]:
+            print("The input modes are not linear independent!!!")
 
     def compute_sparse(self, gammaval):
         """Compute the sparse dmd structure and set as attribute."""

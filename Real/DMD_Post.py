@@ -102,7 +102,7 @@ with timer("SPDMD computing"):
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
 
 # %% 
-sp = 2
+sp = 0
 bfs1.sparse.Nz[sp]
 bfs1.sparse.gamma[sp] 
 r = np.size(eigval)
@@ -134,21 +134,26 @@ plt.savefig(path+var+'DMDEigSpectrum.svg', bbox_inches='tight')
 plt.show()
 
 # %% discard the bad DMD modes
-#ind0 = np.where(np.abs(eigval) > 0.95)[0][1:]
-phi = bfs.modes
-freq = bfs.omega/2/np.pi
-beta = bfs.beta
-coeff = bfs.amplitudes
+# bfs2 = bfs
+bfs2 = bfs.reduce(0.999)
+phi = bfs2.modes
+freq = bfs2.omega/2/np.pi
+beta = bfs2.beta
+coeff = bfs2.amplitudes
 
 # %% Mode frequency specturm
 matplotlib.rc('font', size=textsize)
 fig2, ax2 = plt.subplots(figsize=(6.5, 3.5))
 psi = np.abs(coeff)/np.max(np.abs(coeff))
 ind1 = freq > 0.0 
+freq1 = freq[ind1]
+psi1 = np.abs(coeff[ind1])/np.max(np.abs(coeff[ind1]))
 ax2.set_xscale("log")
-ax2.vlines(freq[ind1], [0], psi[ind1], color='k', linewidth=1.0)
-ind3 = bfs1.sparse.nonzero[:, sp] & ind1
-ax2.scatter(freq[ind3], psi[ind3], marker='o',
+ax2.vlines(freq1, [0], psi1, color='k', linewidth=1.0)
+# ind2 = bfs1.sparse.nonzero[:, sp] & ind1
+ind2 = bfs1.sparse.nonzero[bfs2.ind, sp]
+ind3 = ind2[ind1]
+ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
             facecolor='gray', edgecolors='gray', s=15)
 ax2.set_ylim(bottom=0.0)
 ax2.tick_params(labelsize=numsize, pad=6)
@@ -161,13 +166,14 @@ plt.show()
 # %% specific mode in real space
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-var = var0
-fa = 1.0 # 1.7*1.7*1.4
-ind = 15
-num = sp_ind[ind-1] # ind from small to large->freq from low to high
-name = str(round(freq[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
-tempflow = phi[:, num].real
-print('The frequency is', freq[num])
+var = var1
+fa = 1.0 #1.7*1.7*1.4
+ind = 13
+num = sp_ind[ind] # ind from small to large->freq from low to high
+freq1 = bfs.omega/2/np.pi
+name = str(round(freq1[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
+tempflow = bfs.modes[:, num].real
+print('The frequency is', freq1[num])
 modeflow = tempflow[varset[var][0]:varset[var][1]]
 print("The limit value: ", np.min(modeflow)*fa, np.max(modeflow)*fa)
 u = griddata((xval, yval), modeflow, (x, y))*fa
@@ -216,7 +222,7 @@ plt.savefig(path+var+'DMDMode'+name+'Real.svg', bbox_inches='tight')
 plt.show()
 
 # % specific mode in imaginary space
-tempflow = phi[:, num].imag
+tempflow = bfs.modes[:, num].imag
 imagflow = tempflow[varset[var][0]:varset[var][1]]
 print("The limit value: ", np.min(imagflow)*fa, np.max(imagflow)*fa)
 u = griddata((xval, yval), imagflow, (x, y))*fa
@@ -224,8 +230,8 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=18)
 fig, ax = plt.subplots(figsize=(5, 2))
-c1 = -0.007 #-0.024
-c2 = 0.007 #0.018
+c1 = -0.011 #-0.024
+c2 = 0.011 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
