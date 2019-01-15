@@ -89,17 +89,19 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
     return(df)
 
 
-def NewReadINCAResults(BlockNO, FoldPath, VarList, SavePath=None, Equ=None):
+def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
+                       SpanAve=None, SavePath=None, Equ=None):
     os.chdir(FoldPath)
-    FileName = sorted(os.listdir(FoldPath))
+    if FileName is None:
+        FileName = sorted(os.listdir(FoldPath))
+        if (np.size(FileName) != BlockNO):
+            sys.exit("You're missing some blocks!!!")
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)
-    #dataset = tp.data.load_tecplot(FoldPath, read_data_option=2)
+    # dataset = tp.data.load_tecplot(FoldPath, read_data_option=2)
     if Equ is not None:
         tp.data.operate.execute_equation(Equ)
     SolTime = dataset.solution_times[0]
-    #if (np.size(FileName) != BlockNO):
-    #    sys.exit("You're missing some blocks!!!")
-    for j in range(BlockNO):
+    for j in range(np.size(FileName)):
         zone = dataset.zone
         zonename = zone(j).name
         for i in range(np.size(VarList)):
@@ -115,10 +117,108 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, SavePath=None, Equ=None):
             ZoneRow = np.row_stack((ZoneRow, VarCol))
     del dataset, zone, zonename, var
     df = pd.DataFrame(data=ZoneRow, columns=VarList)
+    if SpanAve is not None:
+        grouped = df.groupby(['x', 'y'])
+        df = grouped.mean().reset_index()
+#        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
+    if SubZone is not None:
+        df = df.iloc[0::2]
+        df['x'] = df['x'].astype(float)
+        df['y'] = df['y'].astype(float)
+        df['z'] = df['z'].astype(float)
+        df = df.query("x>={0} & x<={1} & y<={2}".format(
+                       SubZone[0][0], SubZone[0][1], SubZone[1][1]))
     if SavePath is not None:
         df.to_hdf(SavePath+"SolTime"+"%0.2f"%SolTime+".h5",
                   'w', format='fixed')
     return (df, SolTime)
+
+
+def ExtractZone(path, cube, NoBlock, FileName=None):
+    # cube = [(-5.0, 25.0), (-3.0, 5.0), (-2.5, 2.5)]
+    if NoBlock != np.size(os.listdir(path)):
+        sys.exit("You're missing some blocks!!!")
+    init = os.scandir(path)
+    cols = ['x1', 'x2', 'y1', 'y2', 'z1',
+            'z2', 'nx', 'ny', 'nz']
+    name = np.empty(shape=[0, 1])
+    boundary = np.empty(shape=[0, 9])
+    for folder in init:
+        file = path + folder.name
+        dataset = tp.data.load_tecplot(file, read_data_option=2)
+        zone = dataset.zone
+        zonename = zone(0).name
+        var_x = dataset.variable('x').values(zonename).as_numpy_array()
+        var_y = dataset.variable('y').values(zonename).as_numpy_array()
+        var_z = dataset.variable('z').values(zonename).as_numpy_array()
+        nx = int( np.size(np.unique(var_x)) )
+        ny = int( np.size(np.unique(var_y)) )
+        nz = int(np.size(np.unique(var_z)))
+        nxyz = np.size(var_x)
+        if nxyz != nx * ny * nz:
+            sys.exit("The shape of data does not match!!!")
+        x1 = np.min(var_x)
+        x2 = np.max(var_x)
+        y1 = np.min(var_y)
+        y2 = np.max(var_y)
+        z1 = np.min(var_z)
+        z2 = np.max(var_z)
+        # FileID.loc[jj, 'id1'] = ind[0]
+        # FileID.loc[jj, 'id2'] = ind[-1]
+        if (cube[0][0] < x2 and x1 < cube[0][1]) \
+           and (cube[1][0] < y2 and y1 < cube[1][1]) \
+           and (cube[2][0] < z2 and z1 < cube[2][1]):
+            # id1 = int(id2 + 1)
+            # id2 = int(id1 + nx * ny * nz - 1)
+            print(folder.name)
+            name = np.append(name, folder.name)
+            information = [x1, x2, y1, y2, z1, z2, nx, ny, nz]
+            print(information)
+            boundary = np.vstack((boundary, information))
+    name = name.reshape(-1, 1)
+    df = pd.DataFrame(data=boundary, columns=cols)
+    df['name'] = name
+    df = df.sort_values(by=['name']).reset_index(drop=True)
+    ind1 = np.empty(shape=[0, 1])
+    ind2 = np.empty(shape=[0, 1])
+    id2 = -1
+    for j in range(np.shape(df)[0]):
+        id1 = id2 + 1
+        id2 = id1 + df.iloc[j]['nx'] * df.iloc[j]['ny'] * df.iloc[j]['nz'] - 1
+        ind1 = np.append(ind1, id1)
+        ind2 = np.append(ind2, id2)
+    df['id1'] = ind1
+    df['id2'] = ind2
+    if FileName is not None:
+        df.to_csv(FileName, index=False, sep='\t')
+    return (df)
+
+
+def GirdIndex(FileID, xarr, yarr, zarr):
+    FileID['nx'] = 0
+    FileID['ny'] = 0
+    FileID['nz'] = 0
+    ind_arr = []
+    xyz = pd.DataFrame(np.hstack((xarr, yarr, zarr)), columns=['x', 'y', 'z'])
+    for jj in range(FileID.shape[0]):
+        file = FileID.iloc[jj]
+        # extract zone according to coordinates
+        df_id = xyz.query("x>{0} & x<{1} & y>{2} & y<{3}".format(
+                          file['x1'], file['x2'], file['y1'], file['y2']))
+        # remove duplicate coordinates due to interface (twice at the interface)
+        # df_id = df.drop_duplicates()
+        ind = df_id.index.values
+        ind_arr.append(ind)
+        nx = np.size(np.unique(df_id['x'][ind]))
+        ny = np.size(np.unique(df_id['y'][ind]))
+        nz = np.size(np.unique(df_id['z'][ind]))
+        # FileID.loc[jj, 'id1'] = ind[0]
+        # FileID.loc[jj, 'id2'] = ind[-1]
+        FileID.loc[jj, 'nx'] = nx
+        FileID.loc[jj, 'ny'] = ny
+        FileID.loc[jj, 'nz'] = nz
+    FileID['ind'] = ind_arr
+    return (FileID)
 
 
 def SaveSlice(df, SolTime, SpanAve, SavePath):
@@ -225,6 +325,51 @@ def frame2tec(dataframe,
         newframe.to_csv(f, sep='\t', index=False, header=False,
                         float_format=float_format)
 
+
+def zone2tec(path, filename, df, zonename, num, time=None):
+    header = "VARIABLES = "
+    zone = 'ZONE T = "{}" \n'.format(zonename)
+    with open(path + filename + '.dat', 'w') as f:
+        for i in range(len(df.columns)):
+            header = '{} "{}"'.format(header, df.columns[i])
+        f.write(header+'\n')
+        f.write(zone+'\n')
+        if time is not None:
+            time = np.float64(time)
+            f.write(' StrandID=1, SolutionTime = {}\n\n'.format(time))
+        else:
+            f.write('\n')
+        f.write('I = {}, J = {}, K = {}\n'.format(
+                num[0], num[1], num[2]))
+        df = df.sort_values(by=['z', 'y', 'x'])
+        df.to_csv(f, sep='\t', index=False, header=False,
+                  float_format='%.8f')
+
+
+def mul_zone2tec(path, filename, FileId, df, time=None):
+    header = "VARIABLES = "
+    for j in range(len(df.columns)):
+        header = '{} "{}"'.format(header, df.columns[j])
+    with open(path + filename + '.dat', 'w') as f:
+        f.write(header+'\n')
+        for i in range(np.shape(FileId)[0]):
+            zonename = 'B' + '{:010}'.format(i)
+            file = FileId.iloc[i]
+            ind1 = int(file['id1'])
+            ind2 = int(file['id2'])
+            zone = 'ZONE T = "{}" \n'.format(zonename)
+            f.write(zone+'\n')
+            if time is not None:
+                time = np.float64(time)
+                f.write(' StrandID=1, SolutionTime = {}\n\n'.format(time))
+            else:
+                f.write('\n')
+            f.write('I = {}, J = {}, K = {}\n'.format(
+                    file['nx'], file['ny'], file['nz']))
+            data = df.iloc[ind1: ind2 + 1]
+            data = data.sort_values(by=['z', 'y', 'x'])
+            data.to_csv(f, sep='\t', index=False, header=False,
+                        float_format='%.8f')
 
 
 def tec2plt(Folder, InFile, OutFile):

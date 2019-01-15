@@ -9,6 +9,8 @@ Created on Thu Sep 27 16:59:58 2018
 # %% Load necessary module
 import matplotlib
 import matplotlib.pyplot as plt
+import pylab as pl
+import matplotlib.animation as animation
 from matplotlib import gridspec
 import numpy as np
 import pandas as pd
@@ -19,6 +21,7 @@ from sparse_dmd import dmd, sparse
 import os
 import sys
 import plt2pandas as p2p
+import types
 plt.close("All")
 plt.rc('text', usetex=True)
 font = {
@@ -49,7 +52,7 @@ xval = DataFrame['x'][ind] # NewFrame['x']
 yval = DataFrame['y'][ind] # NewFrame['y']
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 x1 = -5.0
-x2 = 30.0
+x2 = 25.0
 y1 = -3.0
 y2 = 5.0
 #with timer("Load Data"):
@@ -72,7 +75,7 @@ with timer("Load Data"):
         DataFrame += TempFrame
 Snapshots = Snapshots.T  
 # Snapshots = Snapshots[ind, :] 
-Snapshots = Snapshots*fa
+# Snapshots = Snapshots*fa
 m, n = np.shape(Snapshots)
 o = np.size(col)
 if (m % o != 0):
@@ -113,7 +116,7 @@ var = var0
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(3.5, 3.5))
+fig1, ax1 = plt.subplots(figsize=(4.5, 4.5))
 unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
                          label='unit circle', linewidth=7.0, alpha=0.5)
 ax1.add_artist(unit_circle)
@@ -143,7 +146,7 @@ coeff = bfs2.amplitudes
 
 # %% Mode frequency specturm
 matplotlib.rc('font', size=textsize)
-fig2, ax2 = plt.subplots(figsize=(6.5, 3.5))
+fig2, ax2 = plt.subplots(figsize=(7.5, 4.5))
 psi = np.abs(coeff)/np.max(np.abs(coeff))
 ind1 = freq > 0.0 
 freq1 = freq[ind1]
@@ -166,7 +169,7 @@ plt.show()
 # %% specific mode in real space
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-var = var1
+var = var0
 fa = 1.0 #1.7*1.7*1.4
 ind = 13
 num = sp_ind[ind] # ind from small to large->freq from low to high
@@ -180,9 +183,9 @@ u = griddata((xval, yval), modeflow, (x, y))*fa
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
-fig, ax = plt.subplots(figsize=(5, 2))
-c1 = -0.007 #-0.024
-c2 = 0.007  #0.018
+fig, ax = plt.subplots(figsize=(8, 3))
+c1 = -0.013 #-0.024
+c2 = 0.013 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
@@ -197,13 +200,13 @@ ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.28, 0.76, 0.34, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
 cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, 
-                x=-0.23, labelpad=-29, fontsize=textsize)
+                x=-0.20, labelpad=-30, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
 shock = np.loadtxt(path1+'Shock.dat', skiprows=1)
@@ -217,8 +220,8 @@ ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
 # Add dividing line(separation line)
 dividing = np.loadtxt(path1+'DividingLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
-
-plt.savefig(path+var+'DMDMode'+name+'Real.svg', bbox_inches='tight')
+# ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
+plt.savefig(path+var+'DMDMode'+name+'Real.pdf', bbox_inches='tight')
 plt.show()
 
 # % specific mode in imaginary space
@@ -229,9 +232,9 @@ u = griddata((xval, yval), imagflow, (x, y))*fa
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=18)
-fig, ax = plt.subplots(figsize=(5, 2))
-c1 = -0.011 #-0.024
-c2 = 0.011 #0.018
+fig, ax = plt.subplots(figsize=(8, 3))
+c1 = -0.010 #-0.024
+c2 = 0.010 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
@@ -244,12 +247,13 @@ cbar.cmap.set_under('#053061')
 cbar.cmap.set_over('#67001f')
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.28, 0.76, 0.34, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
-cbar1.set_label(r'$\Im(\phi_{})$'.format(var), rotation=0, x=-0.23, labelpad=-29, fontsize=textsize)
+cbar1.set_label(r'$\Im(\phi_{})$'.format(var), rotation=0,
+                x=-0.20, labelpad=-30, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
@@ -265,8 +269,8 @@ ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
 # Add dividing line(separation line)
 dividing = np.loadtxt(path1+'DividingLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
-
-plt.savefig(path+var+'DMDMode'+name+'Imag.svg', bbox_inches='tight')
+# ax.annotate("(b)", xy=(-0.10, 1.0), xycoords='axes fraction', fontsize=numsize)
+plt.savefig(path+var+'DMDMode'+name+'Imag.pdf', bbox_inches='tight')
 plt.show()
 
 # %% growth rate of a specific mode
@@ -287,34 +291,101 @@ ax1.grid(b=True, which='both', linestyle=':')
 plt.savefig(path+var+'DMDGrowthRate.svg', bbox_inches='tight')
 plt.show()
 
+# %% create animation of reconstructing flow
+path5 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/mode3/"
+base = meanflow[col].values
+base[:, 2] = meanflow['p'].values * 1.7 * 1.7 * 1.4
+ind = 2
+num = sp_ind[ind] # ind from small to large->freq from low to high
+print('The frequency is', bfs.omega[num]/2/np.pi)
+phase = np.linspace(0, 4 * np.pi, 32, endpoint=False)
+modeflow = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
+           * np.exp(phase.reshape(1, -1)*1j)
+corner = (x < 0.0) & (y < 0.0)
+x_coord = x[0, :]
+y_coord = y[:, 0]
+im = []
+matplotlib.rc('font', size=textsize)
+lev = np.linspace(0.0, 1.2, 25)
+
+for i in range(np.size(phase)):
+    fig = plt.figure(figsize=(12, 3.5))
+    ax = plt.axes(xlim=(x1, x2), ylim=(y1, y2))
+    plt.xlabel(r'$x/\delta_0$', fontdict=font)
+    plt.ylabel(r'$y/\delta_0$', fontdict=font)
+    fluc = modeflow[:, i].reshape((m, o), order='F')
+    u_f = fluc[:, 0].real
+    p_f = fluc[:, 2].real
+    u_new = base[:, 0] + u_f * 10
+    p_new = base[:, 2] + p_f * 100
+    u = griddata((xval, yval), u_new, (x, y))
+    u_fluc = griddata((xval, yval), u_f, (x, y))
+    p = griddata((xval, yval), p_new, (x, y))
+    gradyx = np.gradient(p, y_coord, x_coord)
+    pgrady = gradyx[0]
+    pgradx = gradyx[1]
+    pgrad = np.sqrt(pgrady ** 2 + pgradx ** 2)
+    u[corner] = np.nan
+    u_fluc[corner] = np.nan
+    pgrad[corner] = np.nan
+    cbar = plt.contour(x, y, u_fluc, levels=[-0.003, 0.003],
+                       colors='k', linewidths=0.6)
+    cbar = plt.contour(x, y, u, levels=[0.0], colors='w', linewidths=1.0)
+    cbar = plt.contourf(x, y, pgrad, levels=lev, cmap='bwr_r')
+    # Add shock wave
+    shock = np.loadtxt(path1+'Shock.dat', skiprows=1)
+    plt.plot(shock[:, 0], shock[:, 1], 'g', linewidth=1.0)
+    # Add sonic line555
+    sonic = np.loadtxt(path1+'SonicLine.dat', skiprows=1)
+    plt.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.0)
+    plt.title(r'$\omega t={}/8\pi$'.format(i), fontsize=textsize)
+    cbar1 = plt.colorbar(cbar)
+    cbar1.set_label(r'$|\Delta p|\delta_0/p_\infty$', rotation=90, 
+                    x=0.0, labelpad=10, fontsize=textsize)
+    plt.savefig(path5+'DMDAnimat'+str(i)+'.jpg', dpi=300, bbox_inches='tight')
+    plt.close()
+# %% Convert plots to animation
+import imageio
+from natsort import natsorted, ns
+path5 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/mode3/"
+path6 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/"
+dirs = os.listdir(path5)
+dirs = natsorted(dirs, key=lambda y: y.lower())
+with imageio.get_writer(path6+'DMDAnima3.mkv', mode='I', fps=2) as writer:
+    for filename in dirs:
+        image = imageio.imread(path5+filename)
+        writer.append_data(image)
 # %% save dataframe of reconstructing flow
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/DMD1/tec0.01/"
+path5 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/0_059/"
 base = meanflow[col].values
 base[:, 2] = meanflow['p'].values*1.7*1.7*1.4
-ind = 1
-num = sp_ind[ind-1] # ind from small to large->freq from low to high
-print('The frequency is', freq[num])
-phase = np.linspace(0, 2*np.pi, 16, endpoint=False).reshape(1, -1)
-modeflow1 = phi[:,num].reshape(-1, 1) * coeff[num] \
-           @ bfs.Vand[num, :].reshape(1, -1)
-modeflow = phi[:,num].reshape(-1, 1) * coeff[num] * np.exp(phase*1j)
-mag0 = 20
-mag1 = 10
-mag2 = 20
+ind = 15
+num = sp_ind[ind] # ind from small to large->freq from low to high
+print('The frequency is', bfs.omega[num]/2/np.pi)
+phase = np.linspace(0, 2*np.pi, 32, endpoint=False)
+# modeflow1 = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
+#             @ bfs.Vand[num, :].reshape(1, -1)
+modeflow = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
+           * np.exp(phase.reshape(1, -1)*1j)
 xarr = xval.values.reshape(-1, 1)
 yarr = yval.values.reshape(-1, 1)
 zarr = np.zeros((m, 1))
-names = ['x', 'y', 'z', var0, var1, var2]
+names = ['x', 'y', 'z', var0, var1, var2, 'u`', 'v`', 'p`']
 for ii in range(np.size(phase)):
     fluc = modeflow[:, ii].reshape((m, o), order='F')
-    fluc[:, 0] = fluc[:, 0] * mag0
-    fluc[:, 1] = fluc[:, 1] * mag1
-    fluc[:, 2] = fluc[:, 2] * mag2
-    newflow = base + fluc.real
-    outfile = 'DMD'+str(timepoints[ii]+24)
-    data = np.hstack((xarr, yarr, zarr, newflow))
+#    fluc[:, 0] = fluc[:, 0] * mag0
+#    fluc[:, 1] = fluc[:, 1] * mag1
+#    fluc[:, 2] = fluc[:, 2] * mag2
+    newflow = fluc.real
+    outfile = 'DMD'+str(np.round(phase[ii], 2))
+    data = np.hstack((xarr, yarr, zarr, base, newflow))
     df = pd.DataFrame(data, columns=names)
     df1 = df.query("x>=0.0")
-    with timer('save plt of t='+str(timepoints[ii]+24)):
-        p2p.frame2plt(df1, path2, outfile, time=timepoints[ii]+24, zonename=1)
+    with timer('save plt of t='+str(phase[ii])):
+        p2p.frame2plt(df1, path5, outfile+'_1', 
+                      time=timepoints[ii]+24, zonename=1)
+    df2 = df.query("x<=0.0 & y>=0")
+    with timer('save plt of t='+str(phase[ii])):
+        p2p.frame2plt(df2, path5, outfile+'_2', 
+                      time=timepoints[ii]+24, zonename=2)
 

@@ -175,7 +175,7 @@ plt.savefig(
 
 # %% RMS along dividing line
 # extract data
-#pert1 = fluc.loc[fluc['z']==0.0]
+# pert1 = fluc.loc[fluc['z']==0.0]
 x0 = np.arange(0.0, 5.0, 4*0.03125)
 y0 = np.arange(0.0625, 1.3125, 0.03125)*(-1)
 x1 = np.arange(5.0, 11.25, 4*0.0625)
@@ -189,7 +189,7 @@ pert1 = grouped.mean().reset_index()
 loc = ['x', 'y']
 var1 = np.zeros(np.size(xx))
 for i in range(np.size(xx)):
-    var1[i] = fv.PertAtLoc(pert1, '<u`u`>', loc, [xx[i], yy[i]])['<u`u`>']
+    var0[i] = fv.PertAtLoc(pert1, '<u`u`>', loc, [xx[i], yy[i]])['<u`u`>']
     
 # %% Plot Max RMS from BL profile 
 # compute
@@ -206,24 +206,6 @@ for i in range(np.size(xnew)):
 #loc = ['z', 'y']
 #val = [0.0, -2.875]
 #pert = fv.PertAtLoc(fluc, '<u`u`>', loc, val)
-# %% draw
-fig, ax = plt.subplots(figsize=(10, 3.0))
-matplotlib.rc('font', size=14)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$\sqrt{u^{\prime 2}}/u_{\infty}$", fontsize=textsize)
-ax.plot(xx, np.sqrt(var1), 'k')
-ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=3.4, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=6.6, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=9.0, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=11.4, linewidth=1.0, linestyle='--', color='k')
-#ax.plot(pert['x'], np.sqrt(pert['<u`u`>']))
-ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.grid(b=True, which="both", linestyle=":")
-plt.show()
-plt.savefig(
-    path2 + "DividingPert.svg", bbox_inches="tight", pad_inches=0.1
-)
 
 #%% draw maximum value curve
 fig, ax = plt.subplots(figsize=(10, 3.0))
@@ -256,22 +238,24 @@ with timer("Load Data"):
         Snapshots = pd.concat([Snapshots, Frame2])
 
 m, n = np.shape(Snapshots)
-amplit = np.zeros(np.size(xx))
 
 # %% compute
-for i in range(np.size(xx)):
-    xyz = [xx[i], ynew[i], 0.0]
+xval = xnew # xx
+yval = ynew # yy
+amplit = np.zeros(np.size(xval))
+for i in range(np.size(xval)):
+    xyz = [xval[i], yval[i], 0.0]
     amplit[i] = fv.Amplit(Snapshots, xyz, 'u')
-    
-# %%    
+
+# %% draw amplitude along streamwise
 fig, ax = plt.subplots(figsize=(10, 3))
 matplotlib.rc('font', size=14)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$A_{u^{\prime}}$", fontsize=textsize)
-ax.plot(xx, amplit)
-b, a = signal.butter(3, 0.2, btype='lowpass', analog=False)
+ax.plot(xval, amplit)
+b, a = signal.butter(3, 0.15, btype='lowpass', analog=False)
 amplit1 = signal.filtfilt(b, a, amplit)
-ax.plot(xx, amplit1, 'r--')
+ax.plot(xval, amplit1, 'r--')
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
@@ -280,22 +264,43 @@ plt.savefig(
 )
 
 
-# %% 
-# grow = fv.GrowthRate(xx, amplit1)
+# %% draw RMS along streamwise
 fig, ax = plt.subplots(figsize=(10, 3.0))
 matplotlib.rc('font', size=14)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$A/A_0$", fontsize=textsize)
-ax.semilogy(xx[1:], amplit1[1:]/amplit1[1], 'k')
+ax.set_ylabel(r"$\sqrt{u^{\prime 2}}/u_{\infty}$", fontsize=textsize)
+ax.plot(xval, np.sqrt(var1), 'k')
 ax.set_xlim([-0.5, 20.5])
-ax.set_ylim([0.8, 10])
-ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=3.4, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=6.6, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=9.0, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=11.4, linewidth=1.0, linestyle='--', color='k')
+# ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
+# ax.axvline(x=3.4, linewidth=1.0, linestyle='--', color='k')
+# ax.axvline(x=6.6, linewidth=1.0, linestyle='--', color='k')
+# ax.axvline(x=9.0, linewidth=1.0, linestyle='--', color='k')
+# ax.axvline(x=11.4, linewidth=1.0, linestyle='--', color='k')
+#ax.plot(pert['x'], np.sqrt(pert['<u`u`>']))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax.grid(b=True, which="both", linestyle=":")
+# plt.show()
+# plt.savefig(
+#    path2 + "StreamwisePert.svg", bbox_inches="tight", pad_inches=0.1
+# )
+# % draw growth rate along streamwise
+# grow = fv.GrowthRate(xx, amplit1)
+# fig, ax2 = plt.subplots(figsize=(10, 3.0))
+# matplotlib.rc('font', size=14)
+ax2 = ax.twinx()
+ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax2.set_ylabel(r"$A/A_0$", fontsize=textsize)
+ax2.set_yscale('log')
+ax2.plot(xval[1:], amplit1[1:]/amplit1[0], 'k--')
+ax2.set_xlim([-0.5, 20.5])
+ax2.set_ylim([0.8, 30])
+ax2.axvline(x=0.6, linewidth=1.0, linestyle='--', color='gray')
+ax2.axvline(x=3.2, linewidth=1.0, linestyle='--', color='gray')
+ax2.axvline(x=6.5, linewidth=1.0, linestyle='--', color='gray')
+ax2.axvline(x=9.7, linewidth=1.0, linestyle='--', color='gray')
+ax2.axvline(x=12., linewidth=1.0, linestyle='--', color='gray')
 # ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.grid(b=True, which="both", linestyle=":")
+# ax2.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
     path2 + "GrowRateX.svg", bbox_inches="tight", pad_inches=0.1
@@ -351,10 +356,10 @@ lev = np.linspace(0.0, 0.10, 41)
 cbar = ax.contourf(x0, freq, FPSD1, cmap='gray_r', levels=lev)
 # ax.axvline(x=10.9, color="k", linestyle="--", linewidth=1.0)
 ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=3.4, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=6.6, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=9.0, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=11.4, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=3.2, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=6.5, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=9.7, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=12., linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
 ax.set_xlim([0.0, 30.0])
 rg = np.linspace(0.0, 0.10, 5)
@@ -407,7 +412,7 @@ xcoord = np.array([-40, 0, 5, 10, 15, 20, 30])
 for i in range(np.size(xcoord)):
     y0, q0 = MeanFlow.BLProfile('x', xcoord[i], 'u')
     ax[i].plot(q0, y0, "k-")
-    ax[i].set_ylim([0, 4])
+    ax[i].set_ylim([0, 3])
     if i != 0:
         ax[i].set_yticklabels('')
     ax[i].set_xticks([0, 0.5, 1], minor=True) 
@@ -418,7 +423,7 @@ ax[3].set_xlabel(r'$u/u_\infty$', fontsize=textsize)
 plt.tick_params(labelsize=numsize)
 plt.show()
 plt.savefig(
-    path2 + "BLProfile.pdf", bbox_inches="tight", pad_inches=0.1
+    path2 + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% plot BL fluctuations profile
@@ -426,6 +431,7 @@ TempFlow = DataPost()
 InFolder = '/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/7/'
 TempFlow.UserDataBin(InFolder+'SolTime793.00.h5', Uniq=True)
 TempFlow.AddWallDist(3.0)
+
 fig, ax = plt.subplots(1, 7, figsize=(10, 3.5))
 fig.subplots_adjust(hspace=0.5, wspace=0.15)
 matplotlib.rc('font', size=14)
@@ -433,16 +439,23 @@ title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 xcoord = np.array([-40, 0, 5, 10, 15, 20, 30])
+loc = ['z', 'x']
 for i in range(np.size(xcoord)):
-    y0, q1 = TempFlow.BLProfile('x', xcoord[i], 'u')
-    y0, q0 = MeanFlow.BLProfile('x', xcoord[i], 'u')
-    ax[i].plot(q1-q0, y0, "k-")
+    # y0, q1 = TempFlow.BLProfile('x', xcoord[i], 'u')
+    # y0, q0 = MeanFlow.BLProfile('x', xcoord[i], 'u')
+    # ax[i].plot(q1-q0, y0, "k-")
+    pert = fv.PertAtLoc(fluc, '<u`u`>', loc, [0.0, xcoord[i]])
+    if xcoord[i] > 0.0:
+        ax[i].plot(np.sqrt(pert['<u`u`>']), pert['y']+3.0, 'k-')
+    else:
+        ax[i].plot(np.sqrt(pert['<u`u`>']), pert['y'], 'k-')
     ax[i].set_ylim([0, 4])
     if i != 0:
         ax[i].set_yticklabels('')
     # ax[i].set_xticks([0, 0.5, 1], minor=True)
     ax[i].ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
-    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=numsize-2)
+    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), 
+                    fontsize=numsize-2, y=0.88)
     ax[i].grid(b=True, which="both", linestyle=":")
 ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
 ax[3].set_xlabel(r'$u^{\prime}/u_\infty$', fontsize=textsize)

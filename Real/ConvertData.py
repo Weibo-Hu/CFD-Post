@@ -39,7 +39,8 @@ VarList = [
 #]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/5/3/"
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/10_3/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
 OutFolder2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5B/"
 OutFolder3 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5C/"
@@ -51,10 +52,11 @@ NoBlock = 240
 dirs = os.scandir(FoldPath)
 for folder in dirs:
     path = FoldPath+folder.name+"/"
-    with timer("Read "+folder.name+" data"):
-        DataFrame, time = p2p.NewReadINCAResults(NoBlock, path, 
-                                                 VarList, Equ=equ)
-        df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
+    with timer("Read " + folder.name + " data"):
+        DataFrame, time = \
+        p2p.NewReadINCAResults(NoBlock, path, VarList, SpanAve='Yes',
+                               SavePath=OutFolder, Equ=equ)
+        #df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
         #df2 = p2p.SaveSlice(DataFrame, time, 1.5, OutFolder1)
         #df3 = p2p.SaveSlice(DataFrame, time, 1.0, OutFolder1)
         #df4 = p2p.SaveSlice(DataFrame, time, 0.5, OutFolder1)
@@ -64,6 +66,42 @@ for folder in dirs:
 #DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False,
 #                 header=VarList, float_format='%.10e')
 """
+# %% Extract Data for 3D DMD
+VarList = [
+    'x',
+    'y',
+    'z',
+    'u',
+    'v',
+    'w',
+    'p',
+    '|gradp|'
+]
+
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/81/"
+path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/81/"
+
+NoBlock = 240
+# dirs1 = os.listdir(FoldPath)
+dirs = os.listdir(FoldPath)
+cube = [(-10.0, 30.0), (-3.0, 30.0), (-2.5, 2.5)]
+FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock)
+FileId.to_csv(path2+'ReadList.dat', index=False, sep='\t')
+FileId = pd.read_csv(path2 + "ReadList.dat", sep='\t')
+
+dirs = os.scandir(FoldPath)
+for folder in dirs:
+    path = FoldPath+folder.name+"/"
+    with timer("Read " + folder.name + " data"):
+        DataFrame, time = \
+        p2p.NewReadINCAResults(NoBlock, path, VarList, 
+                               FileName=FileId['name'].tolist(),
+                               SavePath=OutFolder, Equ=equ)
+        
+
+
 # %% Save time-averaged flow field
 """
 VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
@@ -154,6 +192,7 @@ VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
            'L2-criterion', 'grad(rho)_1', 'grad(rho)_2', 'grad(rho)_3',
            '|grad(rho)|', 'Mach', 'entropy', 'T']
 """
+"""
 VarList = [
     'x', 'y', 'z', '<u>', '<v>', '<w>', '<rho>', '<p>', '<T>', '<u`u`>',
     '<u`v`>', '<u`w`>', '<v`v`>', '<v`w`>',
@@ -167,7 +206,7 @@ with timer("Read data"):
 grouped = DataFrame.groupby(['x', 'y'])
 df = grouped.mean().reset_index()
 df.to_hdf(OutFolder+"SpanAveTP_stat.h5", 'w', format='fixed')
-
+"""
 
 """
 VarList = [
