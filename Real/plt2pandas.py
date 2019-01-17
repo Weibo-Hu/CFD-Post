@@ -13,6 +13,9 @@ import numpy as np
 from scipy.interpolate import griddata
 from DataPost import DataPost
 from timer import timer
+import logging as log
+
+log.basicConfig(level=log.INFO)
 
 #   Show Progress of code loop
 def progress(count, total, status=''):
@@ -79,7 +82,7 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
     #df.to_csv(OutFile+".dat", index=False, sep = '\t')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
-        df      = grouped.mean().reset_index()
+        df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if OutFile is None:
         df.to_hdf(FoldPath2+"SolTime"+str(round(SolTime,2))+".h5", \
@@ -170,10 +173,10 @@ def ExtractZone(path, cube, NoBlock, FileName=None):
            and (cube[2][0] < z2 and z1 < cube[2][1]):
             # id1 = int(id2 + 1)
             # id2 = int(id1 + nx * ny * nz - 1)
-            print(folder.name)
+            # print(folder.name)
             name = np.append(name, folder.name)
             information = [x1, x2, y1, y2, z1, z2, nx, ny, nz]
-            print(information)
+            # print(information)
             boundary = np.vstack((boundary, information))
     name = name.reshape(-1, 1)
     df = pd.DataFrame(data=boundary, columns=cols)
@@ -333,44 +336,81 @@ def zone2tec(path, filename, df, zonename, num, time=None):
         for i in range(len(df.columns)):
             header = '{} "{}"'.format(header, df.columns[i])
         f.write(header+'\n')
-        f.write(zone+'\n')
+        f.write(zone)
         if time is not None:
             time = np.float64(time)
-            f.write(' StrandID=1, SolutionTime = {}\n\n'.format(time))
+            f.write(' StrandID=1, SolutionTime = {}\n'.format(time))
         else:
             f.write('\n')
-        f.write('I = {}, J = {}, K = {}\n'.format(
+        f.write(' I = {}, J = {}, K = {}\n'.format(
                 num[0], num[1], num[2]))
         df = df.sort_values(by=['z', 'y', 'x'])
-        df.to_csv(f, sep='\t', index=False, header=False,
-                  float_format='%.8f')
+        df.to_csv(f, sep=' ', index=False, header=False,
+                  float_format='%9.8e')
 
 
 def mul_zone2tec(path, filename, FileId, df, time=None):
     header = "VARIABLES = "
     for j in range(len(df.columns)):
         header = '{} "{}"'.format(header, df.columns[j])
-    with open(path + filename + '.dat', 'w') as f:
-        f.write(header+'\n')
+    with timer("save data as tecplot .dat"):
+        with open(path + filename + '.dat', 'w') as f:
+            f.write(header+'\n')
+            for i in range(np.shape(FileId)[0]):
+                zonename = 'B' + '{:010}'.format(i)
+                file = FileId.iloc[i]
+                ind1 = int(file['id1'])
+                ind2 = int(file['id2'])
+                zone = 'ZONE T = "{}" \n'.format(zonename)
+                f.write(zone)
+                if time is not None:
+                    time = np.float64(time)
+                    f.write(' StrandID=1, SolutionTime = {}\n'.format(time))
+                else:
+                    f.write('\n')
+                f.write('I = {}, J = {}, K = {}\n'.format(
+                        file['nx'], file['ny'], file['nz']))
+                data = df.iloc[ind1: ind2 + 1]
+                data = data.sort_values(by=['z', 'y', 'x'])
+                data.to_csv(f, sep='\t', index=False, header=False,
+                            float_format='%.8f')
+
+def mul_zone2tec_plt(path, filename, FileId, df, time=None):
+    tp.session.connect()
+    tp.new_layout()
+#    page = tp.active_page()
+#    page.name = 'page1'
+#    frame = page.active_frame()
+#    frame.name = 'frame1'
+#    dataset = frame.create_dataset('data1')
+    # add variable name
+#    for j in range(np.shape(df)[1]):
+#        var = df.columns[j]
+#        dataset.add_variable(var)
+    # link data
+    dataset = tp.active_frame().create_dataset('data1', df.columns)
+    # with tp.session.suspend():
+    with timer("save data as tecplot .plt"):
         for i in range(np.shape(FileId)[0]):
-            zonename = 'B' + '{:010}'.format(i)
             file = FileId.iloc[i]
             ind1 = int(file['id1'])
             ind2 = int(file['id2'])
-            zone = 'ZONE T = "{}" \n'.format(zonename)
-            f.write(zone+'\n')
+            nx = int(file['nx'])
+            ny = int(file['ny'])
+            nz = int(file['nz'])
+            zonename = 'B' + '{:010}'.format(i)
+            # print('creating tecplot zone: '+zonename)
+            zone = dataset.add_ordered_zone(zonename, (nx, ny, nz))
+            # dataset.add_zone('Ordered', zonename, (nx, ny, nz),
+            #                  solution_time=time, strand_id=1)
             if time is not None:
-                time = np.float64(time)
-                f.write(' StrandID=1, SolutionTime = {}\n\n'.format(time))
-            else:
-                f.write('\n')
-            f.write('I = {}, J = {}, K = {}\n'.format(
-                    file['nx'], file['ny'], file['nz']))
-            data = df.iloc[ind1: ind2 + 1]
-            data = data.sort_values(by=['z', 'y', 'x'])
-            data.to_csv(f, sep='\t', index=False, header=False,
-                        float_format='%.8f')
-
+                zone.strand = 1
+                zone.solution_time = time
+            for j in range(np.shape(df)[1]):
+                var = df.columns[j]
+                zone.values(var)[:] = df.iloc[ind1: ind2 + 1][var]
+    tp.data.save_tecplot_plt(path + filename + '.plt', dataset=dataset)
+    tp.constant.FrameAction(3)
 
 def tec2plt(Folder, InFile, OutFile):
     dataset = tp.data.load_tecplot(

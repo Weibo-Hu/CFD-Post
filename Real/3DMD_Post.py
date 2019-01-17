@@ -184,27 +184,32 @@ xarr = xval.values.reshape(-1, 1) # row to column
 yarr = yval.values.reshape(-1, 1)
 zarr = zval.values.reshape(-1, 1)
 names = ['x', 'y', 'z', var0, var1, var2, 'u`', 'v`', 'p`']
+path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
+FileID = pd.read_csv(path2 + "ReadList.dat", sep='\t')
 for ii in range(np.size(phase)):
     fluc = modeflow[:, 0].reshape((m, o), order='F')
     newflow = fluc.real
     data = np.hstack((xarr, yarr, zarr, base, newflow))
     df = pd.DataFrame(data, columns=names)
+    filename = "DMD" + '{:03}'.format(ii)
     with timer('save plt of t=' + str(phase[ii])):
+        p2p.mul_zone2tec(path2, filename, FileID, df, time=ii)
+        p2p.mul_zone2tec_plt(path2, filename, FileID, df, time=ii)
         
-#%%
-path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
-FileID = pd.read_csv(path2 + "ReadList.dat", sep='\t')
-# p2p.mul_zone2tec(path2, 'test', FileID, DataFrame, time=200)
+#%% convert data to tecplot
 
-for i in range(np.shape(FileID)[0]):
-    filename = "test" + '{:04}'.format(i)
-    file = FileID.iloc[i]
-    ind1 = int(file['id1'])
-    ind2 = int(file['id2'])
-    df = DataFrame.iloc[ind1:ind2 + 1]
-    zonename = 'B' + '{:010}'.format(i)
-    num=[int(file['nx']), int(file['ny']), int(file['nz'])]
-    p2p.zone2tec(path2+"test/", filename, df, zonename, num, time=200.0)
+
+
+
+#for i in range(np.shape(FileID)[0]):
+#    filename = "test" + '{:04}'.format(i)
+#    file = FileID.iloc[i]
+#    ind1 = int(file['id1'])
+#    ind2 = int(file['id2'])
+#    df = DataFrame.iloc[ind1:ind2 + 1]
+#    zonename = 'B' + '{:010}'.format(i)
+#    num=[int(file['nx']), int(file['ny']), int(file['nz'])]
+#    p2p.zone2tec(path2+"test/", filename, df, zonename, num, time=200.0)
 
     
 #%%

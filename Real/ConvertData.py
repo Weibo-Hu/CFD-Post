@@ -84,11 +84,10 @@ path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/81/"
 
 NoBlock = 240
-# dirs1 = os.listdir(FoldPath)
-dirs = os.listdir(FoldPath)
-cube = [(-10.0, 30.0), (-3.0, 30.0), (-2.5, 2.5)]
-FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock)
-FileId.to_csv(path2+'ReadList.dat', index=False, sep='\t')
+# dirs = os.listdir(FoldPath)
+# cube = [(-10.0, 30.0), (-3.0, 30.0), (-2.5, 2.5)]
+# FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock)
+# FileId.to_csv(path2+'ReadList.dat', index=False, sep='\t')
 FileId = pd.read_csv(path2 + "ReadList.dat", sep='\t')
 
 dirs = os.scandir(FoldPath)
