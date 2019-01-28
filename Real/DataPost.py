@@ -167,6 +167,7 @@ class DataPost(object):
     def LoadProbeData (self, xx, yy, zz, path, Uniq=True):
         varname = ['itstep', 'time', 'u', 'v', 'w', 'rho', 'E', 'walldist', 'p']
         FileName = self.GetProbeName(xx, yy, zz, path)
+        print('Probe file name:', FileName)
         self.UserData(varname, path + FileName, 2)
         self._DataTab = self._DataTab.sort_values(by=['time'])
         if Uniq == True:
@@ -485,7 +486,7 @@ class DataPost(object):
             Data = np.concatenate ([Data, l['Data'+str(j)] ])
         Outfile = open(path+FinalFilw)
         np.savetxt (Outfile, Data, \
-                    fmt='%1.6e', delimiter = "\t", header = str(title))
+                    fmt='%1.8e', delimiter = "\t", header = str(title))
         Outfile.close()
         print ("Congratulations! Successfully obtain <" \
                +FinalFile+ "> by merging files:")

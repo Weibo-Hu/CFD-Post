@@ -433,10 +433,40 @@ func = interp1d(probe[:, 1], probe[:, 8])
 # timezone = probe[:, 1]
 Xk = func(timezone)  # probe[:, 8]
 
+fig, ax = plt.subplots(figsize=(10, 2))
+# spl = splrep(timezone, xarr, s=0.35)
+# xarr1 = splev(timezone[0::5], spl)
+fa = 1.7*1.7*1.4
+ax.plot(timezone, Xk*fa, "k-")
+ax.set_xlim([600, 1000])
+ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$p/p_\infty$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+xmean = np.mean(Xk*fa)
+print("The mean value: ", xmean)
+ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(path2 + "Xk.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+dt = 0.5
+fig, ax = plt.subplots(figsize=(5, 4))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+Fre, FPSD = fv.FW_PSD(Xk*fa, dt, 2.0, opt=1)
+ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
+ax.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(path2 + "XkFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
 # %% load data of shock location with time
 shock1 = np.loadtxt(OutFolder + "Shock1.dat", skiprows=1)
 shock2 = np.loadtxt(OutFolder + "Shock2.dat", skiprows=1)
-angle = np.arctan(5 / (shock2[:, 1] - shock1[:, 1]))
+angle = np.arctan(5 / (shock2[:, 1] - shock1[:, 1]))/np.pi*180
 shockloc = shock2[:, 1] - 8.0 / np.tan(angle)
 foot = np.loadtxt(OutFolder + "ShockFoot0.8.dat", skiprows=1)
 Xl = shockloc
@@ -484,7 +514,7 @@ fig, ax = plt.subplots(figsize=(10, 2))
 ax.plot(timezone, Xb, "k-")
 ax.set_xlim([600, 1000])
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$A/\delta_0^2$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 xmean = np.mean(Xb)
 print("The mean value: ", xmean)
@@ -511,7 +541,8 @@ fig, ax = plt.subplots(figsize=(10, 2))
 ax.plot(timezone, Xf, "k-")
 ax.set_xlim([600, 1000])
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$x/\delta_0$", fontsize=textsize)
+#ax.set_ylabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$\alpha(^{\circ})$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 xmean = np.mean(Xf)
 print("The mean value: ", xmean)
@@ -547,8 +578,8 @@ probe22 = np.loadtxt(OutFolder + "ShockFootF.dat", skiprows=1)
 timezone = np.arange(600, 1000 + 0.5, 0.5)
 dt = 0.5
 fs = 2
-Xs0 = probe1[:, 1]
-Xr0 = probe2[:, 1]
+Xs0 = Xr # probe1[:, 1]
+Xr0 = Xk # probe2[:, 1]
 Xs1 = probe11[:, 1]
 Xr1 = probe21[:, 1]
 Xs2 = probe12[:, 1]
@@ -561,9 +592,9 @@ Fre, coher = fv.Coherence(Xr0, Xs0, dt, fs)
 Fre1, coher1 = fv.Coherence(Xr1, Xs1, dt, fs)
 Fre2, coher2 = fv.Coherence(Xr2, Xs2, dt, fs)
 ax.semilogx(Fre, coher, "k-", linewidth=1.0)
-ax.semilogx(Fre1, coher1, "k:", linewidth=1.0)
-ax.semilogx(Fre2, coher2, "k--", linewidth=1.0)
-ax.set_ylim([0.0, 1.0])
+#ax.semilogx(Fre1, coher1, "k:", linewidth=1.0)
+#ax.semilogx(Fre2, coher2, "k--", linewidth=1.0)
+#ax.set_ylim([0.0, 1.0])
 # ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax.get_yaxis().get_major_formatter().set_useOffset(False)
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
@@ -577,9 +608,9 @@ Fre, cpsd = fv.Cro_PSD(Xr0, Xs0, dt, fs)
 Fre1, cpsd1 = fv.Cro_PSD(Xr1, Xs1, dt, fs)
 Fre2, cpsd2 = fv.Cro_PSD(Xr2, Xs2, dt, fs)
 ax.semilogx(Fre, np.arctan(cpsd.imag, cpsd.real), "k-", linewidth=1.0)
-ax.semilogx(Fre, np.arctan(cpsd1.imag, cpsd1.real), "k:", linewidth=1.0)
-ax.semilogx(Fre, np.arctan(cpsd2.imag, cpsd2.real), "k--", linewidth=1.0)
-ax.set_ylim([-1.0, 1.0])
+#ax.semilogx(Fre, np.arctan(cpsd1.imag, cpsd1.real), "k:", linewidth=1.0)
+#ax.semilogx(Fre, np.arctan(cpsd2.imag, cpsd2.real), "k--", linewidth=1.0)
+#ax.set_ylim([-1.0, 1.0])
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$\theta$" + "(rad)", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
@@ -589,10 +620,10 @@ lab = [
     r"$\Delta y/\delta_0 = 1.5$",
     r"$\Delta y/\delta_0 =4.0$",
 ]
-ax.legend(lab, ncol=1, loc="upper right", fontsize=numsize)
+#ax.legend(lab, ncol=1, loc="upper right", fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "Statistic.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(path2 + "Statistic"+"XrXk.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% plot cross-correlation coeffiency of two variables with time delay

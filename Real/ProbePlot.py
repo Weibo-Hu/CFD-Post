@@ -13,14 +13,24 @@ import matplotlib
 from scipy.interpolate import interp1d
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter, ScalarFormatter
 from scipy.interpolate import griddata
-from scipy.interpolate import spline
-from scipy import integrate
+from scipy.interpolate import spline, interp1d, splev, splrep
+from scipy import integrate, signal
 import sys
 from DataPost import DataPost
 import FlowVar as fv
+import os
 
-plt.close ("all")
+plt.close("All")
 plt.rc('text', usetex=True)
+font = {
+    'family': 'Times New Roman',  # 'color' : 'k',
+    'weight': 'normal',
+}
+
+matplotlib.rc('font', **font)
+textsize = 18
+numsize = 15
+
 font0 = {'family' : 'Times New Roman',
         'color' : 'k',
         'weight' : 'normal',
@@ -44,22 +54,22 @@ font3 = {'family' : 'Times New Roman',
 }
 
 path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
+path1 = "/media/weibo/Data2/BFS_M1.7C_TS/probes/"
+path2 = "/media/weibo/Data2/BFS_M1.7C_TS/DataPost/"
+path3 = "/media/weibo/Data2/BFS_M1.7C_TS/DataPost/"
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
-textsize = 18
-labsize = 15
+textsize = 22
+labsize = 20
 t0 = 600
-t1 = 600 #600 #960
-t2 = 1000 #1000.0 #
+t1 = 100 #600 #960
+t2 = 180 #1000.0 #
 
 #%% Read data for Streamwise variations of frequency of a specific variable
 Probe0 = DataPost()
-xloc = [-40.0, 5.359, 10.0, 60.0]
-yloc = [0.0, -0.889, -3.0, -3.0]
+xloc = [-40.0, -30.0, -20.0, -10.0]
+yloc = [0.0, 0.0, 0.0, 0.0]
 #xloc = [-30.0, -20, -10.0, -5.0]
 #yloc = [0.0, 0.0, 0.0, 0.0]
 Probe0.LoadProbeData(xloc[0], yloc[0], 0.0, path1, Uniq=True)
@@ -88,21 +98,23 @@ Probe30.ExtraSeries('time', t1, t2)
 
 
 #%% Streamwise variations of time evolution of a specific variable
-fa = 1.7*1.7*1.4
+fa = 1.0 #1.7*1.7*1.4
+matplotlib.rc('font', size=textsize)
 fig = plt.figure(figsize=(10, 8))
 matplotlib.rc('font', size=18)
 ax = fig.add_subplot(411)
 xlabel = r'$x/\delta_0={}, \ y/\delta_0={}$'
-ytitle = r'$p/p_\infty$'
-var = 'p'
-ax.set_title(xlabel.format(xloc[0], yloc[0]), fontdict=font1)
+ytitle = r'$u/u_\infty$' # 'r'$p/p_\infty$'
+var = 'u'
+ax.set_title(xlabel.format(xloc[0], yloc[0]), fontsize=numsize)
 ax.set_xlim([t1, t2])
 #ax.set_ylim([0.99, 1.01])
 ax.set_xticklabels('')
 #ax.set_xlabel (r'$t u_\infty/\delta$', fontdict = font1)
 ax.set_ylabel(ytitle, fontsize=textsize)
-#ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
+ax.yaxis.offsetText.set_fontsize(numsize)
+#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 #ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 #ax.text (850, 6.5, 'x=0', fontdict = font2)
 ax.grid(b=True, which='both', linestyle=':')
@@ -110,10 +122,12 @@ ax.grid(b=True, which='both', linestyle=':')
 #grow0, time0 = Probe0.GrowthRate(Probe0.time, Probe0P)
 #ax.plot (time0, grow0, 'k', linewidth = 1.5)
 #Probe0.AddUGrad(0.015625)
-ax.plot(Probe0.time, getattr(Probe0, var)*fa, 'k', linewidth=1.0)
+meanval = np.mean(getattr(Probe0, var)*fa)
+ax.plot(Probe0.time, getattr(Probe0, var)*fa-meanval, 'k', linewidth=1.0)
+ax.tick_params(labelsize=numsize)
 
 #ax.annotate("(a)", xy=(-0.05, 1.2), xycoords='axes fraction', fontsize=labsize)
-plt.tick_params(labelsize=14)
+ax.tick_params(labelsize=numsize)
 # fit curve
 def func(t, A, B):
     return A / t + B
@@ -124,43 +138,52 @@ fitfunc = lambda t: A / t + B
 
 
 ax = fig.add_subplot(412)
-ax.set_title(xlabel.format(xloc[1], yloc[1]), fontdict=font1)
+ax.set_title(xlabel.format(xloc[1], yloc[1]), fontsize=numsize)
 ax.set_xlim([t1, t2])
 ax.set_xticklabels('')
-ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
+ax.yaxis.offsetText.set_fontsize(numsize)
+#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 #ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 ax.set_ylabel(ytitle, fontsize=textsize)
 ax.grid(b=True, which='both', linestyle = ':')
-ax.plot(Probe10.time, getattr(Probe10, var)*fa, 'k', linewidth=1.0)
+meanval = np.mean(getattr(Probe10, var)*fa)
+ax.plot(Probe10.time, getattr(Probe10, var)*fa-meanval, 'k', linewidth=1.0)
 #ax.annotate("(b)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
-plt.tick_params(labelsize=14)
+ax.tick_params(labelsize=numsize)
 
 ax = fig.add_subplot(413)
-ax.set_title(xlabel.format(xloc[2], yloc[2]), fontdict=font1)
+ax.set_title(xlabel.format(xloc[2], yloc[2]), fontsize=numsize)
 ax.set_xlim([t1, t2])
 ax.set_xticklabels('')
-ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
+ax.yaxis.offsetText.set_fontsize(numsize)
+#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 #ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
 ax.set_ylabel(ytitle, fontsize=textsize)
 ax.grid(b=True, which ='both', linestyle =':')
-ax.plot(Probe20.time, getattr(Probe20, var)*fa, 'k', linewidth=1.0)
+meanval = np.mean(getattr(Probe20, var)*fa)
+ax.plot(Probe20.time, getattr(Probe20, var)*fa-meanval, 'k', linewidth=1.0)
 #ax.annotate("(c)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
-plt.tick_params(labelsize=14)
+ax.tick_params(labelsize=numsize)
 
 ax = fig.add_subplot(414)
-ax.set_title(xlabel.format(xloc[3], yloc[3]), fontdict=font1)
+ax.set_title(xlabel.format(xloc[3], yloc[3]), fontsize=numsize)
 ax.set_xlim([t1, t2])
 #ax.set_xticklabels ('')
 ax.set_xlabel(r'$t u_\infty/\delta_0$', fontsize=textsize)
 ax.set_ylabel(ytitle, fontsize=textsize)
+ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
+ax.yaxis.offsetText.set_fontsize(numsize)
 #ax.text (850, 6.5, 'x=0', fontdict = font2)
 ax.grid(b=True, which='both', linestyle=':')
-ax.plot(Probe30.time, getattr(Probe30, var)*fa, 'k', linewidth=1.0)
+meanval = np.mean(getattr(Probe30, var)*fa)
+ax.plot(Probe30.time, getattr(Probe30, var)*fa-meanval, 'k', linewidth=1.0)
 #ax.annotate("(d)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
 #ax.plot (Probe40.time, Probe40.p, 'k', linewidth = 1.5)
-plt.tick_params(labelsize=labsize)
+ax.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.savefig(path3+'StreamwiseTimeEvolution.svg', bbox_inches='tight')
+plt.savefig(path3+'UStreamwiseTimeEvolution.svg', bbox_inches='tight')
 plt.show()
 
 
@@ -276,3 +299,169 @@ plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 1)
 fig4.set_size_inches(6, 5, forward=True)
 plt.savefig (path3+'SkewnessCoeff.svg', dpi = 300)
 plt.show()
+
+#%% Spanwise distribution of a specific varibles
+# load data
+import pandas as pd
+loc = ['x', 'y']
+valarr = [[-40.0, 0.00781],
+          [-20.0, 0.00781],
+          [-10.0, 0.00781]]
+var = 'p'
+fa = 1.7*1.7*1.4
+# varlabel = 
+#          [15.0, -1.6875]]
+#plt.rcParams['xtick.bottom'] = plt.rcParams['xtick.labelbottom'] = False
+#plt.rcParams['xtick.top'] = plt.rcParams['xtick.labeltop'] = True
+fig, ax = plt.subplots(1, 3, figsize=(8, 3))
+fig.subplots_adjust(hspace=0.5, wspace=0.20)
+matplotlib.rc('font', size=14)
+title = [r'$(a)$', r'$(b)$', r'$(c)$']
+# a
+val = valarr[0]
+fluc = pd.read_csv(path3+'x=-40.txt', sep=' ', skipinitialspace=True)
+pert = fv.PertAtLoc(fluc, var, loc, val)
+ax[0].plot(pert[var]-np.mean(pert[var]), pert['z'], 'k-')
+# ax[0].set_xlim([0.0, 2e-3])
+ax[0].ticklabel_format(axis="x", style="sci", scilimits=(-1, 1))
+# ax[0].set_yticks([-2.0, -1.0, 0.0, 1.0, 2.0])      
+ax[0].set_ylabel(r"$z/\delta_0$", fontsize=textsize)
+ax[0].tick_params(labelsize=numsize)
+ax[0].set_title(title[0], fontsize=numsize)
+ax[0].grid(b=True, which="both", linestyle=":")
+# b 
+val = valarr[1]
+fluc = pd.read_csv(path3+'x=-20.txt', sep=' ', skipinitialspace=True)
+pert = fv.PertAtLoc(fluc, var, loc, val)
+ax[1].plot(pert[var]-np.mean(pert[var]), pert['z'], 'k-')
+ax[1].set_xlabel(r"$p^{\prime}/p_{\infty}$",
+                 fontsize=textsize, labelpad=18.0)
+# ax[1].set_xlim([0.0, 2.0e-2])
+ax[1].ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
+ax[1].set_yticklabels('')
+ax[1].tick_params(labelsize=numsize)
+ax[1].set_title(title[1], fontsize=numsize)
+ax[1].grid(b=True, which="both", linestyle=":")
+# c
+val = valarr[2]
+fluc = pd.read_csv(path3+'x=-10.txt', sep=' ', skipinitialspace=True)
+pert = fv.PertAtLoc(fluc, var, loc, val)
+ax[2].plot(pert[var]-np.mean(pert[var]), pert['z'], 'k-')
+# ax[2].set_xlim([0.025, 0.20])
+ax[2].ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
+ax[2].set_yticklabels('')
+ax[2].tick_params(labelsize=numsize)
+ax[2].set_title(title[2], fontsize=numsize)
+ax[2].grid(b=True, which="both", linestyle=":")
+
+plt.show()
+plt.savefig(
+    path3 + "PerturProfileZ.svg", bbox_inches="tight", pad_inches=0.1
+)
+
+#%% Streamwise distribution of a specific varibles
+# load data
+import pandas as pd
+path1 = '/media/weibo/Data2/BFS_M1.7C_TS/probes2/'
+var = 'u'
+fa = 1.0 #1.7 * 1.7 * 1.4
+t3 = 108
+t4 = 170
+xzone = np.linspace(-40.0, -5.0, 36)
+yval = 0.0
+zval = 0.0
+lastval = np.zeros(np.size(xzone))
+meanval = np.zeros(np.size(xzone))
+flucval = np.zeros(np.size(xzone))
+ProbeID = DataPost()
+for j in range(np.size(xzone)):
+    ProbeID.LoadProbeData(xzone[j], yval, zval, path1)
+    ProbeID.ExtraSeries('time', t3, t4)
+    lastval[j] = getattr(ProbeID, var)[-1]
+    meanval[j] = np.mean(getattr(ProbeID, var))
+    flucval[j] = lastval[j] - meanval[j]
+# fit curve
+def func(t, A, B, C, D):
+    return A * np.sin( B * t + C) + D
+popt, pcov = DataPost.fit_func(func, xzone, flucval, guess=None)
+A, B, C, D = popt
+fitfunc = lambda t: A * np.sin( B * t + C) + D
+# smooth curve
+spl = splrep(xzone, flucval, k=5, s=0.5)
+fitfluc = splev(xzone, spl)
+# filter curve
+b, a = signal.butter(3, 0.3, btype='lowpass', analog=False)
+filfluc = signal.filtfilt(b, a, flucval)
+
+fig, ax = plt.subplots(figsize=(8, 3))
+matplotlib.rc('font', size=14)
+ax.plot(xzone, flucval*fa, 'k-', linewidth=1.5)
+# ax.plot(xzone, filfluc*fa, 'k-', linewidth=1.5)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$u^{\prime}/u_{\infty}$",
+              fontsize=textsize, labelpad=18.0)
+# ax[0].set_xlim([0.0, 2e-3])
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+# ax[0].set_yticks([-2.0, -1.0, 0.0, 1.0, 2.0])      
+ax.tick_params(labelsize=numsize)
+ax.grid(b=True, which="both", linestyle=":")
+
+plt.show()
+plt.savefig(
+    path3 + "UPerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
+)
+
+#%% Streamwise distribution of a specific varibles
+# load data
+import pandas as pd
+loc = ['z', 'y']
+valarr = [[0.0, 0.00781]]
+var = 'u'
+fa = 1.0 # 1.7 * 1.7 * 1.4
+# varlabel = 
+#          [15.0, -1.6875]]
+#plt.rcParams['xtick.bottom'] = plt.rcParams['xtick.labelbottom'] = False
+#plt.rcParams['xtick.top'] = plt.rcParams['xtick.labeltop'] = True
+fig, ax = plt.subplots(figsize=(8, 3))
+fig.subplots_adjust(hspace=0.5, wspace=0.20)
+matplotlib.rc('font', size=14)
+title = [r'$(a)$', r'$(b)$', r'$(c)$']
+# a
+val = valarr[0]
+orig = pd.read_csv(path3+'z=0.txt', sep=' ', skipinitialspace=True)
+meanflow = pd.read_csv(path3+'meanflow.txt', sep=' ', skipinitialspace=True)
+fluc = orig.copy()
+fluc[var] = orig[var] - meanflow[var]
+pert = fv.PertAtLoc(fluc, var, loc, val)
+ax.plot(pert['x'], pert[var]*fa, 'k-')
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$u^{\prime}/u_{\infty}$",
+              fontsize=textsize, labelpad=18.0)
+# ax[0].set_xlim([0.0, 2e-3])
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+# ax[0].set_yticks([-2.0, -1.0, 0.0, 1.0, 2.0])      
+ax.tick_params(labelsize=numsize)
+ax.set_title(title[0], fontsize=numsize)
+ax.grid(b=True, which="both", linestyle=":")
+
+plt.show()
+plt.savefig(
+    path3 + "PerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
+)
+
+# %% 
+path0 = '/media/weibo/Data2/BFS_M1.7C_TS/probes/'
+path1 = '/media/weibo/Data2/BFS_M1.7C_TS/probes1/'
+path2 = '/media/weibo/Data2/BFS_M1.7C_TS/probes2/'
+dirs = sorted(os.listdir(path0))
+for i in range(np.size(dirs)):
+    with open (path0 + dirs[i]) as f:
+        title1 = f.readline ().split ('\t')
+        title2 = f.readline ().split ()
+        title = '\n'.join([str(title1), str(title2)])
+    f.close()
+    file0 = np.genfromtxt(path0+dirs[i], skip_header=2, filling_values=0.0)
+    file1 = np.loadtxt(path1+dirs[i])
+    file2 = np.concatenate([file0, file1])
+    np.savetxt(path2+dirs[i], file2, \
+                fmt='%1.8e', delimiter = " ", header = str(title))
