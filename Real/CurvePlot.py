@@ -283,6 +283,10 @@ func = interp1d(probe[:, 1], probe[:, 8])
 #timezone = probe[:, 1]
 Xk = func(timezone) # probe[:, 8]
 
+# %% load data of separation bubble size
+bubble = np.loadtxt(OutFolder + "BubbleArea.dat", skiprows=1)
+Xb = bubble[:, 1]
+
 #%% reattachment location with time 
 reatt = np.loadtxt(OutFolder+"Reattach.dat", skiprows=1)
 timezone = reatt[:, 0]
@@ -321,12 +325,14 @@ plt.show()
 #%%  load data of shock location with time      
 #spl = splrep(timezone, xarr, s=0.35)
 #xarr1 = splev(timezone[0::5], spl)
-shock1 = np.loadtxt(OutFolder+"Shock1.dat", skiprows=1)
-shock2 = np.loadtxt(OutFolder+"Shock2.dat", skiprows=1)
-angle = np.arctan(5/(shock2[:, 1]-shock1[:, 1]))
-shockloc = shock2[:, 1] - 8.0/np.tan(angle)
-foot = np.loadtxt(OutFolder+"ShockFoot.dat", skiprows=1)
-Xs = foot[:, 1] #shockloc #  #angle*180/np.pi #shock2[:, 1]
+shock1 = np.loadtxt(OutFolder + "Shock1.dat", skiprows=1)
+shock2 = np.loadtxt(OutFolder + "Shock2.dat", skiprows=1)
+angle = np.arctan(5 / (shock2[:, 1] - shock1[:, 1]))/np.pi*180
+shockloc = shock2[:, 1] - 8.0 / np.tan(angle)
+foot = np.loadtxt(OutFolder + "ShockFoot.dat", skiprows=1)
+Xl = shockloc
+Xf = foot[:, 1]
+
 
 # plot Xs with time
 fig, ax = plt.subplots(figsize=(10, 2))

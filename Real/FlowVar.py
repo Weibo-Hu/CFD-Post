@@ -175,10 +175,10 @@ def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
         NVar2 = np.interp(TimeZone, TimeSpan,
                           VarZone2)  # time space must be equal
     if opt == 1:
-        ns = TotalNo // 6
+        ns = TotalNo // 8
         Freq, gamma = signal.coherence(
             NVar1, NVar2, fs=Freq_samp, nperseg=ns, 
-            nfft=TotalNo, noverlap=ns//4)
+            nfft=TotalNo, noverlap=ns//2)
         Freq = Freq[1:]
         gamma = gamma[1:]
     if opt == 2:
