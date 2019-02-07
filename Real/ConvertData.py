@@ -79,16 +79,18 @@ VarList = [
 ]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/81/"
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/11/"
 path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/81/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/11/"
 
 NoBlock = 240
-# dirs = os.listdir(FoldPath)
-# cube = [(-10.0, 30.0), (-3.0, 30.0), (-2.5, 2.5)]
-# FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock)
-# FileId.to_csv(path2+'ReadList.dat', index=False, sep='\t')
-FileId = pd.read_csv(path2 + "ReadList.dat", sep='\t')
+skip = 1
+cube = [(-10.0, 30.0), (-3.0, 30.0), (-2.5, 2.5)]
+dirs = os.listdir(FoldPath)
+# FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock, skip=skip)
+# FileId.to_csv(path2+str(skip)+'ReadList.dat', index=False, sep='\t')
+
+FileId = pd.read_csv(path2 + str(skip)+ "ReadList.dat", sep='\t')
 
 dirs = os.scandir(FoldPath)
 for folder in dirs:
@@ -97,7 +99,7 @@ for folder in dirs:
         DataFrame, time = \
         p2p.NewReadINCAResults(NoBlock, path, VarList, 
                                FileName=FileId['name'].tolist(),
-                               SavePath=OutFolder, Equ=equ)
+                               SavePath=OutFolder, Equ=equ, skip=skip)
         
 
 

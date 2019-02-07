@@ -315,7 +315,7 @@ DataFrame = pd.read_hdf(InFolder + dirs[0])
 grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
 var = 'p'    
-fa = 1.0 #1.7*1.7*1.4
+fa = 1.7*1.7*1.4
 timepoints = np.arange(600.0, 1000.0 + 0.5, 0.5)
 Snapshots = DataFrame[['x', 'y', 'z', var]]
 with timer("Load Data"):
@@ -328,9 +328,33 @@ with timer("Load Data"):
             sys.exit('The input snapshots does not match!!!')
         Snapshots = pd.concat([Snapshots, Frame2])
 
+Snapshots[var] = Snapshots[var] * fa
 m, n = np.shape(Snapshots)
 dt = 0.5
 freq_samp = 2.0
+
+# %% compute RMS
+x1 = xx
+y1 = yy
+rms = np.zeros(np.size(x1))
+for i in range(np.size(x1)):
+    xyz = [x1[i], y1[i], 0.0]
+    rms[i] = fv.RMS_map(Snapshots, xyz, var)
+    
+# %% Plot RMS along the streamwise (dividing line or max perturbation location)
+matplotlib.rcParams['xtick.direction'] = 'in'
+matplotlib.rcParams['ytick.direction'] = 'in'
+fig, ax = plt.subplots(figsize=(10, 4))
+# ax.yaxis.major.formatter.set_powerlimits((-2, 3))
+ax.plot(x1, rms, 'k-')
+ax.set_xlim([0.0, 30.0])
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$\mathrm{RMS}(p^{\prime}/p_{\infty})$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+ax.axvline(x=10.9, linewidth=1.0, linestyle='--', color='k')
+plt.savefig(path2 + "RMSMap.pdf", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+    
 # %% compute
 #x0 = xx
 #y0 = yy
@@ -342,7 +366,7 @@ for i in range(np.size(x0)):
     xyz = [x0[i], y0[i], 0.0]
     freq, FPSD[:, i] = fv.FW_PSD_Map(Snapshots, xyz, var, 0.5, 2.0, opt=1)
 
-# %%
+# %% Plot WSPD map along the streamwise
 SumFPSD = np.sum(FPSD, axis=0)
 FPSD1 = FPSD/SumFPSD
 matplotlib.rcParams['xtick.direction'] = 'out'

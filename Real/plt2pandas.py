@@ -93,7 +93,7 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
 
 
 def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
-                       SpanAve=None, SavePath=None, Equ=None):
+                       SpanAve=None, SavePath=None, Equ=None, skip=0):
     os.chdir(FoldPath)
     if FileName is None:
         FileName = sorted(os.listdir(FoldPath))
@@ -104,19 +104,44 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
     if Equ is not None:
         tp.data.operate.execute_equation(Equ)
     SolTime = dataset.solution_times[0]
+    skip = skip + 1
     for j in range(np.size(FileName)):
         zone = dataset.zone
         zonename = zone(j).name
+        xvar = dataset.variable('x').values(zonename).as_numpy_array()
+        yvar = dataset.variable('y').values(zonename).as_numpy_array()
+        zvar = dataset.variable('z').values(zonename).as_numpy_array()
+        nx = int(np.size(np.unique(xvar)))
+        ny = int(np.size(np.unique(yvar)))
+        nz = int(np.size(np.unique(zvar)))
         for i in range(np.size(VarList)):
             var = dataset.variable(VarList[i])
-            if i == 0:
-                VarCol = var.values(zonename).as_numpy_array()
-            else:
-                Var_index = var.values(zonename).as_numpy_array()
+            varval = var.values(zonename).as_numpy_array()
+            NewCol = varval.reshape((nx, ny, nz), order='F')
+            # this method does much repeated work,
+            # try to find index to filter variables
+            if skip != 1:
+                if nx % skip == 1:
+                    NewCol = NewCol[0::skip, :, :]
+                else:
+                    print("No skip in x direction")
+                if ny % skip == 1:
+                    NewCol = NewCol[:, 0::skip, :]
+                else:
+                    print("No skip in y direction")
+                if nz % skip == 1:
+                    NewCol = NewCol[:, :, 0::skip]
+                else:
+                    print("No skip in z direction")
+            varval = NewCol.ravel(order='F')
+            if i == 0:  # first column
+                VarCol = varval
+            else:  # other columns
+                Var_index = varval
                 VarCol = np.column_stack((VarCol, Var_index))
-        if j == 0:
+        if j == 0:  # first row
             ZoneRow = VarCol
-        else:
+        else:  # other row
             ZoneRow = np.row_stack((ZoneRow, VarCol))
     del dataset, zone, zonename, var
     df = pd.DataFrame(data=ZoneRow, columns=VarList)
@@ -137,7 +162,7 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
     return (df, SolTime)
 
 
-def ExtractZone(path, cube, NoBlock, FileName=None):
+def ExtractZone(path, cube, NoBlock, skip=0, FileName=None):
     # cube = [(-5.0, 25.0), (-3.0, 5.0), (-2.5, 2.5)]
     if NoBlock != np.size(os.listdir(path)):
         sys.exit("You're missing some blocks!!!")
@@ -146,6 +171,7 @@ def ExtractZone(path, cube, NoBlock, FileName=None):
             'z2', 'nx', 'ny', 'nz']
     name = np.empty(shape=[0, 1])
     boundary = np.empty(shape=[0, 9])
+    skip = skip + 1
     for folder in init:
         file = path + folder.name
         dataset = tp.data.load_tecplot(file, read_data_option=2)
@@ -154,8 +180,8 @@ def ExtractZone(path, cube, NoBlock, FileName=None):
         var_x = dataset.variable('x').values(zonename).as_numpy_array()
         var_y = dataset.variable('y').values(zonename).as_numpy_array()
         var_z = dataset.variable('z').values(zonename).as_numpy_array()
-        nx = int( np.size(np.unique(var_x)) )
-        ny = int( np.size(np.unique(var_y)) )
+        nx = int(np.size(np.unique(var_x)))
+        ny = int(np.size(np.unique(var_y)))
         nz = int(np.size(np.unique(var_z)))
         nxyz = np.size(var_x)
         if nxyz != nx * ny * nz:
@@ -174,6 +200,19 @@ def ExtractZone(path, cube, NoBlock, FileName=None):
             # id1 = int(id2 + 1)
             # id2 = int(id1 + nx * ny * nz - 1)
             # print(folder.name)
+            if skip != 1:
+                if nx % skip == 1:
+                    nx = (nx + 1) // skip
+                else:
+                    print("No skip in x direction")
+                if ny % skip == 1:
+                    ny = (ny + 1) // skip
+                else:
+                    print("No skip in y direction")
+                if nz % skip == 1:
+                    nz = (nz + 1) // skip
+                else:
+                    print("No skip in z direction")
             name = np.append(name, folder.name)
             information = [x1, x2, y1, y2, z1, z2, nx, ny, nz]
             # print(information)
@@ -375,42 +414,49 @@ def mul_zone2tec(path, filename, FileId, df, time=None):
                 data.to_csv(f, sep='\t', index=False, header=False,
                             float_format='%.8f')
 
-def mul_zone2tec_plt(path, filename, FileId, df, time=None):
-    tp.session.connect()
-    tp.new_layout()
-#    page = tp.active_page()
-#    page.name = 'page1'
-#    frame = page.active_frame()
-#    frame.name = 'frame1'
-#    dataset = frame.create_dataset('data1')
-    # add variable name
-#    for j in range(np.shape(df)[1]):
-#        var = df.columns[j]
-#        dataset.add_variable(var)
-    # link data
-    dataset = tp.active_frame().create_dataset('data1', df.columns)
-    # with tp.session.suspend():
-    with timer("save data as tecplot .plt"):
-        for i in range(np.shape(FileId)[0]):
-            file = FileId.iloc[i]
-            ind1 = int(file['id1'])
-            ind2 = int(file['id2'])
-            nx = int(file['nx'])
-            ny = int(file['ny'])
-            nz = int(file['nz'])
-            zonename = 'B' + '{:010}'.format(i)
-            # print('creating tecplot zone: '+zonename)
-            zone = dataset.add_ordered_zone(zonename, (nx, ny, nz))
-            # dataset.add_zone('Ordered', zonename, (nx, ny, nz),
-            #                  solution_time=time, strand_id=1)
-            if time is not None:
-                zone.strand = 1
-                zone.solution_time = time
-            for j in range(np.shape(df)[1]):
-                var = df.columns[j]
-                zone.values(var)[:] = df.iloc[ind1: ind2 + 1][var]
-    tp.data.save_tecplot_plt(path + filename + '.plt', dataset=dataset)
-    tp.constant.FrameAction(3)
+def mul_zone2tec_plt(path, filename, FileId, df, time=None, option=1):
+    if option == 1:
+        tp.session.connect()
+        tp.new_layout()
+#        page = tp.active_page()
+#        page.name = 'page1'
+#        frame = page.active_frame()
+#        frame.name = 'frame1'
+#        dataset = frame.create_dataset('data1')
+        # add variable name
+#        for j in range(np.shape(df)[1]):
+#            var = df.columns[j]
+#            dataset.add_variable(var)
+        # link data
+        dataset = tp.active_frame().create_dataset('data1', df.columns)
+        with tp.session.suspend():
+        # with timer("save data as tecplot .plt"):
+            for i in range(np.shape(FileId)[0]):
+                file = FileId.iloc[i]
+                ind1 = int(file['id1'])
+                ind2 = int(file['id2'])
+                nx = int(file['nx'])
+                ny = int(file['ny'])
+                nz = int(file['nz'])
+                zonename = 'B' + '{:010}'.format(i)
+                # print('creating tecplot zone: '+zonename)
+                zone = dataset.add_ordered_zone(zonename, (nx, ny, nz))
+                # zone = dataset.add_zone('Ordered', zonename, (nx, ny, nz),
+                #                         solution_time=time, strand_id=1)
+                if time is not None:
+                    zone.strand = 1
+                    zone.solution_time = np.float64(time)
+                data = df.iloc[ind1: ind2 + 1]
+                data = data.sort_values(by=['z', 'y', 'x'])
+                for j in range(np.shape(data)[1]):
+                    var = data.columns[j]
+                    zone.values(var)[:] = data[var][:]
+        tp.data.save_tecplot_plt(path + filename + '.plt', dataset=dataset)
+    else:
+        dataset = tp.data.load_tecplot(
+            path + filename + '.dat', read_data_option=2)
+        tp.data.save_tecplot_plt(path + filename + '.plt', dataset=dataset)
+    # tp.constant.FrameAction(3)
 
 def tec2plt(Folder, InFile, OutFile):
     dataset = tp.data.load_tecplot(

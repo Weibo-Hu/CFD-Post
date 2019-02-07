@@ -356,7 +356,7 @@ ax3.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(path2 + "CfCp.svg", dpi=300)
+# plt.savefig(path2 + "CfCp.svg", dpi=300)
 plt.show()
 
 # %% Load data for Computing intermittency factor
@@ -493,6 +493,7 @@ plt.tick_params(labelsize=numsize)
 plt.savefig(path2 + "Xr.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
+# FWPSD
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
@@ -508,7 +509,47 @@ plt.show()
 
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
+# %% gradient of Xr 
+fig, ax = plt.subplots(figsize=(10, 2))
+dxr = DataPost.SecOrdFDD(timezone, Xr)
+ax.plot(timezone, dxr, "k-")
+ax.set_xlim([600, 1000])
+ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$\mathrm{d} x_r/\mathrm{d} t$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+dx_pos = dxr[np.where(dxr > 0.0)]
+mean_pos = np.mean(dx_pos)
+dx_neg = dxr[np.where(dxr < 0.0)]
+mean_neg = np.mean(dx_neg)
+ax.axhline(y=mean_pos, color="k", linestyle="--", linewidth=1.0)
+ax.axhline(y=mean_neg, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(path2 + "GradientXr.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 
+# %% histogram of probability
+num = 12
+tnum = np.size(dxr)
+dxdt = np.linspace(-2.0, 2.0, num)
+nsize = np.zeros(num)
+proba = np.zeros(num)
+for i in range(num):
+    ind = np.where(np.round(dxr, 1) == np.round(dxdt[i],1))
+    nsize[i] = np.size(ind)
+    proba[i] = np.size(ind)/tnum
+
+fig, ax = plt.subplots(figsize=(8, 3))
+#ax.hist(dxr, num, range=(-2.0, 2.0), facecolor='gray', alpha=0.5, density=True)
+hist, edges = np.histogram(dxr, bins=num, range=(-2.0, 2.0), density=True)
+binwid = edges[1] - edges[0]
+plt.bar(edges[:-1], hist*binwid, width=0.2, facecolor='gray', alpha=0.8)
+# ax.set_xlim([-2.0, 2.0])
+ax.set_ylabel(r"$\mathcal{P}$", fontsize=textsize)
+ax.set_xlabel(r"$\mathrm{d} x_r/\mathrm{d} t$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.savefig(path2 + "ProbGradientXr.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 # %%  Plot Xb with time
 fig, ax = plt.subplots(figsize=(10, 2))
 ax.plot(timezone, Xb, "k-")

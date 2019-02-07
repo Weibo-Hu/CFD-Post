@@ -183,6 +183,22 @@ def FW_PSD_Map(orig, xyz, var, dt, Freq_samp, opt=2):
     Freq, FPSD = FW_PSD(varzone, dt, Freq_samp, opt=2)
     return (Freq, FPSD)
 
+# Compute the RMS
+def RMS(dataseries):
+    meanval = np.mean(dataseries)
+    rms = np.sqrt(np.mean((dataseries - meanval) ** 2))
+    return (rms)
+
+
+# Compute the RMS
+def RMS_map(orig, xyz, var):
+    frame1 = orig.loc[orig['x'] == xyz[0]]
+    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    orig = frame2.loc[frame2['z'] == xyz[2]]
+    varzone = orig[var]
+    rms = RMS(varzone)
+    return (rms)
+
 # Obtain cross-power sepectral density
 def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
     TotalNo = np.size(Var1)

@@ -76,11 +76,11 @@ with timer("Load Data"):
 Snapshots = Snapshots.T  
 # Snapshots = Snapshots[ind, :] 
 # Snapshots = Snapshots*fa
-m, n = np.shape(Snapshots)
-o = np.size(col)
+m, n = np.shape(Snapshots)  # n: NO of snapshots
+o = np.size(col)  # NO of variables
 if (m % o != 0):
     sys.exit("Dimensions of snapshots are wrong!!!")
-m = int(m/o)
+m = int(m/o)  # dimensions of every variable 
 AveFlow = DataFrame/np.size(dirs)
 meanflow = AveFlow.query("x>=-5.0 & x<=45.0 & y>=-3.0 & y<=5.0")
 
@@ -89,7 +89,7 @@ varset = { var0: [0, m],
            var1: [m, 2*m],
            var2: [2*m, 3*m]
         }
-Snapshots1 = Snapshots[:, :-1]
+# Snapshots1 = Snapshots[:, :-1]
 dt = 0.5
 bfs = dmd.DMD(Snapshots, dt=dt)
 with timer("DMD computing"):

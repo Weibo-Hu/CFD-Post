@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import sys
 import pylab as pl
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import gridspec
@@ -19,6 +20,7 @@ from DMD import DMD
 from scipy.interpolate import griddata
 from sparse_dmd import dmd, sparse
 import types
+import pickle
 
 
 plt.close("All")
@@ -33,13 +35,13 @@ textsize = 18
 numsize = 15
 
 # %% load data
-InFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/81/"
+InFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/snapshots1/"
 SaveFolder = "/media/weibo/Data3/BFS_M1.7L_0505/Plot/"
 path = "/media/weibo/Data3/BFS_M1.7L_0505/Plot/"
 path1 = "/media/weibo/Data3/BFS_M1.7L_0505/Plot/"
 path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
-FileID = pd.read_csv(path2 + "ReadList.dat", sep='\t')
-timepoints = np.arange(880.5, 890.0 + 0.5, 0.5)
+FileID = pd.read_csv(path2 + "1ReadList.dat", sep='\t')
+timepoints = np.arange(770.00, 994.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(InFolder))
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
@@ -63,8 +65,9 @@ y2 = 5.0
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
 var0 = 'u'
 var1 = 'v'
-var2 = 'p'
-col = [var0, var1, var2]
+var2 = 'w'
+var3 = 'p'
+col = [var0, var1, var2, var3]
 fa = 1 #/(1.7*1.7*1.4)
 FirstFrame = DataFrame[col].values
 Snapshots = FirstFrame.ravel(order='F')
@@ -83,25 +86,32 @@ o = np.size(col)
 if (m % o != 0):
     sys.exit("Dimensions of snapshots are wrong!!!")
 m = int(m/o)
+
 AveFlow = DataFrame/np.size(dirs)
 meanflow = AveFlow
-
+del TempFrame, DataFrame
 # %% DMD 
 varset = { var0: [0, m],
            var1: [m, 2*m],
            var2: [2*m, 3*m]
+           var3: [3*m, 4*m]
         }
-Snapshots1 = Snapshots[:, :-1]
+# Snapshots1 = Snapshots[:, :-1]
 dt = 0.5
 bfs = dmd.DMD(Snapshots, dt=dt)
 with timer("DMD computing"):
     bfs.compute()
 print("The residuals of DMD is ", bfs.residuals)
 eigval = bfs.eigval
+with open(path2+"bfs.bin", "wb") as f:  # save object to file 
+    pickle.dump(bfs, f, pickle.HIGHEST_PROTOCOL)
+
+with open(path2+"bfs.bin", "rb") as f:  # load object
+    bfs0 = pickle.load(f)
 
 # %% SPDMD
 bfs1 = sparse.SparseDMD(Snapshots, bfs, dt=dt)
-gamma = [700, 800, 850, 900]
+gamma = [700]
 with timer("SPDMD computing"):
     bfs1.compute_sparse(gamma)
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
@@ -124,9 +134,9 @@ unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
 ax1.add_artist(unit_circle)
 ax1.scatter(eigval.real, eigval.imag, marker='o',
             facecolor='none', edgecolors='k', s=18)
-sp_eigval = eigval[sp_ind]
-ax1.scatter(sp_eigval.real, sp_eigval.imag, marker='o',
-            facecolor='gray', edgecolors='gray', s=18)
+# sp_eigval = eigval[sp_ind]
+# ax1.scatter(sp_eigval.real, sp_eigval.imag, marker='o',
+#            facecolor='gray', edgecolors='gray', s=18)
 limit = np.max(np.absolute(eigval))+0.1
 ax1.set_xlim((-limit, limit))
 ax1.set_ylim((-limit, limit))
@@ -140,7 +150,7 @@ plt.show()
 
 # %% discard the bad DMD modes
 # bfs2 = bfs
-bfs2 = bfs.reduce(0.5)
+bfs2 = bfs.reduce(0.98) # 0.95
 phi = bfs2.modes
 freq = bfs2.omega/2/np.pi
 beta = bfs2.beta
@@ -155,11 +165,10 @@ freq1 = freq[ind1]
 psi1 = np.abs(coeff[ind1])/np.max(np.abs(coeff[ind1]))
 ax2.set_xscale("log")
 ax2.vlines(freq1, [0], psi1, color='k', linewidth=1.0)
-# ind2 = bfs1.sparse.nonzero[:, sp] & ind1
-ind2 = bfs1.sparse.nonzero[bfs2.ind, sp]
-ind3 = ind2[ind1]
-ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
-            facecolor='gray', edgecolors='gray', s=15)
+# ind2 = bfs1.sparse.nonzero[bfs2.ind, sp]
+# ind3 = ind2[ind1]
+# ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
+#             facecolor='gray', edgecolors='gray', s=15)
 ax2.set_ylim(bottom=0.0)
 ax2.tick_params(labelsize=numsize, pad=6)
 ax2.set_xlabel(r'$f \delta_0/u_\infty$')
@@ -169,11 +178,12 @@ plt.savefig(path+var+'DMDFreqSpectrum.svg', bbox_inches='tight')
 plt.show()
 
 # %% save dataframe of reconstructing flow
-path5 = "/media/weibo/Data3/BFS_M1.7L_0505/video/"
+path5 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
 base = meanflow[col].values
-base[:, 2] = meanflow['p'].values*1.7*1.7*1.4
+base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
 ind = 0
-num = sp_ind[ind] # ind from small to large->freq from low to high
+# num = sp_ind[ind] # ind from small to large->freq from low to high
+num = np.where(np.round(bfs.omega/2/np.pi, 5) == 0.21192)
 print('The frequency is', bfs.omega[num]/2/np.pi)
 phase = np.linspace(0, 2*np.pi, 32, endpoint=False)
 # modeflow1 = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
@@ -183,24 +193,20 @@ modeflow = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
 xarr = xval.values.reshape(-1, 1) # row to column
 yarr = yval.values.reshape(-1, 1)
 zarr = zval.values.reshape(-1, 1)
-names = ['x', 'y', 'z', var0, var1, var2, 'u`', 'v`', 'p`']
-path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
-FileID = pd.read_csv(path2 + "ReadList.dat", sep='\t')
+names = ['x', 'y', 'z', var0, var1, var2, var3, 'u`', 'v`', 'w`', 'p`']
+path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/video/"
+FileID = pd.read_csv(path5 + "1ReadList.dat", sep='\t')
 for ii in range(np.size(phase)):
-    fluc = modeflow[:, 0].reshape((m, o), order='F')
+    fluc = modeflow[:, ii].reshape((m, o), order='F')
     newflow = fluc.real
     data = np.hstack((xarr, yarr, zarr, base, newflow))
     df = pd.DataFrame(data, columns=names)
     filename = "DMD" + '{:03}'.format(ii)
     with timer('save plt of t=' + str(phase[ii])):
         p2p.mul_zone2tec(path2, filename, FileID, df, time=ii)
-        p2p.mul_zone2tec_plt(path2, filename, FileID, df, time=ii)
+        p2p.mul_zone2tec_plt(path2, filename, FileID, df, time=ii, option=2)
         
-#%% convert data to tecplot
-
-
-
-
+# %% convert data to tecplot
 #for i in range(np.shape(FileID)[0]):
 #    filename = "test" + '{:04}'.format(i)
 #    file = FileID.iloc[i]
@@ -210,8 +216,13 @@ for ii in range(np.size(phase)):
 #    zonename = 'B' + '{:010}'.format(i)
 #    num=[int(file['nx']), int(file['ny']), int(file['nz'])]
 #    p2p.zone2tec(path2+"test/", filename, df, zonename, num, time=200.0)
-
-    
+# %%
+for ii in range(np.size(phase)):
+    filename = "DMD" + '{:03}'.format(ii)
+    with timer('save plt of t=' + str(phase[ii])):
+        p2p.mul_zone2tec(path2, filename, FileID, df, time=ii)
+        p2p.tec2plt(path2, filename, filename)
+        # p2p.mul_zone2tec_plt(path2, filename, FileID, df, time=ii)
 #%%
 """
 for ii in range(np.size(phase)):
