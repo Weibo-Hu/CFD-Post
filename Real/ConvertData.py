@@ -39,8 +39,8 @@ VarList = [
 #]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/10_3/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/"
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/10/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
 OutFolder2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5B/"
 OutFolder3 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5C/"
@@ -79,13 +79,13 @@ VarList = [
 ]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/11/"
+FoldPath = "/media/weibo/Data2/BFS_M1.7C_L1/DataPost/"
 path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/11/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 
-NoBlock = 240
+NoBlock = 422
 skip = 1
-cube = [(-10.0, 30.0), (-3.0, 30.0), (-2.5, 2.5)]
+cube = [(-10.0, 30.0), (-3.0, 30.0), (-8, 8)]
 dirs = os.listdir(FoldPath)
 # FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock, skip=skip)
 # FileId.to_csv(path2+str(skip)+'ReadList.dat', index=False, sep='\t')
@@ -99,8 +99,8 @@ for folder in dirs:
         DataFrame, time = \
         p2p.NewReadINCAResults(NoBlock, path, VarList, 
                                FileName=FileId['name'].tolist(),
-                               SavePath=OutFolder, Equ=equ, skip=skip)
-        
+                               SavePath=OutFolder, Equ=equ,
+                               skip=skip)
 
 
 # %% Save time-averaged flow field

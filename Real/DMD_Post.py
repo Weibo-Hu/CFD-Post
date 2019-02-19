@@ -34,11 +34,11 @@ textsize = 18
 numsize = 15
 
 # %% load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
-SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
-path = "/media/weibo/Data1/BFS_M1.7L_0505/temp/"
+InFolder = "/media/weibo/Data3/BFS_M1.7L_0505/Snapshots/"
+SaveFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/Test"
+path = "/media/weibo/Data3/BFS_M1.7L_0505/2D_DMD/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
-timepoints = np.arange(650.0, 949.50 + 0.5, 0.5)
+timepoints = np.arange(800, 1099.50 + 0.5, 0.5)
 dirs = sorted(os.listdir(InFolder))
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
@@ -99,13 +99,13 @@ eigval = bfs.eigval
 
 # %% SPDMD
 bfs1 = sparse.SparseDMD(Snapshots, bfs, dt=dt)
-gamma = [700, 800, 850, 900]
+gamma = [650, 700, 735, 750]
 with timer("SPDMD computing"):
     bfs1.compute_sparse(gamma)
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
 
 # %% 
-sp = 0
+sp = 3
 bfs1.sparse.Nz[sp]
 bfs1.sparse.gamma[sp] 
 r = np.size(eigval)
@@ -138,7 +138,7 @@ plt.show()
 
 # %% discard the bad DMD modes
 # bfs2 = bfs
-bfs2 = bfs.reduce(0.999)
+bfs2 = bfs.reduce(0.998)
 phi = bfs2.modes
 freq = bfs2.omega/2/np.pi
 beta = bfs2.beta
@@ -169,9 +169,9 @@ plt.show()
 # %% specific mode in real space
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-var = var0
-fa = 1.0 #1.7*1.7*1.4
-ind = 13
+var = var2
+fa = 1.7*1.7*1.4
+ind = 11
 num = sp_ind[ind] # ind from small to large->freq from low to high
 freq1 = bfs.omega/2/np.pi
 name = str(round(freq1[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
@@ -184,8 +184,8 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(8, 3))
-c1 = -0.013 #-0.024
-c2 = 0.013 #0.018
+c1 = -0.016 #-0.024
+c2 = 0.016 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
@@ -221,7 +221,7 @@ ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
 dividing = np.loadtxt(path1+'DividingLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
 # ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
-plt.savefig(path+var+'DMDMode'+name+'Real.pdf', bbox_inches='tight')
+plt.savefig(path+var+'DMDMode'+name+'Real.svg', bbox_inches='tight')
 plt.show()
 
 # % specific mode in imaginary space
@@ -233,8 +233,8 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=18)
 fig, ax = plt.subplots(figsize=(8, 3))
-c1 = -0.010 #-0.024
-c2 = 0.010 #0.018
+c1 = -0.015 #-0.024
+c2 = 0.015 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
@@ -270,7 +270,7 @@ ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
 dividing = np.loadtxt(path1+'DividingLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
 # ax.annotate("(b)", xy=(-0.10, 1.0), xycoords='axes fraction', fontsize=numsize)
-plt.savefig(path+var+'DMDMode'+name+'Imag.pdf', bbox_inches='tight')
+plt.savefig(path+var+'DMDMode'+name+'Imag.svg', bbox_inches='tight')
 plt.show()
 
 # %% growth rate of a specific mode
@@ -291,11 +291,11 @@ ax1.grid(b=True, which='both', linestyle=':')
 plt.savefig(path+var+'DMDGrowthRate.svg', bbox_inches='tight')
 plt.show()
 
-# %% create animation of reconstructing flow
-path5 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/mode3/"
+# %% create animation figure of reconstructing flow
+path5 = "/media/weibo/Data3/BFS_M1.7L_0505/2D_DMD/mode1/"
 base = meanflow[col].values
 base[:, 2] = meanflow['p'].values * 1.7 * 1.7 * 1.4
-ind = 2
+ind = 7
 num = sp_ind[ind] # ind from small to large->freq from low to high
 print('The frequency is', bfs.omega[num]/2/np.pi)
 phase = np.linspace(0, 4 * np.pi, 32, endpoint=False)
@@ -306,7 +306,7 @@ x_coord = x[0, :]
 y_coord = y[:, 0]
 im = []
 matplotlib.rc('font', size=textsize)
-lev = np.linspace(0.0, 1.2, 25)
+lev = np.linspace(0.0, 1.6, 33)
 
 for i in range(np.size(phase)):
     fig = plt.figure(figsize=(12, 3.5))
@@ -342,20 +342,21 @@ for i in range(np.size(phase)):
     cbar1 = plt.colorbar(cbar)
     cbar1.set_label(r'$|\Delta p|\delta_0/p_\infty$', rotation=90, 
                     x=0.0, labelpad=10, fontsize=textsize)
-    plt.savefig(path5+'DMDAnimat'+str(i)+'.jpg', dpi=300, bbox_inches='tight')
+    plt.savefig(path5+'DMDAnimat'+str(i)+'.svg', dpi=300, bbox_inches='tight')
     plt.close()
 # %% Convert plots to animation
 import imageio
 from natsort import natsorted, ns
-path5 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/mode3/"
-path6 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/"
+path5 = "/media/weibo/Data3/BFS_M1.7L_0505/2D_DMD/mode1/"
+path6 = "/media/weibo/Data3/BFS_M1.7L_0505/2D_DMD/video/"
 dirs = os.listdir(path5)
 dirs = natsorted(dirs, key=lambda y: y.lower())
-with imageio.get_writer(path6+'DMDAnima3.mkv', mode='I', fps=2) as writer:
+with imageio.get_writer(path6+'DMDAnima1.mkv', mode='I', fps=2) as writer:
     for filename in dirs:
         image = imageio.imread(path5+filename)
         writer.append_data(image)
-# %% save dataframe of reconstructing flow
+
+# %% save dataframe  to plt of reconstructing flow
 path5 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/video/0_059/"
 base = meanflow[col].values
 base[:, 2] = meanflow['p'].values*1.7*1.7*1.4

@@ -117,10 +117,10 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
         for i in range(np.size(VarList)):
             var = dataset.variable(VarList[i])
             varval = var.values(zonename).as_numpy_array()
-            NewCol = varval.reshape((nx, ny, nz), order='F')
             # this method does much repeated work,
             # try to find index to filter variables
             if skip != 1:
+                NewCol = varval.reshape((nx, ny, nz), order='F')
                 if nx % skip == 1:
                     NewCol = NewCol[0::skip, :, :]
                 else:
@@ -133,7 +133,8 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
                     NewCol = NewCol[:, :, 0::skip]
                 else:
                     print("No skip in z direction")
-            varval = NewCol.ravel(order='F')
+                varval = NewCol.ravel(order='F')
+
             if i == 0:  # first column
                 VarCol = varval
             else:  # other columns
@@ -150,7 +151,6 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
         df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if SubZone is not None:
-        df = df.iloc[0::2]
         df['x'] = df['x'].astype(float)
         df['y'] = df['y'].astype(float)
         df['z'] = df['z'].astype(float)
@@ -457,6 +457,18 @@ def mul_zone2tec_plt(path, filename, FileId, df, time=None, option=1):
             path + filename + '.dat', read_data_option=2)
         tp.data.save_tecplot_plt(path + filename + '.plt', dataset=dataset)
     # tp.constant.FrameAction(3)
+
+
+# read INCA output directly without tecIO
+def tec2npy(Folder, InFile, OutFile):
+    with open(Folder + InFile, "rb") as infile:
+        title_line = infile.readline()
+        variables = infile.readline()
+        zone_name = infile.readline()
+        time = infile.readline()
+        i, j, k = infile.readline()
+       
+
 
 def tec2plt(Folder, InFile, OutFile):
     dataset = tp.data.load_tecplot(
