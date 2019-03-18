@@ -20,6 +20,7 @@ from DataPost import DataPost
 from scipy.interpolate import interp1d, griddata
 from scipy.integrate import trapz, simps
 import scipy.optimize
+from scipy.interpolate import splprep, splev
 from numpy import NaN, Inf, arange, isscalar, asarray, array
 import sys
 from timer import timer
@@ -121,7 +122,7 @@ def SkinFriction(mu, du, dy):
 
 
 # obtain Power Spectral Density
-def PSD(VarZone, dt, Freq_samp, opt=2):
+def PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
     TotalNo = np.size(VarZone)
     if np.size(dt) > 1:
         TotalNo = Freq_samp * (dt[-1] - dt[0])
@@ -158,9 +159,9 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
         num = np.size(Var_fft)
         Freq = np.linspace(Freq_samp / TotalNo, Freq_samp / 2, num)
     if opt == 1:
-        ns = TotalNo // 4
+        ns = TotalNo // seg
         Freq, Var_psd = signal.welch(
-            Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // 2
+            Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // overlap
         )
         Freq = Freq[1:]
         Var_psd = Var_psd[1:]
@@ -168,19 +169,21 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
 
 
 # Obtain Frequency-Weighted Power Spectral Density
-def FW_PSD(VarZone, dt, Freq_samp, opt=2):
-    Freq, Var_PSD = PSD(VarZone, dt, Freq_samp, opt=opt)
+def FW_PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
+    Freq, Var_PSD = PSD(VarZone, dt, Freq_samp,
+                        opt=opt, seg=seg, overlap=overlap)
     FPSD = Var_PSD * Freq
     return (Freq, FPSD)
 
 
-def FW_PSD_Map(orig, xyz, var, dt, Freq_samp, opt=2):
+def FW_PSD_Map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
     frame1 = orig.loc[orig['x'] == xyz[0]]
     # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
     frame2 = frame1.loc[frame1['y'] == xyz[1]]
     orig = frame2.loc[frame2['z'] == xyz[2]]
     varzone = orig[var]
-    Freq, FPSD = FW_PSD(varzone, dt, Freq_samp, opt=2)
+    Freq, FPSD = FW_PSD(varzone, dt, Freq_samp,
+                        opt=opt, seg=seg, overlap=overlap)
     return (Freq, FPSD)
 
 # Compute the RMS
@@ -350,19 +353,26 @@ def DirestWallLaw(walldist, u, rho, mu):
 
 
 # Obtain reattachment location with time
-def ReattachLoc(InFolder, OutFolder, timezone):
+def ReattachLoc(InFolder, OutFolder, timezone, opt=2):
     dirs = sorted(os.listdir(InFolder))
-    data = pd.read_hdf(InFolder + dirs[0])
-    # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
-    NewFrame = data.query("x>=8.0 & x<=13.0")
-    TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
-    ind = TemFrame.index.values
     xarr = np.zeros(np.size(timezone))
-    with timer("Computing reattaching point"):
-        for i in range(np.size(dirs)):
-            frame = pd.read_hdf(InFolder + dirs[i])
-            frame = frame.iloc[ind]
-            xarr[i] = frame.loc[frame["u"] >= 0.0, "x"].head(1)
+    if opt == 1:
+        data = pd.read_hdf(InFolder + dirs[0])
+        # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
+        NewFrame = data.query("x>=8.0 & x<=13.0")
+        TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
+        ind = TemFrame.index.values
+        with timer("Computing reattaching point"):
+            for i in range(np.size(dirs)):
+                frame = pd.read_hdf(InFolder + dirs[i])
+                frame = frame.iloc[ind]
+                xarr[i] = frame.loc[frame["u"] >= 0.0, "x"].head(1)
+    else:
+            for i in range(np.size(dirs)):
+                with timer("Computing reattaching point " + str(i)):
+                    frame = pd.read_hdf(InFolder + dirs[i])
+                    xy = DividingLine(frame)
+                    xarr[i] = np.max(xy[:, 0])
     reatt = np.vstack((timezone, xarr)).T
     np.savetxt(
         OutFolder + "Reattach.dat",
@@ -449,7 +459,7 @@ def ShockLoc(InFolder, OutFolder, timepoints):
             )
             gradp[corner] = np.nan
             cs = ax1.contour(
-                xini, yini, gradp, levels=0.06, linewidths=1.2, colors="gray"
+                xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
             )
             xycor = np.empty(shape=[0, 2])
             for isoline in cs.collections[0].get_paths():
@@ -482,7 +492,76 @@ def ShockLoc(InFolder, OutFolder, timepoints):
     )
 
 
-def DividingLine(dataframe):
+# Save shock isoline
+def ShockLine(dataframe, path):
+    x0 = np.unique(dataframe["x"])
+    x1 = x0[x0 > 10.0]
+    x1 = x1[x1 <= 30.0]
+    y0 = np.unique(dataframe["y"])
+    y1 = y0[y0 > -2.5]
+    xini, yini = np.meshgrid(x1, y1)
+    corner = (xini < 0.0) & (yini < 0.0)
+    gradp = griddata((dataframe["x"], dataframe["y"]), dataframe["|gradp|"],
+                     (xini, yini))
+    gradp[corner] = np.nan
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(
+         xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
+    )
+    plt.close(fig=fig)
+    header = "x, y"
+    xycor = np.empty(shape=[0, 2])
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+        # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
+    tck, yval = splprep(xycor.T, s=1.0, per=1)
+    x_new, y_new = splev(yval, tck, der=0)
+    xy_fit = np.vstack((x_new, y_new))
+    np.savetxt(
+        path + "ShockLine.dat",
+        xycor,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header
+    )
+    np.savetxt(
+        path + "ShockLineFit.dat",
+        xy_fit.T,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header
+    )
+
+
+def SonicLine(dataframe, path, option='Mach', Ma_inf=1.7):
+    # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
+    x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    if option == 'velocity':
+        if 'w' in dataframe.columns:
+            c = np.sqrt(dataframe['u'] ** 2 + dataframe['v'] ** 2
+                        + dataframe['w'] ** 2)
+        else:
+            c = np.sqrt(dataframe['u'] ** 2 + dataframe['v'] ** 2)
+        dataframe['Mach'] = c / np.sqrt(dataframe['T']) * Ma_inf
+        Ma = griddata((dataframe.x, dataframe.y), dataframe.Mach, (x, y))
+    else:
+        Ma = griddata((dataframe.x, dataframe.y), dataframe.Mach, (x, y))
+        # sys.exit("Mach number is not in the dataframe")
+    corner = (x < 0.0) & (y < 0.0)
+    Ma[corner] = np.nan
+    header = "x, y"
+    xycor = np.empty(shape=[0, 2])
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(x, y, Ma, levels=[1.0], linewidths=1.5, colors='k')
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+    np.savetxt(path + "SonicLine.dat", xycor, fmt='%.8e',
+               delimiter='  ', header=header)
+
+
+def DividingLine(dataframe, path=None):
     NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
     u = griddata((NewFrame.x, NewFrame.y), NewFrame.u, (x, y))
@@ -490,29 +569,60 @@ def DividingLine(dataframe):
     cs1 = ax.contour(
         x, y, u, levels=[0.0], linewidths=1.5, linestyles="--", colors="k"
     )
-    plt.close(fig)
+    plt.close(fig=fig)
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     xylist = []
-    fig1, ax1 = plt.subplots(figsize=(10, 4))
     for i, isoline in enumerate(cs1.collections[0].get_paths()):
         xy = isoline.vertices
-        if np.any(xy[:, 1] == -0.015625):
+        if np.any(xy[:, 1] == -0.015625):  # pick the bubble line
             ind = i
         xylist.append(xy)
         xycor = np.vstack((xycor, xy))
     xy = xylist[ind]
+    fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     ax1.scatter(xy[:, 0], xy[:, 1])
-    # plt.show()
-    plt.close(fig1)
-    np.savetxt(
-        "DividingLine.dat", xycor, fmt="%.8e", delimiter="  ", header=header
-    )
-
+    plt.close(fig=fig1)
+    if path is not None:
+        np.savetxt(
+            path + "DividingLine.dat", xycor, fmt="%.8e", delimiter="  ",
+            header=header
+        )
+        np.savetxt(
+            path + "BubbleLine.dat", xy, fmt="%.8e", delimiter="  ",
+            header=header
+        )
     return xy
 
 
-def BubbleArea(InFolder, OutFolder):
+def BoundaryEdge(dataframe, path):
+    # dataframe = dataframe.query("x<=30.0 & y<=3.0")
+    x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
+    umax = u[-1, :]
+    rg1 = (x[1, :] < 10.375)  # in front of the shock
+    umax[rg1] = 1.0
+    rg2 = (x[1, :] <= 10.375)  # behind the shock
+    umax[rg2] = 0.95
+    u = u / (np.transpose(umax))
+    corner = (x < 0.0) & (y < 0.0)
+    u[corner] = np.nan
+    header = 'x, y'
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(
+        x, y, u, levels=[0.99], linewidths=1.5, linestyles="--", colors="k"
+    )
+    xycor = np.empty(shape=[0, 2])
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+    np.savetxt(
+        path + "BoundaryEdge.dat", xycor, fmt="%.8e", delimiter="  ",
+        header=header
+    )
+
+
+def BubbleArea(InFolder, OutFolder, timezone):
     dirs = sorted(os.listdir(InFolder))
     area = np.zeros(np.size(dirs))
     for i in range(np.size(dirs)):
@@ -520,9 +630,10 @@ def BubbleArea(InFolder, OutFolder):
             dataframe = pd.read_hdf(InFolder + dirs[i])
             xy = DividingLine(dataframe)
             area[i] = trapz(xy[:, 1] + 3.0, xy[:, 0])
+    area_arr = np.vstack((timezone, area)).T
     np.savetxt(
         OutFolder + "BubbleArea.dat",
-        area,
+        area_arr,
         fmt="%.8e",
         delimiter="  ",
         header="area",

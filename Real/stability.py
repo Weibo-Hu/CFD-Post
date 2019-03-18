@@ -28,16 +28,14 @@ font = {
     "weight": "normal",
     "size": "large",
 }
-font1 = {
-    "family": "Times New Roman",  # 'color' : 'k',
-    "weight": "normal",
-    "size": "medium",
-}
-path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
-path4 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
+
+path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+pathP = path + "probes/"
+pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
 
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
@@ -58,10 +56,10 @@ VarName = [
     "Q-criterion",
     "L2-criterion",
 ]
-#orig, sol = p2p.NewReadINCAResults(240, path, VarName)
-#mean = pd.read_hdf(path3 + 'TimeAve.h5')
-fluc = pd.read_hdf(path+'TP_stat.h5')
 
+# fluc = p2p.ReadAllINCAResults(240, path+'TP_stat', 
+#                               FoldPath2=pathM, OutFile='TP_stat')
+fluc = pd.read_hdf(pathM+'TP_stat.h5')
 # %% Plot BL profile along streamwise direction
 # load data
 loc = ['z', 'y']
@@ -77,25 +75,24 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    path2 + "PerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "PerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
 )
-
 
 # %% Plot BL profile along wall-normal direction
 # load data
 loc = ['x', 'z']
 val = [10.0, 0.0]
-pert = fv.PertAtLoc(fluc, 'u', loc, val)
+pert = fv.PertAtLoc(fluc, '<u`u`>', loc, val)
 fig, ax = plt.subplots(figsize=(10, 3.5))
 matplotlib.rc('font', size=14)
 ax.set_xlabel(r"$u^{\prime}/u_{\infty}$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
-ax.plot(pert.u, pert.y)
+ax.plot(pert['<u`u`>'], pert['y'])
 ax.ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    path2 + "PerturProfileY.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "PerturProfileY.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 
@@ -169,27 +166,26 @@ ax[4].set_title(title[4], fontsize=numsize)
 ax[4].grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    path2 + "PerturProfileZ1.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "PerturProfileZ.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 
 # %% RMS along dividing line
 # extract data
 # pert1 = fluc.loc[fluc['z']==0.0]
-x0 = np.arange(0.0, 5.0, 4*0.03125)
-y0 = np.arange(0.0625, 1.3125, 0.03125)*(-1)
-x1 = np.arange(5.0, 11.25, 4*0.0625)
-y1 = np.arange(1.3125, 2.875, 0.0625)*(-1)
-x2 = np.arange(11.25, 50.0+0.0625, 0.0625)
-y2 = np.ones(np.size(x2))*(-2.875)
-xx = np.concatenate((x0, x1, x2), axis=0)
-yy = np.concatenate((y0, y1, y2), axis=0)
+dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)[:-2, :]
+#x0 = np.arange(0.0, 5.0, 4*0.03125)
+#y0 = np.arange(0.0625, 1.3125, 0.03125)*(-1)
+#x1 = np.arange(5.0, 11.25, 4*0.0625)
+#y1 = np.arange(1.3125, 2.875, 0.0625)*(-1)
+#x2 = np.arange(11.1875, 50.0+0.0625, 0.0625)
+#y2 = np.ones(np.size(x2))*(-2.875)
+#xx = np.concatenate((x0, x1, x2), axis=0)
+#yy = np.concatenate((y0, y1, y2), axis=0)
 grouped = fluc.groupby(['x', 'y'])
 pert1 = grouped.mean().reset_index()
-loc = ['x', 'y']
-var1 = np.zeros(np.size(xx))
-for i in range(np.size(xx)):
-    var0[i] = fv.PertAtLoc(pert1, '<u`u`>', loc, [xx[i], yy[i]])['<u`u`>']
+xmesh, ymesh = np.meshgrid(dividing[:, 0], dividing[:, 1])
+var0 = griddata((pert1.x, pert1.y), pert1['<u`u`>'], (xmesh, ymesh))
     
 # %% Plot Max RMS from BL profile 
 # compute
@@ -217,17 +213,17 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    path2 + "MaxPertLoc.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "MaxPertLoc.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% Plot amplitude of fluctuations from temporal data 
 # load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots/"
+InFolder = path + "Snapshots/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
 var = 'u'    
 fa = 1.0 #1.7*1.7*1.4
-timepoints = np.arange(650.0, 899.5 + 0.5, 0.5)
+timepoints = np.arange(800, 1149.5 + 0.5, 0.5)
 Snapshots = DataFrame[['x', 'y', 'z', var]]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
@@ -260,7 +256,7 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    path2 + "AmplitX.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "AmplitX.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 
@@ -303,20 +299,20 @@ ax2.axvline(x=12., linewidth=1.0, linestyle='--', color='gray')
 # ax2.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    path2 + "GrowRateX.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "GrowRateX.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 
 # %% Plot WSPD map along the streamwise
 # load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/A/"
+InFolder = path + 'Snapshots/'
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
 grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
 var = 'p'    
 fa = 1.7*1.7*1.4
-timepoints = np.arange(600.0, 1000.0 + 0.5, 0.5)
+timepoints = np.arange(800.0, 1149.5 + 0.5, 0.5)
 Snapshots = DataFrame[['x', 'y', 'z', var]]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
@@ -334,8 +330,8 @@ dt = 0.5
 freq_samp = 2.0
 
 # %% compute RMS
-x1 = xx
-y1 = yy
+x1 = xnew
+y1 = ynew
 rms = np.zeros(np.size(x1))
 for i in range(np.size(x1)):
     xyz = [x1[i], y1[i], 0.0]
@@ -352,7 +348,7 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$\mathrm{RMS}(p^{\prime}/p_{\infty})$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.axvline(x=10.9, linewidth=1.0, linestyle='--', color='k')
-plt.savefig(path2 + "RMSMap.pdf", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "RMSMap.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
     
 # %% compute
@@ -395,13 +391,12 @@ barlabel = r'$f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d} f$'
 cbar.set_label(barlabel, rotation=90, fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "FWPSDMap00.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "FWPSDMap00.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 
 # %% Plot BL profile along streamwise
 # load data
-path4 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
 VarName = [
     "x",
     "y",
@@ -423,7 +418,8 @@ VarName = [
     "gradp",
 ]
 MeanFlow = DataPost()
-MeanFlow.UserData(VarName, path4 + "MeanFlow.dat", 1, Sep="\t")
+# MeanFlow.UserData(VarName, pathM + "MeanFlow.dat", 1, Sep="\t")
+MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
 MeanFlow.AddWallDist(3.0)
 # %% plot BL profile
 fig, ax = plt.subplots(1, 7, figsize=(10, 3.5))
@@ -447,7 +443,7 @@ ax[3].set_xlabel(r'$u/u_\infty$', fontsize=textsize)
 plt.tick_params(labelsize=numsize)
 plt.show()
 plt.savefig(
-    path2 + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% plot BL fluctuations profile

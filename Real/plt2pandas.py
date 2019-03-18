@@ -9,6 +9,7 @@ import tecplot as tp
 import pandas as pd
 import os
 import sys
+import warnings
 import numpy as np
 from scipy.interpolate import griddata
 from DataPost import DataPost
@@ -56,67 +57,32 @@ def ReadPlt(FoldPath, VarList):
     return(df)
 
 
-def ReadINCAResults(BlockNO, FoldPath, VarList, FoldPath2, \
-                    SpanAve=None, OutFile=None):
-    for j in range(BlockNO):
-        #progress(j, BlockNO, 'Read *.plt:')
-        FileName = FoldPath + "TP_dat_"+str(j+1).zfill(6)+".plt"
-        dataset = tp.data.load_tecplot(FileName)
-        zone = dataset.zone
-        zonename = zone(j).name
-        for i in range(np.size(VarList)):
-            var  = dataset.variable(VarList[i])
-            if i == 0:
-                VarCol = var.values(zonename).as_numpy_array()
-            else:
-                Var_index = var.values(zonename).as_numpy_array()
-                VarCol = np.column_stack((VarCol, Var_index))
-        if j == 0:
-            ZoneRow = VarCol
-        else:
-            ZoneRow = np.row_stack((ZoneRow, VarCol))
-        SolTime = dataset.solution_times[-1]
-        del FileName, dataset, zone, zonename, var
-    df = pd.DataFrame(data=ZoneRow, columns=VarList)
-    #print(SolTime)
-    #df.to_csv(OutFile+".dat", index=False, sep = '\t')
-    if SpanAve is not None:
-        grouped = df.groupby(['x', 'y'])
-        df = grouped.mean().reset_index()
-#        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
-    if OutFile is None:
-        df.to_hdf(FoldPath2+"SolTime"+str(round(SolTime,2))+".h5", \
-                  'w', format= 'fixed')
-    #else:
-    #    df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
-    return(df)
-
-
-def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
-                       SpanAve=None, SavePath=None, Equ=None, skip=0):
+def ReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
+                    SpanAve=None, SavePath=None, Equ=None, skip=0):
     os.chdir(FoldPath)
     if FileName is None:
         FileName = sorted(os.listdir(FoldPath))
         if (np.size(FileName) != BlockNO):
-            sys.exit("You're missing some blocks!!!")
+            warnings.warn("You may be missing some blocks!!!")
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)
     # dataset = tp.data.load_tecplot(FoldPath, read_data_option=2)
     if Equ is not None:
         tp.data.operate.execute_equation(Equ)
     SolTime = dataset.solution_times[0]
     skip = skip + 1
-    for j in range(np.size(FileName)):
-        zone = dataset.zone
-        zonename = zone(j).name
-        xvar = dataset.variable('x').values(zonename).as_numpy_array()
-        yvar = dataset.variable('y').values(zonename).as_numpy_array()
-        zvar = dataset.variable('z').values(zonename).as_numpy_array()
+    num_zones = dataset.num_zones
+    for j in range(num_zones):
+        # zone = dataset.zone
+        # zonename = zone(j).name
+        xvar = dataset.variable('x').values(j).as_numpy_array()
+        yvar = dataset.variable('y').values(j).as_numpy_array()
+        zvar = dataset.variable('z').values(j).as_numpy_array()
         nx = int(np.size(np.unique(xvar)))
         ny = int(np.size(np.unique(yvar)))
         nz = int(np.size(np.unique(zvar)))
         for i in range(np.size(VarList)):
             var = dataset.variable(VarList[i])
-            varval = var.values(zonename).as_numpy_array()
+            varval = var.values(j).as_numpy_array()
             # this method does much repeated work,
             # try to find index to filter variables
             if skip != 1:
@@ -144,10 +110,14 @@ def NewReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
             ZoneRow = VarCol
         else:  # other row
             ZoneRow = np.row_stack((ZoneRow, VarCol))
-    del dataset, zone, zonename, var
+    del dataset, var
     df = pd.DataFrame(data=ZoneRow, columns=VarList)
+    # df = df.drop_duplicates(keep='last')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
+        df = grouped.mean().reset_index()
+    else:
+        grouped = df.groupby(['x', 'y', 'z'])
         df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if SubZone is not None:
@@ -274,15 +244,19 @@ def SaveSlice(df, SolTime, SpanAve, SavePath):
     return df
 
 
-def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2,
-                       SpanAve=None, OutFile=None):
+def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2=None,
+                       FileName=None, SpanAve=None, OutFile=None):
     os.chdir(FoldPath)
-    FileName = os.listdir(FoldPath)
-    dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+    if FileName is None:
+        FileName = os.listdir(FoldPath)
+        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+        if (np.size(FileName) != BlockNO):
+            sys.exit("You're missing some blocks!!!")
+    else:
+        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+        BlockNO = dataset.num_zones
     VarList = [v.name for v in dataset.variables()]
     zone = dataset.zone
-    if (np.size(FileName) != BlockNO):
-        sys.exit("You're missing some blocks!!!")
     for j in range(BlockNO):
         zonename = zone(j).name
         for i in range(np.size(VarList)):
@@ -302,7 +276,7 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2,
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
-    if OutFile is not None:
+    if FoldPath2 is not None and OutFile is not None:
         df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
     return(df)
 
@@ -340,10 +314,6 @@ def frame2tec(dataframe,
             var = griddata((dataframe.x, dataframe.y),
                            dataframe.values[:, i], (xx, yy), fill_value=0.0)
             new[:, i] = var.flatten('F')
-        if np.isnan(var).any() == True:
-            raise ValueError(
-                'ERROR: dataframe contains NON value due to geometry',
-                'discontinuity, like a step exist in the domain!!!')
     else:
         temp = np.zeros((I*J, K))
         for i in range(len(dataframe.columns)):
@@ -354,6 +324,12 @@ def frame2tec(dataframe,
                                newframe.values[:, i], (xx, yy))
                 temp[:, j] = var.flatten('F')
             new[:, i] = temp.flatten('F')
+    new[np.isinf(new)] = 0.0
+    new[np.isnan(new)] = 0.0
+    if np.isnan(new).any() == True:
+        raise ValueError(
+                'ERROR: dataframe contains NON value due to geometry',
+                'discontinuity, like a step exist in the domain!!!')
     with open(SavePath + '.dat', 'w') as f:
         f.write(header+'\n')
         f.write(zone)

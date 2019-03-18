@@ -38,7 +38,7 @@ col = [var0, var1, var2, var3]
 # %% load first snapshot data and obtain basic information
 InFolder = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/snapshots1/"
 path = "/media/weibo/Data3/BFS_M1.7L_0505/3D_DMD/Post/"
-path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3D_DMD/7000-8000/"
+path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3D_DMD/6200-6800/"
 timepoints = np.arange(900.0, 1149.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(InFolder))
 # if np.size(dirs) != np.size(timepoints):
@@ -63,7 +63,7 @@ varset = {var0: [0, m],
 # %% Load & rename data 
 eigval = np.load(path2 + 'eigval.npy')  # bfs.eigval
 omega = np.load(path2 + 'omega.npy')  # bfs.omega
-modes = np.load(path2 + 'modes.npy')  # bfs.omega
+#modes = np.load(path2 + 'modes.npy')  # bfs.omega
 amplitudes = np.load(path2 + 'amplitudes.npy')  # bfs.omega
 sparse = np.load(path2 + 'sparse.npz')
 nonzero = sparse['nonzero']
@@ -77,7 +77,7 @@ meanflow = pd.read_hdf(path2 + 'Meanflow.h5')
 
 # %% Eigvalue Spectrum
 var = var0
-sp = 0
+sp = 3
 r = np.size(eigval)
 sp_ind = np.arange(r)[nonzero[:, sp]]
 matplotlib.rcParams['xtick.direction'] = 'in'
@@ -136,7 +136,7 @@ print("the selected frequency:", freq[sparse['nonzero'][:, sp]])
 # %% save dataframe of reconstructing flow
 base = meanflow[col].values
 base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
-# ind = 0
+# ind = 0 
 num = np.where(np.round(freq, 4) == 0.0881)
 print('The frequency is', freq[num])
 phase = np.linspace(0, 2*np.pi, 32, endpoint=False)

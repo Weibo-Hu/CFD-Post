@@ -1,6 +1,6 @@
 """
 Created on Fri Aug 17 13:30:50 2018
-    This code for converting dataframe data to tecplot format.
+    This code for converting 3D dataframe data to tecplot format.
     This code is only valid for a specific structure grid.
 @author: Weibo Hu
 """

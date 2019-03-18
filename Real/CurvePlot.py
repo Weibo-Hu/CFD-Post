@@ -31,17 +31,20 @@ font1 = {
     "weight": "normal",
     "size": "medium",
 }
-path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/temp/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/"
-path4 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
-
+path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+pathP = path + "probes/"
+pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 18
 numsize = 15
 matplotlib.rc("font", size=textsize)
+timezone = np.arange(800, 1149.50 + 0.5, 0.5)
+x1x2 = [800, 1150]
 # %% Load Data
 VarName = [
     "x",
@@ -63,8 +66,10 @@ VarName = [
     "L2-criterion",
     "gradp",
 ]
+
 MeanFlow = DataPost()
-MeanFlow.UserData(VarName, path4 + "MeanFlow.dat", 1, Sep="\t")
+MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
+# MeanFlow.UserData(VarName, path4 + "MeanFlow2.dat", 1, Sep="\t")
 MeanFlow.AddWallDist(3.0)
 
 # %% Plot BL profile along streamwise
@@ -98,7 +103,7 @@ ax.set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    path2 + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% Compare van Driest transformed mean velocity profile
@@ -154,7 +159,7 @@ plt.tick_params(labelsize="medium")
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 # plt.tick_params(labelsize=numsize)
 plt.savefig(
-    path2 + "WallLaw" + str(x0) + ".svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "WallLaw" + str(x0) + ".svg", bbox_inches="tight", pad_inches=0.1
 )
 plt.show()
 
@@ -218,7 +223,7 @@ ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize="medium")
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 plt.savefig(
-    path2 + "ReynoldStress" + str(x0) + ".svg",
+    pathF + "ReynoldStress" + str(x0) + ".svg",
     bbox_inches="tight",
     pad_inches=0.1,
 )
@@ -278,7 +283,7 @@ ax3.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(path2 + "BLEdge.svg", dpi=300)
+plt.savefig(pathF + "BLEdge.svg", dpi=300)
 plt.show()
 # %% Plot Gortler number
 # plot figure for delta/R
@@ -352,11 +357,12 @@ ax3.set_xlim([-20.0, 40.0])
 ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-# plt.savefig(path2 + "CfCp.svg", dpi=300)
+# plt.savefig(path2 + "Cp.svg", dpi=300)
+plt.savefig(pathF + "CfCp.svg", dpi=300)
 plt.show()
 
 # %% Load data for Computing intermittency factor
@@ -381,7 +387,7 @@ gamma = np.zeros(np.size(xzone))
 alpha = np.zeros(np.size(xzone))
 p0 = Snapshots[0, :]
 sigma = np.std(p0)
-timezone = np.arange(600, 999.5 + 0.5, 0.5)
+timezone = np.arange(800, 1149.50 + 0.5, 0.5)
 dt = 0.5
 for j in range(np.size(Snapshots[:, 0])):
     gamma[j] = fv.Intermittency(sigma, p0, Snapshots[j, :], timezone)
@@ -415,20 +421,12 @@ ax3.grid(b=True, which="both", linestyle=":")
 ax3.axvline(x=0.0, color="k", linestyle="--", linewidth=1.0)
 ax3.axvline(x=10.9, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "Intermittency.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Intermittency.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
-
-
-# %% reattachment location with time
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
-reatt = np.loadtxt(OutFolder + "Reattach.dat", skiprows=1)
-timezone = reatt[:, 0]
-Xr = reatt[:, 1]
 
 # %% Kelvin Helholmz fluctuation
 # B:K-H, C:X_reattach, D:turbulence
-probe = np.loadtxt(OutFolder + "ProbeB.dat", skiprows=1)
+probe = np.loadtxt(pathI + "ProbeB.dat", skiprows=1)
 func = interp1d(probe[:, 1], probe[:, 8])
 # timezone = probe[:, 1]
 Xk = func(timezone)  # probe[:, 8]
@@ -438,7 +436,7 @@ fig, ax = plt.subplots(figsize=(10, 2))
 # xarr1 = splev(timezone[0::5], spl)
 fa = 1.7*1.7*1.4
 ax.plot(timezone, Xk*fa, "k-")
-ax.set_xlim([600, 1000])
+ax.set_xlim([800, 1150])
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$p/p_\infty$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
@@ -446,7 +444,7 @@ xmean = np.mean(Xk*fa)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "Xk.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Xk.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 dt = 0.5
@@ -460,37 +458,27 @@ ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "XkFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "XkFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
-# %% load data of shock location with time
-shock1 = np.loadtxt(OutFolder + "Shock1.dat", skiprows=1)
-shock2 = np.loadtxt(OutFolder + "Shock2.dat", skiprows=1)
-angle = np.arctan(5 / (shock2[:, 1] - shock1[:, 1]))/np.pi*180
-shockloc = shock2[:, 1] - 8.0 / np.tan(angle)
-foot = np.loadtxt(OutFolder + "ShockFoot0.8.dat", skiprows=1)
-Xl = shockloc
-Xf = foot[:, 1]
-
-# %% load data of separation bubble size
-bubble = np.loadtxt(OutFolder + "BubbleArea.dat", skiprows=1)
-Xb = bubble[:, 1]
-
 # %%  Plot Xr with time
+reatt = np.loadtxt(pathI + "Reattach.dat", skiprows=1)
+timezone = reatt[:, 0]
+Xr = reatt[:, 1]
 dt = 0.5
 fig, ax = plt.subplots(figsize=(10, 2))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
 ax.plot(timezone, Xr, "k-")
-ax.set_xlim([600, 1000])
+ax.set_xlim([800, 1150])
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$x_r/\delta_0$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 xmean = np.mean(Xr)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "Xr.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Xr.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # FWPSD
@@ -504,7 +492,7 @@ ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "XrFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "XrFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # spl = splrep(timezone, xarr, s=0.35)
@@ -513,7 +501,7 @@ plt.show()
 fig, ax = plt.subplots(figsize=(10, 2))
 dxr = DataPost.SecOrdFDD(timezone, Xr)
 ax.plot(timezone, dxr, "k-")
-ax.set_xlim([600, 1000])
+ax.set_xlim(x1x2)
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$\mathrm{d} x_r/\mathrm{d} t$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
@@ -524,7 +512,7 @@ mean_neg = np.mean(dx_neg)
 ax.axhline(y=mean_pos, color="k", linestyle="--", linewidth=1.0)
 ax.axhline(y=mean_neg, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "GradientXr.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "GradientXr.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% histogram of probability
@@ -538,22 +526,28 @@ for i in range(num):
     nsize[i] = np.size(ind)
     proba[i] = np.size(ind)/tnum
 
-fig, ax = plt.subplots(figsize=(8, 3))
-#ax.hist(dxr, num, range=(-2.0, 2.0), facecolor='gray', alpha=0.5, density=True)
+fig, ax = plt.subplots(figsize=(10, 3.5))
+#ax.hist(dxr, bins=num, range=(-2.0, 2.0), edgecolor='k', linestyle='-',
+#        facecolor='#D3D3D3', alpha=0.98, density=True)
 hist, edges = np.histogram(dxr, bins=num, range=(-2.0, 2.0), density=True)
 binwid = edges[1] - edges[0]
-plt.bar(edges[:-1], hist*binwid, width=0.2, facecolor='gray', alpha=0.8)
+#plt.bar(edges[:-1], hist*binwid, width=binwid, edgecolor='k', linestyle='-',
+#        facecolor='#D3D3D3', alpha=0.98)
+plt.bar(edges[:-1], hist, width=binwid, edgecolor='k', linestyle='-',
+        facecolor='#D3D3D3', alpha=0.98)
 # ax.set_xlim([-2.0, 2.0])
 ax.set_ylabel(r"$\mathcal{P}$", fontsize=textsize)
 ax.set_xlabel(r"$\mathrm{d} x_r/\mathrm{d} t$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "ProbGradientXr.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "ProbGradientXr.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 # %%  Plot Xb with time
+bubble = np.loadtxt(pathI + "BubbleArea.dat", skiprows=1)
+Xb = bubble[:, 1]
 fig, ax = plt.subplots(figsize=(10, 2))
 ax.plot(timezone, Xb, "k-")
-ax.set_xlim([600, 1000])
+ax.set_xlim([800, 1150])
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$A/\delta_0^2$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
@@ -561,7 +555,7 @@ xmean = np.mean(Xb)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "Xb.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Xb.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 fig, ax = plt.subplots(figsize=(5, 4))
@@ -574,22 +568,31 @@ ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "XbFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "XbFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
+# %% load data of shock location with time
+shock1 = np.loadtxt(pathI + "ShockA.dat", skiprows=1)
+shock2 = np.loadtxt(pathI + "ShockB.dat", skiprows=1)
+angle = np.arctan(5 / (shock2[:, 1] - shock1[:, 1]))/np.pi*180
+shockloc = shock2[:, 1] - 8.0 / np.tan(angle/180*np.pi)
+foot = np.loadtxt(pathI + "ShockFoot.dat", skiprows=1)
+Xl = shockloc
+Xf = foot[:, 1]
+Xs = angle
 # %% plot Xf with time
 fig, ax = plt.subplots(figsize=(10, 2))
-ax.plot(timezone, Xf, "k-")
-ax.set_xlim([600, 1000])
+ax.plot(timezone, Xs, "k-")
+ax.set_xlim(x1x2)
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-#ax.set_ylabel(r"$x/\delta_0$", fontsize=textsize)
+#ax.set_ylabel(r"$x_l/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$\alpha(^{\circ})$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-xmean = np.mean(Xf)
+xmean = np.mean(Xs)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2 + "Shockfoot.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Shockangle.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 print("Corelation: ", fv.Correlate(Xr, Xf))
 
@@ -599,12 +602,12 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = fv.FW_PSD(Xf, dt, 2.0, opt=1)
+Fre, FPSD = fv.FW_PSD(Xs, dt, 2.0, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "ShockfootFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "ShockangleFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% plot coherence and phase for var1 & var2
@@ -617,10 +620,11 @@ probe21 = np.loadtxt(OutFolder + "ShockFootD.dat", skiprows=1)
 probe12 = np.loadtxt(OutFolder + "ShockFootE.dat", skiprows=1)
 probe22 = np.loadtxt(OutFolder + "ShockFootF.dat", skiprows=1)
 timezone = np.arange(600, 1000 + 0.5, 0.5)
+# %%
 dt = 0.5
 fs = 2
 Xs0 = Xr # probe1[:, 1]
-Xr0 = Xk # probe2[:, 1]
+Xr0 = Xb # probe2[:, 1]
 Xs1 = probe11[:, 1]
 Xr1 = probe21[:, 1]
 Xs2 = probe12[:, 1]
@@ -664,14 +668,16 @@ lab = [
 #ax.legend(lab, ncol=1, loc="upper right", fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "Statistic"+"XrXk.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(path2 + "Statistic"+"XrXb.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% plot cross-correlation coeffiency of two variables with time delay
-delay = np.arange(-100.0, 100+0.5, 0.5)
+x1 = Xr
+x2 = Xk
+delay = np.arange(-60.0, 60+0.5, 0.5)
 cor = np.zeros(np.size(delay))
 for i, dt in enumerate(delay):
-    cor[i] = fv.DelayCorrelate(Xr, Xl, 0.5, dt)
+    cor[i] = fv.DelayCorrelate(x1, x2, 0.5, dt)
         
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.plot(delay, cor, "k-")
@@ -681,7 +687,7 @@ ax.set_ylabel(r"$R_{ij}$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(path2 + "Cor_XrXl.pdf", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Cor_XrXk.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
     
 # %% Streamwise evolution of variable
@@ -757,18 +763,18 @@ plt.savefig(
 )
 plt.show()
 
-"""
-# %% Temporal variation of reattachment point
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
-timezone = np.arange(600, 1000 + 0.5, 0.5)
-fv.ReattachLoc(InFolder, OutFolder, timezone)
 
-# %% Temporal shock position
-dt = 0.5
-fs = 2.0
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
-timezone = np.arange(600, 1000 + 0.5, 0.5)
-fv.ShockLoc(InFolder, OutFolder, timezone)
-"""
+# %% Calculate Xr, Xb, Xsf, Xsl, Xk
+# %% Temporal variation of reattachment point
+InFolder = path + 'Snapshots/'
+timezone = np.arange(800, 1149.50 + 0.5, 0.5)
+fv.ReattachLoc(InFolder, pathI, timezone, opt=2)
+# %%
+fv.ShockLoc(InFolder, pathI, timezone)
+# %%
+fv.ShockFoot(InFolder, pathI, timezone, -1.875, 0.82)
+# %% 
+fv.BubbleArea(InFolder, pathI, timezone)
+
+
+
