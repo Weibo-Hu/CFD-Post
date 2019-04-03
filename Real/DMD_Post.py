@@ -30,8 +30,8 @@ font = {
 }
 
 matplotlib.rc('font', **font)
-textsize = 18
-numsize = 15
+textsize = 24
+numsize = 20
 
 # %% load data
 path = "/media/weibo/Data3/BFS_M1.7L_0505/"
@@ -108,7 +108,7 @@ with timer("SPDMD computing"):
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
 
 # %% 
-sp = 1
+sp = 2
 bfs1.sparse.Nz[sp]
 bfs1.sparse.gamma[sp] 
 r = np.size(eigval)
@@ -185,6 +185,7 @@ print("The limit value: ", np.min(modeflow)*fa, np.max(modeflow)*fa)
 u = griddata((xval, yval), modeflow, (x, y))*fa
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
+
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(8, 3))
 c1 = -0.010 #-0.024

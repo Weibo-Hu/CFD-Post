@@ -31,7 +31,7 @@ font1 = {
     "weight": "normal",
     "size": "medium",
 }
-path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+path = "/media/weibo/Data2/DF_example/8/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -113,17 +113,17 @@ plt.savefig(
 # MeanFlow.ExtraSeries('z', z0, z0)
 MeanFlow.AddWallDist(3.0)
 MeanFlow.AddMu(13718)
-x0 = 63.0  # 43.0
+x0 = -20.0 #43.0
 # for x0 in xx:
 BLProf = copy.copy(MeanFlow)
-BLProf.ExtraSeries("x", x0, x0)
-# BLProf.SpanAve()
+BLProf.ExtraSeries('x', x0, x0)
+BLProf.SpanAve()
 u_tau = fv.UTau(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
 Re_tau = BLProf.rho[0] * u_tau / BLProf.mu[0] * 2
 print("Re_tau=", Re_tau)
 Re_theta = "2000"
 StdUPlus1, StdUPlus2 = fv.StdWallLaw()
-ExpUPlus = fv.ExpWallLaw(Re_theta)[0]
+#ExpUPlus = fv.ExpWallLaw(Re_theta)[0]
 CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
 fig, ax = plt.subplots(figsize=(5, 4))
 # matplotlib.rc('font', size=textsize)
@@ -159,15 +159,13 @@ plt.tick_params(labelsize="medium")
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 # plt.tick_params(labelsize=numsize)
 plt.savefig(
-    pathF + "WallLaw" + str(x0) + ".svg", bbox_inches="tight", pad_inches=0.1
-)
+    pathF + 'WallLaw' + str(x0) + '.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # %% Compare Reynolds stresses in Morkovin scaling
 U_inf = 469.852
-ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = fv.ExpWallLaw(
-    Re_theta
-)
+#ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
+#    fv.ExpWallLaw(Re_theta)
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.scatter(
     ExpUrmsPlus[:, 0],
@@ -317,7 +315,7 @@ ax3.axhline(y=0.58, color="gray", linestyle="--", linewidth=1.5)
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(path2 + "Gortler.svg", dpi=300)
+plt.savefig(pathF + "Gortler.svg", dpi=300)
 plt.show()
 
 # %% Plot streamwise skin friction
@@ -343,8 +341,8 @@ ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
-#plt.savefig(path2 + "Cf.svg", bbox_inches="tight", pad_inches=0.1)
-#plt.show()
+plt.savefig(pathF+'Cf.svg',bbox_inches='tight', pad_inches=0.1)
+plt.show()
 
 # % pressure coefficiency
 fa = 1.7 * 1.7 * 1.4
@@ -461,8 +459,12 @@ plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathF + "XkFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
-# %%  Plot Xr with time
-reatt = np.loadtxt(pathI + "Reattach.dat", skiprows=1)
+# %% load data of separation bubble size
+bubble = np.loadtxt(OutFolder + "BubbleArea.dat", skiprows=1)
+Xb = bubble[:, 1]
+
+#%% reattachment location with time 
+reatt = np.loadtxt(OutFolder+"Reattach.dat", skiprows=1)
 timezone = reatt[:, 0]
 Xr = reatt[:, 1]
 dt = 0.5

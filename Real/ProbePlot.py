@@ -53,10 +53,9 @@ font3 = {'family' : 'Times New Roman',
         'size' : 18,
 }
 
-path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/"
-path1 = "/media/weibo/Data2/BFS_M1.7C_TS/probes/"
-path2 = "/media/weibo/Data2/BFS_M1.7C_TS/DataPost/"
-path3 = "/media/weibo/Data2/BFS_M1.7C_TS/DataPost/"
+path = "/media/weibo/Data2/DF_example/8/"
+pathP = path + "probes/"
+pathF = path + "Figures/"
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 
@@ -72,26 +71,26 @@ xloc = [-40.0, -30.0, -20.0, -10.0]
 yloc = [0.0, 0.0, 0.0, 0.0]
 #xloc = [-30.0, -20, -10.0, -5.0]
 #yloc = [0.0, 0.0, 0.0, 0.0]
-Probe0.LoadProbeData(xloc[0], yloc[0], 0.0, path1, Uniq=True)
+Probe0.LoadProbeData(xloc[0], yloc[0], 0.0, pathP, Uniq=True)
 Probe0.ExtraSeries('time', t1, t2)
 #Probe0.DataTab.to_csv(OutFolder+'ProbeE3.dat', sep='\t', index=False, float_format='%.8e')
 #Probe0.AveAtSameXYZ('All')
 #time1 = Probe0.time
 Probe10 = DataPost()
-Probe10.LoadProbeData(xloc[1], yloc[1], 0.0, path1, Uniq=True)
+Probe10.LoadProbeData(xloc[1], yloc[1], 0.0, pathP, Uniq=True)
 #Probe10.unique_rows()
 Probe10.ExtraSeries('time', t1, t2)
 #Probe10.AveAtSameXYZ('All')
 
 Probe20 = DataPost()
-Probe20.LoadProbeData(xloc[2], yloc[2], 0.0, path1, Uniq=True)
+Probe20.LoadProbeData(xloc[2], yloc[2], 0.0, pathP, Uniq=True)
 #Probe20.unique_rows()
 Probe20.ExtraSeries('time', t1, t2)
 #Probe20.AveAtSameXYZ('All')
 #time2 = Probe20.time
 
 Probe30 = DataPost()
-Probe30.LoadProbeData(xloc[3], yloc[3], 0.0, path1, Uniq=True)
+Probe30.LoadProbeData(xloc[3], yloc[3], 0.0, pathP, Uniq=True)
 #Probe30.unique_rows()
 Probe30.ExtraSeries('time', t1, t2)
 #Probe30.AveAtSameXYZ('All')
@@ -108,9 +107,7 @@ ytitle = r'$u/u_\infty$' # 'r'$p/p_\infty$'
 var = 'u'
 ax.set_title(xlabel.format(xloc[0], yloc[0]), fontsize=numsize)
 ax.set_xlim([t1, t2])
-#ax.set_ylim([0.99, 1.01])
 ax.set_xticklabels('')
-#ax.set_xlabel (r'$t u_\infty/\delta$', fontdict = font1)
 ax.set_ylabel(ytitle, fontsize=textsize)
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
 ax.yaxis.offsetText.set_fontsize(numsize)
@@ -183,78 +180,40 @@ ax.plot(Probe30.time, getattr(Probe30, var)*fa-meanval, 'k', linewidth=1.0)
 #ax.plot (Probe40.time, Probe40.p, 'k', linewidth = 1.5)
 ax.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.savefig(path3+'UStreamwiseTimeEvolution.svg', bbox_inches='tight')
+plt.savefig(pathF+'UStreamwiseTimeEvolution.svg', bbox_inches='tight')
 plt.show()
 
 
 # %% Frequency Weighted Power Spectral Density
 Freq_samp = 50
-fig = plt.figure(figsize=(10,8))
+fig = plt.figure(figsize=(10,5))
 matplotlib.rc('font', size=textsize)
-ax = fig.add_subplot(221)
-ax.set_title(xlabel.format(xloc[0], yloc[0]), fontdict=font1)
-#ax.set_xlim ([720, 960])
-#ax.set_xticklabels ('')
+ax = fig.add_subplot(121)
+ax.set_title(xlabel.format(xloc[1], yloc[1]), fontsize=numsize, loc='right')
 ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-#ax = plt.gca()
-#ax.yaxis.get_major_formatter().set_powerlimits((0,1))
-ax.set_ylabel('WPSD, unitless', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
-#Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var), Probe0.time, Freq_samp)
-Fre0, FPSD0 = fv.FW_PSD(getattr(Probe0, var)-fitfunc(Probe0.time), 
-                        Probe0.time, Freq_samp, opt=1)
-ax.semilogx(Fre0, FPSD0, 'k', linewidth=1.0)
-#ax.annotate("(a)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
-ax.yaxis.offsetText.set_fontsize(labsize)
-plt.tick_params(labelsize=labsize)
-#ax.psd(Probe0.p-np.mean(Probe0.p), 100, 10)
-ax = fig.add_subplot(222)
-ax.set_title(xlabel.format(xloc[1], yloc[1]), fontdict=font1)
-#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-#ax.set_xlabel (r'$f\delta_0/U_\infty$', fontdict = font1)
-#ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
-ax.grid(b=True, which='both', linestyle=':')
-Fre10, FPSD10 = fv.FW_PSD (getattr(Probe10, var), Probe10.time, 
-                           Freq_samp, opt=1)
-ax.semilogx(Fre10, FPSD10, 'k', linewidth=1.0)
-#ax.annotate("(b)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
-ax.yaxis.offsetText.set_fontsize(labsize)
-plt.tick_params(labelsize=labsize)
-
-ax = fig.add_subplot(223)
-ax.set_title(xlabel.format(xloc[2], yloc[2]), fontdict=font1)
-#ax.set_xlim ([720, 960])
-#ax.set_xticklabels ('')
-ax.ticklabel_format(axis='y', style='sci', scilimits=(-1, 2))
-ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
-ax.set_ylabel('WPSD, unitless', fontsize=textsize)
-ax.grid(b=True, which='both', linestyle=':')
-Fre20, FPSD20 = fv.FW_PSD(getattr(Probe20, var), Probe20.time, 
+Fre10, FPSD10 = fv.FW_PSD(getattr(Probe10, var), Probe10.time, 
                           Freq_samp, opt=1)
-ax.semilogx (Fre20, FPSD20, 'k', linewidth = 1.0)
-#ax.annotate("(c)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
-ax.yaxis.offsetText.set_fontsize(labsize)
-plt.tick_params(labelsize=labsize)
-
-ax = fig.add_subplot(224)
-ax.set_title(xlabel.format(xloc[3], yloc[3]), fontdict=font1)
-#ax.set_xlim ([720, 960])
-#ax.set_xticklabels ('')
-ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
-#ax.set_ylabel ('Weighted PSD, unitless', fontdict = font1)
+ax.semilogx(Fre10, FPSD10, 'k', linewidth=1.0)
+ax.set_ylabel('Weighted PSD, unitless', fontsize=textsize-4)
+ax.annotate("(a)", xy=(-0.10, 1.04), xycoords='axes fraction', fontsize=numsize)
+ax.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
+
+ax = fig.add_subplot(122)
+ax.set_title(xlabel.format(xloc[2], yloc[2]), fontsize=numsize, loc='right')
+ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
+ax.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
 ax.grid(b=True, which='both', linestyle=':')
-Fre30, FPSD30 = fv.FW_PSD(getattr(Probe30, var), Probe30.time, 
+Fre30, FPSD30 = fv.FW_PSD(getattr(Probe20, var), Probe20.time, 
                           Freq_samp, opt=1)
 ax.semilogx(Fre30, FPSD30, 'k', linewidth=1.0)
-#ax.annotate("(d)", xy=(-0.05, 1.04), xycoords='axes fraction', fontsize=labsize)
-ax.yaxis.offsetText.set_fontsize(labsize)
-plt.tick_params(labelsize=labsize)
+ax.annotate("(b)", xy=(-0.10, 1.04), xycoords='axes fraction', fontsize=numsize)
+ax.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig (path3+'StreamwiseFWPSD.svg', bbox_inches='tight')
+plt.savefig(pathF+'StreamwiseFWPSD.svg', bbox_inches='tight')
 plt.show()
 
 #%% Compute intermittency factor
@@ -266,9 +225,9 @@ p0    = Probe0.p
 ProbeID = DataPost()
 for j in range(np.size(xzone)):
     if xzone[j] <= 0.0:
-        ProbeID.LoadProbeData(xzone[j], 0.0, 0.0, path1)
+        ProbeID.LoadProbeData(xzone[j], 0.0, 0.0, pathP)
     else:
-        ProbeID.LoadProbeData(xzone[j], -3.0, 0.0, path1)
+        ProbeID.LoadProbeData(xzone[j], -3.0, 0.0, pathP)
     ProbeID.ExtraSeries('time', t1, t2)
     gamma[j] = fv.Intermittency(sigma, p0, ProbeID.p, ProbeID.time)
     alpha[j] = fv.Alpha3(ProbeID.p)
@@ -283,7 +242,7 @@ ax3.axvline(x=0.0, color='k', linestyle='--', linewidth=1.0)
 ax3.axvline(x=12.7, color='k', linestyle='--', linewidth=1.0)
 plt.tight_layout(pad = 0.5, w_pad=0.5, h_pad =0.3)
 plt.tick_params(labelsize=14)
-plt.savefig (path3+'IntermittencyFactor.svg', dpi = 300)
+plt.savefig (pathF+'IntermittencyFactor.svg', dpi = 300)
 plt.show()
 
 #%% Skewness coefficient
@@ -297,7 +256,7 @@ ax4.grid (b=True, which = 'both', linestyle = ':')
 #ax4.axvline(x=12.7, color='k', linestyle='--', linewidth=1.0)
 plt.tight_layout(pad = 0.5, w_pad = 0.2, h_pad = 1)
 fig4.set_size_inches(6, 5, forward=True)
-plt.savefig (path3+'SkewnessCoeff.svg', dpi = 300)
+plt.savefig (pathF+'SkewnessCoeff.svg', dpi = 300)
 plt.show()
 
 #%% Spanwise distribution of a specific varibles
@@ -319,7 +278,7 @@ matplotlib.rc('font', size=14)
 title = [r'$(a)$', r'$(b)$', r'$(c)$']
 # a
 val = valarr[0]
-fluc = pd.read_csv(path3+'x=-40.txt', sep=' ', skipinitialspace=True)
+fluc = pd.read_csv(pathF+'x=-40.txt', sep=' ', skipinitialspace=True)
 pert = fv.PertAtLoc(fluc, var, loc, val)
 ax[0].plot(pert[var]-np.mean(pert[var]), pert['z'], 'k-')
 # ax[0].set_xlim([0.0, 2e-3])
@@ -331,7 +290,7 @@ ax[0].set_title(title[0], fontsize=numsize)
 ax[0].grid(b=True, which="both", linestyle=":")
 # b 
 val = valarr[1]
-fluc = pd.read_csv(path3+'x=-20.txt', sep=' ', skipinitialspace=True)
+fluc = pd.read_csv(pathF+'x=-20.txt', sep=' ', skipinitialspace=True)
 pert = fv.PertAtLoc(fluc, var, loc, val)
 ax[1].plot(pert[var]-np.mean(pert[var]), pert['z'], 'k-')
 ax[1].set_xlabel(r"$p^{\prime}/p_{\infty}$",
@@ -344,7 +303,7 @@ ax[1].set_title(title[1], fontsize=numsize)
 ax[1].grid(b=True, which="both", linestyle=":")
 # c
 val = valarr[2]
-fluc = pd.read_csv(path3+'x=-10.txt', sep=' ', skipinitialspace=True)
+fluc = pd.read_csv(pathF+'x=-10.txt', sep=' ', skipinitialspace=True)
 pert = fv.PertAtLoc(fluc, var, loc, val)
 ax[2].plot(pert[var]-np.mean(pert[var]), pert['z'], 'k-')
 # ax[2].set_xlim([0.025, 0.20])
@@ -356,13 +315,13 @@ ax[2].grid(b=True, which="both", linestyle=":")
 
 plt.show()
 plt.savefig(
-    path3 + "PerturProfileZ.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "PerturProfileZ.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 #%% Streamwise distribution of a specific varibles
 # load data
 import pandas as pd
-path1 = '/media/weibo/Data2/BFS_M1.7C_TS/probes2/'
+pathP = '/media/weibo/Data2/BFS_M1.7C_TS/probes2/'
 var = 'u'
 fa = 1.0 #1.7 * 1.7 * 1.4
 t3 = 108
@@ -375,7 +334,7 @@ meanval = np.zeros(np.size(xzone))
 flucval = np.zeros(np.size(xzone))
 ProbeID = DataPost()
 for j in range(np.size(xzone)):
-    ProbeID.LoadProbeData(xzone[j], yval, zval, path1)
+    ProbeID.LoadProbeData(xzone[j], yval, zval, pathP)
     ProbeID.ExtraSeries('time', t3, t4)
     lastval[j] = getattr(ProbeID, var)[-1]
     meanval[j] = np.mean(getattr(ProbeID, var))
@@ -408,7 +367,7 @@ ax.grid(b=True, which="both", linestyle=":")
 
 plt.show()
 plt.savefig(
-    path3 + "UPerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "UPerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 #%% Streamwise distribution of a specific varibles
@@ -428,8 +387,8 @@ matplotlib.rc('font', size=14)
 title = [r'$(a)$', r'$(b)$', r'$(c)$']
 # a
 val = valarr[0]
-orig = pd.read_csv(path3+'z=0.txt', sep=' ', skipinitialspace=True)
-meanflow = pd.read_csv(path3+'meanflow.txt', sep=' ', skipinitialspace=True)
+orig = pd.read_csv(pathF+'z=0.txt', sep=' ', skipinitialspace=True)
+meanflow = pd.read_csv(pathF+'meanflow.txt', sep=' ', skipinitialspace=True)
 fluc = orig.copy()
 fluc[var] = orig[var] - meanflow[var]
 pert = fv.PertAtLoc(fluc, var, loc, val)
@@ -446,13 +405,13 @@ ax.grid(b=True, which="both", linestyle=":")
 
 plt.show()
 plt.savefig(
-    path3 + "PerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "PerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% 
 path0 = '/media/weibo/Data2/BFS_M1.7C_TS/probes/'
-path1 = '/media/weibo/Data2/BFS_M1.7C_TS/probes1/'
-path2 = '/media/weibo/Data2/BFS_M1.7C_TS/probes2/'
+pathP = '/media/weibo/Data2/BFS_M1.7C_TS/probes1/'
+pathF = '/media/weibo/Data2/BFS_M1.7C_TS/probes2/'
 dirs = sorted(os.listdir(path0))
 for i in range(np.size(dirs)):
     with open (path0 + dirs[i]) as f:
@@ -461,7 +420,7 @@ for i in range(np.size(dirs)):
         title = '\n'.join([str(title1), str(title2)])
     f.close()
     file0 = np.genfromtxt(path0+dirs[i], skip_header=2, filling_values=0.0)
-    file1 = np.loadtxt(path1+dirs[i])
+    file1 = np.loadtxt(pathP+dirs[i])
     file2 = np.concatenate([file0, file1])
-    np.savetxt(path2+dirs[i], file2, \
+    np.savetxt(pathF+dirs[i], file2, \
                 fmt='%1.8e', delimiter = " ", header = str(title))

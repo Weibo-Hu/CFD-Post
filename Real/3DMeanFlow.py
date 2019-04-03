@@ -533,3 +533,35 @@ fv.BoundaryEdge(MeanFlow, pathM)
 fv.ShockLine(MeanFlow, pathM)
 # %% 
 plt.close("All")
+#coord, index, normals, values = \
+#    measure.marching_cubes(vort1, -0.2, spacing=(1.0, 1.0, 1.0))
+#fig = plt.figure(figsize=(12,4))
+#ax = fig.add_subplot(111, projection='3d')
+#ax.view_init(0.0, -90.0)
+##surf = ax.plot_surface(xx, yy, zz, cmap="rainbow", antialiased=False)
+#ax.plot_trisurf(coord[:,0], coord[:,1], coord[:,2], lw=0.2)
+#ax.set_xlabel(r'$x/\delta_0$', fontdict = font)
+#ax.set_ylabel(r'$y/\delta_0$', fontdict = font)
+#plt.show()
+
+#%%
+
+#%% Isosurface of lambda2 criterion
+"""
+MeanFlow = DataPost()
+MeanFlow.UserDataBin(path+'MeanFlow2.h5')
+
+Isosurf = MeanFlow._DataTab.loc[np.round(MeanFlow._DataTab['L2-criterion'], 5) == -0.005]
+xx, yy  = np.mgrid[-10.0:30.0:300j, -3.0:10.0:100j]
+zz      = griddata((Isosurf.x, Isosurf.y), Isosurf['z'], (xx, yy))
+fig = plt.figure(figsize=(12,4))
+ax = fig.add_subplot(111, projection='3d')
+ax.view_init(0.0, -90.0)
+surf = ax.plot_surface(xx, yy, zz, cmap="rainbow", antialiased=False)
+cbar = plt.colorbar(surf)
+ax.set_xlabel(r'$x/\delta_0$', fontdict = font3)
+ax.set_ylabel(r'$y/\delta_0$', fontdict = font3)
+plt.gca().set_aspect('equal', adjustable='box')
+#ax.contourf()
+plt.show()
+"""

@@ -46,15 +46,17 @@ textsize = 18
 numsize = 15
 
 # %% load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
-SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
-path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/POD1/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
-timepoints = np.arange(650.0, 949.50 + 0.5, 0.5)
-dirs = sorted(os.listdir(InFolder))
+path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+pathP = path + "probes/"
+pathF = path + "3AF/Figures/"
+pathM = path + "MeanFlow/"
+pathSN = path + "Snapshots/"
+pathI = path + "Instant/"
+timepoints = np.arange(800, 1149.50 + 0.5, 0.5)
+dirs = sorted(os.listdir(pathSN))
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
-DataFrame = pd.read_hdf(InFolder + dirs[0])
+DataFrame = pd.read_hdf(pathSN + dirs[0])
 DataFrame['walldist'] = DataFrame['y']
 DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
 NewFrame = DataFrame.query("x>=-5.0 & x<=45.0 & walldist>=0.0 & y<=5.0")
@@ -79,7 +81,7 @@ FirstFrame = DataFrame[col].values
 Snapshots = FirstFrame[ind].ravel(order='F')
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
-        TempFrame = pd.read_hdf(InFolder + dirs[i+1])
+        TempFrame = pd.read_hdf(pathSN + dirs[i+1])
         if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
         NextFrame = TempFrame[col].values
@@ -95,7 +97,6 @@ if (m % o != 0):
 m = int(m/o)
 AveFlow = DataFrame/np.size(dirs)
 meanflow = AveFlow.query("x>=-5.0 & x<=45.0 & y>=-3.0 & y<=5.0")
-
 # %% POD
 varset = { var0: [0, m],
            var1: [m, 2*m],
@@ -106,12 +107,12 @@ if np.size(dirs) != np.size(timepoints):
     
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
-        rm.POD(Snapshots, SaveFolder, fluc='True', method='svd')
+        rm.POD(Snapshots, pathF, fluc='True', method='svd')
 
 # %% Eigvalue Spectrum
 EFrac, ECumu, N_modes = rm.POD_EigSpectrum(80, eigval)
-var = var0
 #np.savetxt(path+'EnergyFraction650.dat', EFrac, fmt='%1.7e', delimiter='\t')
+var = var0
 matplotlib.rc('font', size=textsize)
 fig1, ax1 = plt.subplots(figsize=(5,4))
 xaxis = np.arange(0, N_modes + 1)
@@ -137,24 +138,25 @@ ax2.set_ylim([0, 100])
 ax2.set_ylabel(r'$ES_i$')
 ax2.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.savefig(path+var+'_PODEigSpectrum.svg', bbox_inches='tight')
+plt.savefig(pathF+str(N_modes)+'_PODEigSpectrum80.svg', bbox_inches='tight')
 plt.show()
 
 # %% specific mode in space
-ind = 10
-var = var2
+ind = 16
+var = var0
 fa = 1.7*1.7*1.4
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
-newflow = phi[:, ind - 1] * coeff[ind - 1, 0]
-modeflow = newflow[varset[var][0] : varset[var][1]]
-print("The limit value: ", np.min(modeflow)*fa, np.max(modeflow)*fa)
-u = griddata((xval, yval), modeflow, (x, y))*fa
+newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
+modeflow = newflow[varset[var][0]:varset[var][1]]*fa
+print("The limit value: ", np.min(modeflow), np.max(modeflow))
+u = griddata((xval, yval), modeflow, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(5, 2))
-c1 = -0.008
-c2 = -c1 # 0.063
+c1 = -0.017
+c2 = -c1 #0.063
+
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, cmap='RdBu_r', levels=lev1) #, extend='both') 
@@ -170,7 +172,7 @@ ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.25, 0.76, 0.34, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", 
                      ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
@@ -180,19 +182,19 @@ cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0,
                 x=-0.18, labelpad=-29, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
-shock = np.loadtxt(path3+'Shock.dat', skiprows=1)
+shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], 'g', linewidth=1.0)
 # Add sonic line
-sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
+sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
 ax.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.0)
 # Add boundary layer
-boundary = np.loadtxt(path3+'BoundaryLayer.dat', skiprows=1)
+boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
 ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
 # Add dividing line(separation line)
-dividing = np.loadtxt(path3+'DividingLine.dat', skiprows=1)
+dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
 
-plt.savefig(path+var+'_PODMode'+str(ind)+'.svg', bbox_inches='tight')
+plt.savefig(pathF+var+'_PODMode'+str(ind)+'.svg', bbox_inches='tight')
 plt.show()
 
 # %% First several modes with time and WPSD
