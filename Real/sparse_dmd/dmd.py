@@ -9,7 +9,7 @@ from . import util
 
 
 class DMD(object):
-    def __init__(self, snapshots=None, dt=1, fluc=True, axis=-1):
+    def __init__(self, snapshots=None, dt=1, fluc=False, axis=-1):
         """Dynamic Mode Decomposition with optimal amplitudes.
 
         Arguments
@@ -118,6 +118,7 @@ class DMD(object):
         V = Vh.T.conj()
         # truncate zero values from svd
         r = np.linalg.matrix_rank(S)
+
         if np.shape(S)[0] != r:
             warnings.warn("There are " + str(np.shape(S)[0] - r) +
                           " zero-value singular value!!!")
@@ -188,6 +189,18 @@ class DMD(object):
         # definite matrix) === solve(Pl.T.conj(), solve(Pl, self.q))
         self.xdmd = linalg.cho_solve(linalg.cho_factor(self.P), self.q)
 
+    def reduce(self, percent):
+        ind = np.where(np.abs(self.eigval) > percent)[0]
+        num = np.shape(self.modes)[0]
+        reduced = ReducedDMD(num, np.size(ind))
+        reduced.ind = ind
+        reduced.eigval = self.eigval[ind]
+        reduced.modes = self.modes[:, ind]
+        reduced.omega =  self.omega[ind]
+        reduced.beta = self.beta[ind]
+        reduced.amplitudes = self.amplitudes[ind]
+        return reduced
+
     @property
     def dmodes(self):
         """Return modes reshaped into original data shape."""
@@ -203,3 +216,32 @@ class DMD(object):
         V1 = self.modes @ self.dynamics
         resid = V1 - self.snapshots[:, :-1]
         return (np.linalg.norm(resid))
+
+
+class ReducedDMD(object):
+
+    def __init__(self, num1, num2):
+        self.eigval = np.zeros(num2, dtype=np.complex)
+        self.modes = np.zeros((num1, num2), dtype=np.complex)
+        self.omega = np.zeros(num2)
+        self.beta = np.zeros(num2)
+        self.amplitudes = np.zeros(num2)
+        self.ind = np.zeros(num2)
+
+
+    def reduce(self, rr):
+        reduction = self.reduction
+        UstarX1 = np.dot(reduction.U[:, :rr].T.conj(), reduction.X1)
+        S = reduction.S[:rr, :rr]
+        V = reduction.V[:, :rr]
+        self.init(UstarX1, S, V)
+        self.modes = np.dot(reduction.U[:, :rr], self.Ydmd)
+        self.eigval = self.Edmd
+        self.frequencies = np.log(self.eigval) / self.dt
+        self.beta = np.real(self.frequencies)
+        self.omega = np.imag(self.frequencies)
+        # the optimal amplitudes
+        self.amplitudes = self.xdmd
+        self.computed = True
+
+

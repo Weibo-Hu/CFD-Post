@@ -13,7 +13,7 @@ import pandas as pd
 import sys
 
 # %% Make spanwise-averaged snapshots
-
+"""
 VarList = [
     'x',
     'y',
@@ -39,7 +39,8 @@ VarList = [
 #]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/5/3/"
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/10/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
 OutFolder2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5B/"
 OutFolder3 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5C/"
@@ -51,10 +52,11 @@ NoBlock = 240
 dirs = os.scandir(FoldPath)
 for folder in dirs:
     path = FoldPath+folder.name+"/"
-    with timer("Read "+folder.name+" data"):
-        DataFrame, time = p2p.NewReadINCAResults(NoBlock, path, 
-                                                 VarList, Equ=equ)
-        df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
+    with timer("Read " + folder.name + " data"):
+        DataFrame, time = \
+        p2p.NewReadINCAResults(NoBlock, path, VarList, SpanAve='Yes',
+                               SavePath=OutFolder, Equ=equ)
+        #df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
         #df2 = p2p.SaveSlice(DataFrame, time, 1.5, OutFolder1)
         #df3 = p2p.SaveSlice(DataFrame, time, 1.0, OutFolder1)
         #df4 = p2p.SaveSlice(DataFrame, time, 0.5, OutFolder1)
@@ -63,40 +65,80 @@ for folder in dirs:
 
 #DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False,
 #                 header=VarList, float_format='%.10e')
+"""
+# %% Extract Data for 3D DMD
+"""
+VarList = [
+    'x',
+    'y',
+    'z',
+    'u',
+    'v',
+    'w',
+    'p',
+    '|gradp|'
+]
+
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+FoldPath = "/media/weibo/Data2/BFS_M1.7C_L1/DataPost/"
+path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
+
+NoBlock = 422
+skip = 1
+cube = [(-10.0, 30.0), (-3.0, 30.0), (-8, 8)]
+dirs = os.listdir(FoldPath)
+# FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock, skip=skip)
+# FileId.to_csv(path2+str(skip)+'ReadList.dat', index=False, sep='\t')
+
+FileId = pd.read_csv(path2 + str(skip)+ "ReadList.dat", sep='\t')
+
+dirs = os.scandir(FoldPath)
+for folder in dirs:
+    path = FoldPath+folder.name+"/"
+    with timer("Read " + folder.name + " data"):
+        DataFrame, time = \
+        p2p.NewReadINCAResults(NoBlock, path, VarList, 
+                               FileName=FileId['name'].tolist(),
+                               SavePath=OutFolder, Equ=equ,
+                               skip=skip)
+"""
 
 # %% Save time-averaged flow field
 """
 VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
            'vorticity_2', 'vorticity_3', 'shear', 'Q-criterion',
            'L2-criterion', 'grad(rho)_1', 'grad(rho)_2', 'grad(rho)_3',
-           '|grad(rho)|', 'Mach', 'entropy', 'T']
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/82/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/TimeAve/"
+           '|grad(rho)|', 'Mach', 'entropy', 'T', '|gradp|']
+FoldPath = "/media/weibo/Data2/BFS_M1.7C_TS1/snapshots/"
+OutFolder = "/media/weibo/Data2/BFS_M1.7C_TS1/DataPost/"
 dirs = os.scandir(FoldPath)
 num = np.size(os.listdir(FoldPath))
+# equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
 for i, folder in enumerate(dirs):
     path = FoldPath+folder.name+"/"
     if i == 0:
         with timer("Read "+folder.name+" data"):
-            SumFrame = p2p.NewReadINCAResults(240, path, VarList,
-                                              OutFolder, OutFile=False)
+            SumFrame = p2p.ReadINCAResults(422, path, VarList, Equ=equ,
+                                           SavePath=OutFolder)[0]
     else:
         with timer("Read "+folder.name+" data"):
-            DataFrame = p2p.NewReadINCAResults(240, path, VarList,
-                                               OutFolder, OutFile=False)
-        if np.size(DataFrame.x) != np.size(SumFrame.x):
+            DataFrame = p2p.ReadINCAResults(422, path, VarList, Equ=equ,
+                                            SavePath=OutFolder)[0]
+        if (np.shape(DataFrame['x']) != np.shape(SumFrame['x'])):
             sys.exit("DataFrame does not match!!!")
         else:
             SumFrame = SumFrame + DataFrame
 
 MeanFrame = SumFrame/num
 
-MeanFrame.to_hdf(OutFolder+"MeanFlow8B.h5", 'w', format='fixed')
+MeanFrame.to_hdf(OutFolder+"MeanFlow2.h5", 'w', format='fixed')
 """
 # %% Time-average DataFrame
-"""
-FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/Ave/"
-OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
+
+FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/Snapshots/"
+OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/MeanFlow/"
 dirs = os.scandir(FoldPath)
 num = np.size(os.listdir(FoldPath))
 SumFrame = pd.DataFrame()
@@ -112,16 +154,16 @@ TimeAve.to_hdf(OutFolder + "TimeAve.h5", 'w', format='fixed')
 grouped1 = TimeAve.groupby(['x', 'y'])
 Meanframe = grouped1.mean().reset_index()
 Meanframe.to_hdf(OutFolder + "MeanFlow.h5", 'w', format='fixed')
-"""
+
 # %% convert h5 to plt for spanwise-average data
 """
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/6/"
-FoldPath1 = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/plt/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/plt/10/"
+FoldPath = "/media/weibo/Data2/BFS_M1.7C_L1/DataPost/6/"
+FoldPath1 = "/media/weibo/Data2/BFS_M1.7C_L1/DataPost/"
+OutFolder = "/media/weibo/Data2/BFS_M1.7C_L1/DataPost/"
 # dirs = os.scandir(FoldPath)
 dirs = sorted(os.listdir(FoldPath))
 os.chdir(FoldPath)
-time = np.arange(730.00, 769.50 + 0.5, 0.5)
+time = np.arange(330, 769.50 + 0.5, 0.5)
 for i, folder in enumerate(dirs):
     ii = time[i]
     outfile = 'SolTime'+f'{ii:.2f}'
@@ -130,11 +172,11 @@ for i, folder in enumerate(dirs):
         dataframe = pd.read_hdf(folder)
         newframe1 = dataframe.query("x<=0.0 & y>=0.0")
         newframe2 = dataframe.query("x>=0.0")
-        p2p.frame2plt(newframe1, FoldPath1, outfile + 'A', time=ii, zonename=1)
-        p2p.frame2plt(newframe2, FoldPath1, outfile + 'B', time=ii, zonename=2)
+        p2p.frame2tec(newframe1, FoldPath1, outfile + 'A', time=ii, z=0, zonename=1)
+        p2p.frame2tec(newframe2, FoldPath1, outfile + 'B', time=ii, z=0, zonename=2)
     FileName = [FoldPath1+outfile+'A'+'.plt', FoldPath1+outfile+'B'+'.plt']
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)
-    tp.data.operate.execute_equation('{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)')
+    # tp.data.operate.execute_equation('{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)')
     tp.data.save_tecplot_plt(OutFolder+outfile+'.plt', dataset=dataset)
 """
 # %% Save boundary layer profile
@@ -155,12 +197,21 @@ VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
            'vorticity_2', 'vorticity_3', 'shear', 'Q-criterion',
            'L2-criterion', 'grad(rho)_1', 'grad(rho)_2', 'grad(rho)_3',
            '|grad(rho)|', 'Mach', 'entropy', 'T']
-FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/7/"
+"""
+"""
+VarList = [
+    'x', 'y', 'z', '<u>', '<v>', '<w>', '<rho>', '<p>', '<T>', '<u`u`>',
+    '<u`v`>', '<u`w`>', '<v`v`>', '<v`w`>',
+    '<w`w`>', '<Q-criterion>', '<lambda_2>'
+]
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/TP_stat/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
 with timer("Read data"):
-    DataFrame = p2p.NewReadINCAResults(240, FoldPath+"TP_data_01030465/", VarList,
-                                       OutFolder)
-#DataFrame.to_hdf(OutFolder+"MeanFlow7.h5", 'w', format='fixed')
+    DataFrame, soltime = p2p.NewReadINCAResults(240, FoldPath, VarList)
+grouped = DataFrame.groupby(['x', 'y'])
+df = grouped.mean().reset_index()
+df.to_hdf(OutFolder+"SpanAveTP_stat.h5", 'w', format='fixed')
 """
 
 """

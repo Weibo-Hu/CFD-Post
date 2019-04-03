@@ -9,7 +9,7 @@ import numpy as np
 import scipy as sp
 import warnings
 import sys
-from progressbar import ProgressBar, Percentage, Bar
+# from progressbar import ProgressBar, Percentage, Bar
 
 
 class DMD(object):
@@ -187,8 +187,8 @@ class DMD(object):
         answer.gamma = self.gamma
         widgets = ['SPDMD iteration on gamma:', Percentage(), ' ',
                     Bar(marker='>', left='[', right=']')]
-        pbar = ProgressBar(widgets=widgets, maxval=np.size(self.gamma))
-        pbar.start()
+#        pbar = ProgressBar(widgets=widgets, maxval=np.size(self.gamma))
+#        pbar.start()
         for i, gammaval in enumerate(self.gamma):
             # find a sparisty structure which achieves a tradeoff between
             # the number of the modes and the approximation error
@@ -199,8 +199,8 @@ class DMD(object):
             answer.Ja[i] = ret['Jsp']
             answer.PolJa[i] = ret['Jpol']
             answer.PolLoss[i] = ret['Ploss']
-            pbar.update(i)
-        pbar.finish()
+#            pbar.update(i)
+#        pbar.finish()
         answer.nonzero[:] = answer.amplit != 0
         self.spdmd = answer
 

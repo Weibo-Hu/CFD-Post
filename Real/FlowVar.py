@@ -2,7 +2,7 @@
 """
 Created on Tue May 1 10:24:50 2018
     This code for reading data from specific file to post-processing data
-    1. FileName (infile, VarName, (row1), (row2), (unique) ): sort data and 
+    1. FileName (infile, VarName, (row1), (row2), (unique) ): sort data and
     delete duplicates, SPACE is NOT allowed in VarName
     2. MergeFile (NameStr, FinalFile): NameStr-input file name to be merged
     3. GetMu (T): calculate Mu if not get from file
@@ -11,7 +11,6 @@ Created on Tue May 1 10:24:50 2018
 """
 
 import numpy as np
-import scipy as sp
 from scipy import signal
 import matplotlib.pyplot as plt
 import matplotlib
@@ -20,8 +19,8 @@ import pandas as pd
 from DataPost import DataPost
 from scipy.interpolate import interp1d, griddata
 from scipy.integrate import trapz, simps
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import scipy.optimize
+from scipy.interpolate import splprep, splev
 from numpy import NaN, Inf, arange, isscalar, asarray, array
 import sys
 from timer import timer
@@ -64,6 +63,57 @@ def Viscosity(Re_delta, T):
     return mu
 
 
+# Obtain BL thickness, momentum thickness, displacement thickness
+def BLThickness(y, u, rho=None, opt=None):
+    ind1 = np.where(u[:] > 0.98)
+    err = np.diff(u)
+    ind2 = np.where(np.abs(err[:]) < 0.01)
+    ind = np.intersect1d(ind1, ind2)[0]
+    delta = y[ind]
+    u_d = u[ind]
+    if opt == None:
+        return delta
+    elif opt == 'displacement':
+        rho_d = rho[ind]
+        a1 = rho*u/rho_d/u_d
+        var = 1-a1[:ind]
+        delta_star = np.trapz(var, y[:ind])
+        return(delta_star)
+    elif opt == 'momentum':
+        rho_d = rho[ind]
+        a1 = 1-u/u_d
+        a2 = rho*u/rho_d/u_d
+        var = a1[:ind]*a2[:ind]
+        theta = np.trapz(var, y[:ind])
+        return theta
+    
+
+# Obtain radius of curvature
+def Radius(x, y):
+    y1 = DataPost.SecOrdFDD(x, y)
+    y2 = DataPost.SecOrdFDD(x, y1)
+    a1 = 1+(y1)**2
+    a2 = np.abs(y2)
+    radi = np.power(a1, 1.5)/a2
+    return radi
+
+
+# Obtain G\"ortler number
+def Gortler(Re_inf, x, y, theta, scale=0.001):
+    Re_theta = Re_inf*theta*scale
+    radi = Radius(x, y)
+    gortler = Re_theta*np.sqrt(theta/radi)
+    return gortler
+
+
+def GortlerTur(theta, delta_star, radi):
+    # radi = Radius(x, y)
+    a1 = theta / 0.018 / delta_star
+    a2 = np.sqrt(theta / np.abs(radi))
+    gortler = a1 * a2 * np.sign(radi)
+    return gortler
+
+
 # Obtain skin friction coefficency
 def SkinFriction(mu, du, dy):
     # all variables are nondimensional
@@ -72,13 +122,14 @@ def SkinFriction(mu, du, dy):
 
 
 # obtain Power Spectral Density
-def PSD(VarZone, dt, Freq_samp, opt=2):
+def PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
     TotalNo = np.size(VarZone)
     if np.size(dt) > 1:
         TotalNo = Freq_samp * (dt[-1] - dt[0])
         if TotalNo > np.size(dt):
             warnings.warn(
-                "PSD results are not accurate as too few snapshots", UserWarning
+                "PSD results are not accurate as too few snapshots",
+                UserWarning
             )
         TimeZone = np.linspace(dt[0], dt[-1], TotalNo)
         VarZone = VarZone - np.mean(VarZone)
@@ -86,7 +137,8 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
     else:
         if Freq_samp > 1 / dt:
             warnings.warn(
-                "PSD results are not accurate as too few snapshots", UserWarning
+                "PSD results are not accurate as too few snapshots",
+                UserWarning
             )
             Var = VarZone - np.mean(VarZone)
         elif Freq_samp == 1 / dt:
@@ -107,9 +159,9 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
         num = np.size(Var_fft)
         Freq = np.linspace(Freq_samp / TotalNo, Freq_samp / 2, num)
     if opt == 1:
-        ns = TotalNo // 4
+        ns = TotalNo // seg
         Freq, Var_psd = signal.welch(
-            Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // 2
+            Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // overlap
         )
         Freq = Freq[1:]
         Var_psd = Var_psd[1:]
@@ -117,11 +169,38 @@ def PSD(VarZone, dt, Freq_samp, opt=2):
 
 
 # Obtain Frequency-Weighted Power Spectral Density
-def FW_PSD(VarZone, dt, Freq_samp, opt=2):
-    Freq, Var_PSD = PSD(VarZone, dt, Freq_samp, opt=opt)
+def FW_PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
+    Freq, Var_PSD = PSD(VarZone, dt, Freq_samp,
+                        opt=opt, seg=seg, overlap=overlap)
     FPSD = Var_PSD * Freq
     return (Freq, FPSD)
 
+
+def FW_PSD_Map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
+    frame1 = orig.loc[orig['x'] == xyz[0]]
+    # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
+    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    orig = frame2.loc[frame2['z'] == xyz[2]]
+    varzone = orig[var]
+    Freq, FPSD = FW_PSD(varzone, dt, Freq_samp,
+                        opt=opt, seg=seg, overlap=overlap)
+    return (Freq, FPSD)
+
+# Compute the RMS
+def RMS(dataseries):
+    meanval = np.mean(dataseries)
+    rms = np.sqrt(np.mean((dataseries - meanval) ** 2))
+    return (rms)
+
+
+# Compute the RMS
+def RMS_map(orig, xyz, var):
+    frame1 = orig.loc[orig['x'] == xyz[0]]
+    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    orig = frame2.loc[frame2['z'] == xyz[2]]
+    varzone = orig[var]
+    rms = RMS(varzone)
+    return (rms)
 
 # Obtain cross-power sepectral density
 def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
@@ -130,7 +209,8 @@ def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
     if Freq_samp > 1 / dt:
         warnings.warn(
-            "PSD results are not accurate due to too few snapshots", UserWarning
+            "PSD results are not accurate due to too few snapshots",
+            UserWarning
         )
     elif Freq_samp == 1 / dt:
         NVar1 = Var1 - np.mean(Var1)
@@ -169,7 +249,8 @@ def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
     if Freq_samp > 1 / dt:
         warnings.warn(
-            "PSD results are not accurate due to too few snapshots", UserWarning
+            "PSD results are not accurate due to too few snapshots",
+            UserWarning
         )
     elif Freq_samp == 1 / dt:
         NVar1 = Var1 - np.mean(Var1)
@@ -187,14 +268,14 @@ def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
             TimeZone, TimeSpan, VarZone2
         )  # time space must be equal
     if opt == 1:
-        ns = TotalNo // 6
+        ns = TotalNo // 8 # 6-4 # 8-2
         Freq, gamma = signal.coherence(
             NVar1,
             NVar2,
             fs=Freq_samp,
             nperseg=ns,
             nfft=TotalNo,
-            noverlap=ns // 4,
+            noverlap=ns // 2,
         )
         Freq = Freq[1:]
         gamma = gamma[1:]
@@ -272,19 +353,26 @@ def DirestWallLaw(walldist, u, rho, mu):
 
 
 # Obtain reattachment location with time
-def ReattachLoc(InFolder, OutFolder, timezone):
+def ReattachLoc(InFolder, OutFolder, timezone, opt=2):
     dirs = sorted(os.listdir(InFolder))
-    data = pd.read_hdf(InFolder + dirs[0])
-    # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
-    NewFrame = data.query("x>=8.0 & x<=13.0")
-    TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
-    ind = TemFrame.index.values
     xarr = np.zeros(np.size(timezone))
-    with timer("Computing reattaching point"):
-        for i in range(np.size(dirs)):
-            frame = pd.read_hdf(InFolder + dirs[i])
-            frame = frame.iloc[ind]
-            xarr[i] = frame.loc[frame["u"] >= 0.0, "x"].head(1)
+    if opt == 1:
+        data = pd.read_hdf(InFolder + dirs[0])
+        # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
+        NewFrame = data.query("x>=8.0 & x<=13.0")
+        TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
+        ind = TemFrame.index.values
+        with timer("Computing reattaching point"):
+            for i in range(np.size(dirs)):
+                frame = pd.read_hdf(InFolder + dirs[i])
+                frame = frame.iloc[ind]
+                xarr[i] = frame.loc[frame["u"] >= 0.0, "x"].head(1)
+    else:
+            for i in range(np.size(dirs)):
+                with timer("Computing reattaching point " + str(i)):
+                    frame = pd.read_hdf(InFolder + dirs[i])
+                    xy = DividingLine(frame)
+                    xarr[i] = np.max(xy[:, 0])
     reatt = np.vstack((timezone, xarr)).T
     np.savetxt(
         OutFolder + "Reattach.dat",
@@ -371,7 +459,7 @@ def ShockLoc(InFolder, OutFolder, timepoints):
             )
             gradp[corner] = np.nan
             cs = ax1.contour(
-                xini, yini, gradp, levels=0.06, linewidths=1.2, colors="gray"
+                xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
             )
             xycor = np.empty(shape=[0, 2])
             for isoline in cs.collections[0].get_paths():
@@ -404,60 +492,157 @@ def ShockLoc(InFolder, OutFolder, timepoints):
     )
 
 
-def DividingLine(dataframe):
+# Save shock isoline
+def ShockLine(dataframe, path):
+    x0 = np.unique(dataframe["x"])
+    x1 = x0[x0 > 10.0]
+    x1 = x1[x1 <= 30.0]
+    y0 = np.unique(dataframe["y"])
+    y1 = y0[y0 > -2.5]
+    xini, yini = np.meshgrid(x1, y1)
+    corner = (xini < 0.0) & (yini < 0.0)
+    gradp = griddata((dataframe["x"], dataframe["y"]), dataframe["|gradp|"],
+                     (xini, yini))
+    gradp[corner] = np.nan
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(
+         xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
+    )
+    plt.close(fig=fig)
+    header = "x, y"
+    xycor = np.empty(shape=[0, 2])
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+        # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
+    tck, yval = splprep(xycor.T, s=1.0, per=1)
+    x_new, y_new = splev(yval, tck, der=0)
+    xy_fit = np.vstack((x_new, y_new))
+    np.savetxt(
+        path + "ShockLine.dat",
+        xycor,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header
+    )
+    np.savetxt(
+        path + "ShockLineFit.dat",
+        xy_fit.T,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header
+    )
+
+
+def SonicLine(dataframe, path, option='Mach', Ma_inf=1.7):
+    # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
+    x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    if option == 'velocity':
+        if 'w' in dataframe.columns:
+            c = np.sqrt(dataframe['u'] ** 2 + dataframe['v'] ** 2
+                        + dataframe['w'] ** 2)
+        else:
+            c = np.sqrt(dataframe['u'] ** 2 + dataframe['v'] ** 2)
+        dataframe['Mach'] = c / np.sqrt(dataframe['T']) * Ma_inf
+        Ma = griddata((dataframe.x, dataframe.y), dataframe.Mach, (x, y))
+    else:
+        Ma = griddata((dataframe.x, dataframe.y), dataframe.Mach, (x, y))
+        # sys.exit("Mach number is not in the dataframe")
+    corner = (x < 0.0) & (y < 0.0)
+    Ma[corner] = np.nan
+    header = "x, y"
+    xycor = np.empty(shape=[0, 2])
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(x, y, Ma, levels=[1.0], linewidths=1.5, colors='k')
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+    np.savetxt(path + "SonicLine.dat", xycor, fmt='%.8e',
+               delimiter='  ', header=header)
+
+
+def DividingLine(dataframe, path=None):
     NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
     u = griddata((NewFrame.x, NewFrame.y), NewFrame.u, (x, y))
     fig, ax = plt.subplots(figsize=(10, 4))
     cs1 = ax.contour(
-        x, y, u, levels=[0.0,], linewidths=1.5, linestyles="--", colors="k"
+        x, y, u, levels=[0.0], linewidths=1.5, linestyles="--", colors="k"
     )
-    plt.close(fig)
+    plt.close(fig=fig)
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     xylist = []
-    fig1, ax1 = plt.subplots(figsize=(10, 4))
     for i, isoline in enumerate(cs1.collections[0].get_paths()):
         xy = isoline.vertices
-        if(np.any(xy[:, 1] == -0.015625)):
-            ind = i           
+        if np.any(xy[:, 1] == -0.015625):  # pick the bubble line
+            ind = i
         xylist.append(xy)
         xycor = np.vstack((xycor, xy))
     xy = xylist[ind]
+    fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     ax1.scatter(xy[:, 0], xy[:, 1])
-    #plt.show()
-    plt.close(fig1)
-    np.savetxt(
-        "DividingLine.dat",
-        xycor,
-        fmt="%.8e",
-        delimiter="  ",
-        header=header,
-    )
-    
+    plt.close(fig=fig1)
+    if path is not None:
+        np.savetxt(
+            path + "DividingLine.dat", xycor, fmt="%.8e", delimiter="  ",
+            header=header
+        )
+        np.savetxt(
+            path + "BubbleLine.dat", xy, fmt="%.8e", delimiter="  ",
+            header=header
+        )
     return xy
 
 
-def BubbleArea(InFolder, OutFolder):
-    dirs = sorted(os.listdir(InFolder))  
+def BoundaryEdge(dataframe, path):
+    # dataframe = dataframe.query("x<=30.0 & y<=3.0")
+    x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
+    umax = u[-1, :]
+    rg1 = (x[1, :] < 10.375)  # in front of the shock
+    umax[rg1] = 1.0
+    rg2 = (x[1, :] <= 10.375)  # behind the shock
+    umax[rg2] = 0.95
+    u = u / (np.transpose(umax))
+    corner = (x < 0.0) & (y < 0.0)
+    u[corner] = np.nan
+    header = 'x, y'
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(
+        x, y, u, levels=[0.99], linewidths=1.5, linestyles="--", colors="k"
+    )
+    xycor = np.empty(shape=[0, 2])
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+    np.savetxt(
+        path + "BoundaryEdge.dat", xycor, fmt="%.8e", delimiter="  ",
+        header=header
+    )
+
+
+def BubbleArea(InFolder, OutFolder, timezone):
+    dirs = sorted(os.listdir(InFolder))
     area = np.zeros(np.size(dirs))
     for i in range(np.size(dirs)):
         with timer("Bubble area at " + dirs[i]):
             dataframe = pd.read_hdf(InFolder + dirs[i])
             xy = DividingLine(dataframe)
-            area[i] = trapz(xy[:, 1]+3.0, xy[:, 0])
+            area[i] = trapz(xy[:, 1] + 3.0, xy[:, 0])
+    area_arr = np.vstack((timezone, area)).T
     np.savetxt(
         OutFolder + "BubbleArea.dat",
-        area,
+        area_arr,
         fmt="%.8e",
         delimiter="  ",
-        header='area',
+        header="area",
     )
     return area
 
 
 def Correlate(x, y, method="Sample"):
-    if (np.size(x) != np.size(y)):
+    if np.size(x) != np.size(y):
         sys.exit("The size of two datasets do not match!!!")
     if method == "Population":
         sigma1 = np.std(x, ddof=0)
@@ -478,22 +663,113 @@ def Correlate(x, y, method="Sample"):
 
 def DelayCorrelate(x, y, dt, delay, method="Sample"):
     if delay == 0.0:
-        correlation = Correlate(x, y, method=method) 
+        correlation = Correlate(x, y, method=method)
     elif delay < 0.0:
         delay = np.abs(delay)
-        num = int(delay//dt)
+        num = int(delay // dt)
         y1 = y[:-num]
         x1 = x[num:]
         correlation = Correlate(x1, y1, method=method)
     else:
-        num = int(delay//dt)
+        num = int(delay // dt)
         x1 = x[:-num]
-        y1 = y[num:]  
-        correlation = Correlate(x1, y1, method=method)   
+        y1 = y[num:]
+        correlation = Correlate(x1, y1, method=method)
     return correlation
-    
-    
 
+
+def Perturbations(orig, mean):
+    grouped = orig.groupby(['x', 'y', 'z'])
+    frame1 = grouped.mean().reset_index()
+    grouped = mean.groupby(['x', 'y', 'z'])
+    frame2 = grouped.mean().reset_index()
+    if (np.shape(frame1)[0] != np.shape(frame2)[0]):
+        sys.exit("The size of two datasets do not match!!!")
+    pert = frame1 - frame2
+    return pert
+
+
+def PertAtLoc(orig, var, loc, val, mean=None):
+    frame1 = orig.loc[orig[loc[0]] == val[0]]
+    frame1 = frame1.loc[np.around(frame1[loc[1]], 5) == val[1]]
+    grouped = frame1.groupby(['x', 'y', 'z'])
+    frame1 = grouped.mean().reset_index()
+    print(np.shape(frame1)[0])
+    frame = frame1
+    if mean is not None:
+        frame2 = mean.loc[mean[loc[0]] == val[0]]
+        frame2 = frame2.loc[np.around(frame2[loc[1]], 5) == val[1]]
+        grouped = frame2.groupby(['x', 'y', 'z'])
+        frame2 = grouped.mean().reset_index()
+        print(np.shape(frame2)[0])
+        if (np.shape(frame1)[0] != np.shape(frame2)[0]):
+            sys.exit("The size of two datasets do not match!!!")
+        ### z value in frame1 & frame2 is equal or not ???
+        frame[var] = frame1[var] - frame2[var]
+    else:
+        frame[var] = frame1[var]
+    return frame
+
+
+def MaxPertAlongY(orig, var, val, mean=None):
+    frame1 = orig.loc[orig['x'] == val[0]]
+    frame1 = frame1.loc[np.around(frame1['z'], 5) == val[1]]
+    grouped = frame1.groupby(['x', 'y', 'z'])
+    frame1 = grouped.mean().reset_index()
+    print(np.shape(frame1)[0])
+    if mean is not None:
+        frame2 = mean.loc[mean['x'] == val[0]]
+        frame2 = frame2.loc[np.around(frame2['z'], 5) == val[1]]
+        grouped = frame2.groupby(['x', 'y', 'z'])
+        frame2 = grouped.mean().reset_index()
+        print(np.shape(frame2)[0])
+        if (np.shape(frame1)[0] != np.shape(frame2)[0]):
+            sys.exit("The size of two datasets do not match!!!")
+        ### z value in frame1 & frame2 is equal or not ???
+        frame1[var] = frame1[var] - frame2[var]
+    frame = frame1.loc[frame1[var].idxmax()]
+    return frame
+
+
+def Amplit(orig, xyz, var, mean=None):
+    frame1 = orig.loc[orig['x'] == xyz[0]]
+    # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
+    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    orig = frame2.loc[frame2['z'] == xyz[2]]
+    if mean is None:
+        grouped = orig.groupby(['x', 'y', 'z'])
+        mean = grouped.mean().reset_index()
+    else:
+        frame1 = mean.loc[mean['x'] == xyz[0]]
+        frame2 = frame1.loc[frame1['y'] == xyz[1]]
+        mean = mean.loc[frame2['z'] == xyz[2], var]
+    pert = orig[var].values - mean[var].values
+    amplit = np.max(np.abs(pert))
+    return amplit
+
+
+def GrowthRate(xarr, var):
+    dAmpli = SecOrdFDD(xarr, var)
+    growthrate = dAmpli/var
+    return growthrate
+
+
+#   Obtain finite differential derivatives of a variable (2nd order)
+def SecOrdFDD(xarr, var):
+    dvar = np.zeros(np.size(xarr))
+    for jj in range (1,np.size(xarr)):
+        if jj == 1:
+            dvar[jj-1]=(var[jj]-var[jj-1])/(xarr[jj]-xarr[jj-1])
+        elif jj == np.size(xarr):
+            dvar[jj-1]=(var[jj-1]-var[jj-2])/(xarr[jj-1]-xarr[jj-2])
+        else:
+            dy12 = xarr[jj-1] - xarr[jj-2];
+            dy23 = xarr[jj] - xarr[jj-1];
+            dvar1 = -dy23/dy12/(dy23+dy12)*var[jj-2];
+            dvar2 = (dy23-dy12)/dy23/dy12*var[jj-1];
+            dvar3 = dy12/dy23/(dy23+dy12)*var[jj];
+            dvar[jj-1] = dvar1 + dvar2 + dvar3;
+    return (dvar)
 # Vorticity: omega=delta*v
 # omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
 def Vorticity():
@@ -552,7 +828,8 @@ if __name__ == "__main__":
     ax.yaxis.offsetText.set_fontsize(numsize)
     plt.tick_params(labelsize=numsize)
     plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-    plt.savefig(path2+'ShockangleFWPSD.svg', bbox_inches='tight', pad_inches=0.1)
+    plt.savefig(path2+'ShockangleFWPSD.svg',
+                bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
     fre, cor = Cro_PSD(Xr, Xs, 0.5, 2.0)
@@ -579,7 +856,7 @@ if __name__ == "__main__":
     plt.savefig(path2+'test.svg', bbox_inches='tight', pad_inches=0.1)
     plt.show()
     """
-    
+
     # InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/10/"
     # OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/"
     # dataframe = pd.read_hdf(InFolder+"SolTime618.00.h5")

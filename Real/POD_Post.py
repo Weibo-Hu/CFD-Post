@@ -38,62 +38,81 @@ class OOMFormatter(matplotlib.ticker.ScalarFormatter):
         if self._useMathText:
             self.format = '$%s$' % matplotlib.ticker._mathdefault(self.format)
 
+
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', **font)
 textsize = 18
 numsize = 15
+
 # %% load data
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots/"
-SaveFolder = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/Test"
-path = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/POD/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
-dirs = sorted(os.listdir(InFolder))
-DataFrame = pd.read_hdf(InFolder + dirs[0])
-NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
+path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+pathP = path + "probes/"
+pathF = path + "3AF/Figures/"
+pathM = path + "MeanFlow/"
+pathSN = path + "Snapshots/"
+pathI = path + "Instant/"
+timepoints = np.arange(800, 1149.50 + 0.5, 0.5)
+dirs = sorted(os.listdir(pathSN))
+if np.size(dirs) != np.size(timepoints):
+    sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
+DataFrame = pd.read_hdf(pathSN + dirs[0])
+DataFrame['walldist'] = DataFrame['y']
+DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
+NewFrame = DataFrame.query("x>=-5.0 & x<=45.0 & walldist>=0.0 & y<=5.0")
 #NewFrame = DataFrame.query("x>=9.0 & x<=13.0 & y>=-3.0 & y<=5.0")
 ind = NewFrame.index.values
-xval = NewFrame['x']
-yval = NewFrame['y']
+xval = DataFrame['x'][ind] # NewFrame['x']
+yval = DataFrame['y'][ind] # NewFrame['y']
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 x1 = -5.0
-x2 = 20.0
+x2 = 25.0
 y1 = -3.0
 y2 = 5.0
-# set range to do POD and DMD: (x:-5~8, y:-3~5, make some tests)
-# (x:8~15, y:-3~3)
-#del DataFrame
 #with timer("Load Data"):
 #    Snapshots = np.vstack(
 #        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
-var = 'p'    
-fa = 1.0 #1.7*1.7*1.4
-timepoints = np.arange(650.0, 899.5 + 0.5, 0.5)
-Snapshots = DataFrame[var]
+var0 = 'u'
+var1 = 'v'
+var2 = 'p'
+col = [var0, var1, var2]
+fa = 1 #/(1.7*1.7*1.4)
+FirstFrame = DataFrame[col].values
+Snapshots = FirstFrame[ind].ravel(order='F')
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
-        TempFrame = pd.read_hdf(InFolder + dirs[i+1])
+        TempFrame = pd.read_hdf(pathSN + dirs[i+1])
         if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
-        Snapshots = np.vstack((Snapshots, TempFrame[var]))
+        NextFrame = TempFrame[col].values
+        Snapshots = np.vstack((Snapshots, NextFrame[ind].ravel(order='F')))
         DataFrame += TempFrame
-Snapshots = Snapshots.T   
-Snapshots = Snapshots[ind, :]
+Snapshots = Snapshots.T  
+# Snapshots = Snapshots[ind, :] 
 Snapshots = Snapshots*fa
 m, n = np.shape(Snapshots)
+o = np.size(col)
+if (m % o != 0):
+    sys.exit("Dimensions of snapshots are wrong!!!")
+m = int(m/o)
 AveFlow = DataFrame/np.size(dirs)
-meanflow = AveFlow.query("x>=-5.0 & x<=20.0 & y>=-3.0 & y<=5.0")
+meanflow = AveFlow.query("x>=-5.0 & x<=45.0 & y>=-3.0 & y<=5.0")
 # %% POD
+varset = { var0: [0, m],
+           var1: [m, 2*m],
+           var2: [2*m, 3*m]
+        }
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
     
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
-        rm.POD(Snapshots, SaveFolder, fluc='True', method='svd')
+        rm.POD(Snapshots, pathF, fluc='True', method='svd')
 
 # %% Eigvalue Spectrum
-EFrac, ECumu, N_modes = rm.POD_EigSpectrum(90, eigval)
+EFrac, ECumu, N_modes = rm.POD_EigSpectrum(80, eigval)
 #np.savetxt(path+'EnergyFraction650.dat', EFrac, fmt='%1.7e', delimiter='\t')
+var = var0
 matplotlib.rc('font', size=textsize)
 fig1, ax1 = plt.subplots(figsize=(5,4))
 xaxis = np.arange(0, N_modes + 1)
@@ -104,14 +123,14 @@ ax1.scatter(
     marker='o',
     s=10.0,
 )   # fraction energy of every eigval mode
-#ax1.legend('E_i')
+# ax1.legend('E_i')
 ax1.set_ylim(bottom=0)
 ax1.set_xlabel('Mode')
 ax1.set_ylabel(r'$E_i$')
 ax1.grid(b=True, which='both', linestyle=':')
 ax1.tick_params(labelsize=numsize)
 ax2 = ax1.twinx()   # cumulation energy of first several modes
-#ax2.fill_between(xaxis, ECumu[:N_modes], color='grey', alpha=0.5)
+# ax2.fill_between(xaxis, ECumu[:N_modes], color='grey', alpha=0.5)
 ESum = np.zeros(N_modes+1)
 ESum[1:] = ECumu[:N_modes]
 ax2.plot(xaxis, ESum, color='grey', label=r'$ES_i$')
@@ -119,28 +138,30 @@ ax2.set_ylim([0, 100])
 ax2.set_ylabel(r'$ES_i$')
 ax2.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.savefig(path+var+'_PODEigSpectrum.svg', bbox_inches='tight')
+plt.savefig(pathF+str(N_modes)+'_PODEigSpectrum80.svg', bbox_inches='tight')
 plt.show()
 
 # %% specific mode in space
-ind = 4
+ind = 16
+var = var0
+fa = 1.7*1.7*1.4
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
-u = griddata((xval, yval), newflow, (x, y))
+modeflow = newflow[varset[var][0]:varset[var][1]]*fa
+print("The limit value: ", np.min(modeflow), np.max(modeflow))
+u = griddata((xval, yval), modeflow, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(5, 2))
-c1 = -0.0032
+c1 = -0.017
 c2 = -c1 #0.063
-print("The limit value: ", np.min(newflow), np.max(newflow))
+
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, cmap='RdBu_r', levels=lev1) #, extend='both') 
 #ax.contour(x, y, u, levels=lev2, colors='k', linewidths=0.8, extend='both')
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'), extend='both')
-# cbar = ax.contour(x, y, u, levels=lev2, extend='both')
-# plt.clabel(cbar, inline=1, fontsize=16)
 ax.grid(b=True, which='both', linestyle=':')  # blue, grey, red
 ax.set_xlim(x1, x2)
 ax.set_ylim(y1, y2)
@@ -151,36 +172,38 @@ ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
 ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.18, 0.76, 0.24, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", 
                      ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
-cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0, fontdict=font)
+cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0, 
+                x=-0.18, labelpad=-29, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
-shock = np.loadtxt(path3+'Shock.dat', skiprows=1)
+shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], 'g', linewidth=1.0)
 # Add sonic line
-sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
+sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
 ax.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.0)
 # Add boundary layer
-boundary = np.loadtxt(path3+'BoundaryLayer.dat', skiprows=1)
+boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
 ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
 # Add dividing line(separation line)
-dividing = np.loadtxt(path3+'DividingLine.dat', skiprows=1)
+dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
 
-plt.savefig(path+var+'_PODMode'+str(ind)+'.svg', bbox_inches='tight')
+plt.savefig(pathF+var+'_PODMode'+str(ind)+'.svg', bbox_inches='tight')
 plt.show()
+
 # %% First several modes with time and WPSD
 fig, ax = plt.subplots(figsize=(5, 3))
 matplotlib.rc('font', size=textsize)
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 lab = []
-NO = [3, 4]
+NO = [9, 10]
 ax.plot(timepoints, coeff[NO[0]-1, :], 'k-', linewidth=1.0)
 lab.append('Mode '+str(NO[0]))
 ax.plot(timepoints, coeff[NO[1]-1, :], 'k:')
@@ -196,13 +219,13 @@ plt.show()
 
 fig, ax = plt.subplots(figsize=(5, 4))
 matplotlib.rc('font', size=numsize)
-freq, psd = fv.FW_PSD(coeff[NO[0]-1, :], timepoints, 2)
+freq, psd = fv.FW_PSD(coeff[NO[0]-1, :], timepoints, 2.0, opt=1)
 ax.semilogx(freq, psd, 'k-', linewidth=1.0)
-freq, psd = fv.FW_PSD(coeff[NO[1]-1, :], timepoints, 2)
+freq, psd = fv.FW_PSD(coeff[NO[1]-1, :], timepoints, 2, opt=1)
 ax.semilogx(freq, psd, 'k:')
 ax.legend(lab, fontsize=15, frameon=False)
 ax.yaxis.offsetText.set_fontsize(numsize)
-plt.ticklabel_format(axis = 'y', style = 'sci', scilimits = (-2, 2))
+plt.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax.set_xlabel(r'$f\delta_0/U_\infty$', fontsize=textsize)
 ax.set_ylabel('WPSD, unitless', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
@@ -213,9 +236,10 @@ plt.show()
 tind = 0
 meanflow = np.mean(Snapshots, axis=1)
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
-newflow = phi[:,:N_modes]@coeff[:N_modes, tind]  
+newflow = phi[:, :N_modes] @ coeff[:N_modes, tind]
+modeflow = newflow[varset[var][0]:varset[var][1]]
 # np.reshape(phi[:, ind-1], (m,1))@np.reshape(coeff[ind-1, :], (1, n))
-u = griddata((xval, yval), meanflow+newflow, (x, y))
+u = griddata((xval, yval), meanflow+modeflow, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)

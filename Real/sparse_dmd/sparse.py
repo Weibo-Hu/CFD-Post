@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.linalg as linalg
-from progressbar import ProgressBar, Percentage, Bar
+# from progressbar import ProgressBar, Percentage, Bar
 
 from .dmd import DMD
 from .util import to_data
@@ -53,6 +53,9 @@ class SparseDMD(object):
             self.dmd = dmd
         elif not snapshots and not dmd:
             self.dmd = DMD()
+        if np.linalg.matrix_rank(self.dmd.modes) \
+           != np.shape(self.dmd.modes)[1]:
+            print("The input modes are not linear independent!!!")
 
     def compute_sparse(self, gammaval):
         """Compute the sparse dmd structure and set as attribute."""
@@ -87,10 +90,10 @@ class SparseDMD(object):
         answer = SparseAnswer(self.n, ng)
         answer.gamma = gammaval
         # report the computing progress
-        widgets = ['SPDMD iteration on gamma:', Percentage(), ' ',
-                   Bar(marker='>', left='[', right=']')]
-        pbar = ProgressBar(widgets=widgets, maxval=np.size(gammaval))
-        pbar.start()
+#        widgets = ['SPDMD iteration on gamma:', Percentage(), ' ',
+#                   Bar(marker='>', left='[', right=']')]
+#        pbar = ProgressBar(widgets=widgets, maxval=np.size(gammaval))
+#        pbar.start()
         for i, gamma in enumerate(gammaval):
             ret = self.optimize_gamma(gamma)
 
@@ -100,8 +103,8 @@ class SparseDMD(object):
             answer.Nz[i] = ret['Nz']
             answer.Jsp[i] = ret['Jsp']
             answer.Jpol[i] = ret['Jpol']
-            answer.Ploss[i] = ret['Ploss']
-        pbar.finish()
+#            answer.Ploss[i] = ret['Ploss']
+#        pbar.finish()
         answer.nonzero[:] = answer.xsp != 0
 
         return answer
