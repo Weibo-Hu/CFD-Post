@@ -35,11 +35,13 @@ font1 = {
     'weight': 'normal',
     'size': 'medium'
 }
-path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/3AF/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/"
-path4 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
+path = "/media/weibo/Data2/DF_example/8/"
+pathP = path + "probes/"
+pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
 
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
@@ -48,11 +50,28 @@ numsize = 20
 matplotlib.rc('font', size=textsize)
 #%% Load Data
 VarName = [
-    'x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', 'uv', 'uw', 'vv', 'vw',
-    'ww', 'Q-criterion', 'L2-criterion', 'gradp'
+    "x",
+    "y",
+    "z",
+    "u",
+    "v",
+    "w",
+    "rho",
+    "p",
+    "T",
+    "uu",
+    "uv",
+    "uw",
+    "vv",
+    "vw",
+    "ww",
+    "Q-criterion",
+    "L2-criterion",
 ]
+
 MeanFlow = DataPost()
-MeanFlow.UserData(VarName, path4+'MeanFlow.dat', 1, Sep='\t')
+# MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
+MeanFlow.UserData(VarName, pathM + "MeanFlow.dat", 1, Sep="\t")
 MeanFlow.AddWallDist(3.0)
 
 # %% Plot BL profile along streamwise
@@ -80,7 +99,34 @@ ax.set_xlabel(r'$u/u_{\infty}$', fontsize=textsize)
 ax.set_ylabel(r'$\Delta y/\delta_0$', fontsize=textsize)
 ax.grid (b=True, which='both', linestyle=':')
 plt.show()
-plt.savefig(path2 + 'StreamwiseBLProfile.svg', bbox_inches='tight', pad_inches=0.1)
+plt.savefig(pathF + 'StreamwiseBLProfile.svg', bbox_inches='tight', pad_inches=0.1)
+
+# %% Compute experimental data
+ExpData = np.loadtxt("vel_1060_LES_M1p6.dat", skiprows=14)
+m, n = ExpData.shape
+y_delta = ExpData[:, 0]
+u = ExpData[:, 1]
+rho = ExpData[:, 3]
+T = ExpData[:, 4]
+urms = ExpData[:, 5]
+vrms = ExpData[:, 6]
+wrms = ExpData[:, 7]
+uv = ExpData[:, 8]
+mu = 1.0/13500*np.power(T, 0.75)
+u_tau = fv.UTau(y_delta, u, rho, mu)
+Re_tau = rho[0]*u_tau/mu[0]*2
+ExpUPlus = fv.DirestWallLaw(y_delta, u, rho, mu)
+xi = np.sqrt(rho / rho[0])
+U_inf = 545
+uu = xi * np.sqrt(urms * U_inf) 
+vv = xi * np.sqrt(vrms * U_inf) 
+ww = xi * np.sqrt(wrms * U_inf) 
+uv = xi * np.sqrt(np.abs(uv) * U_inf) * (-1)
+y_plus = ExpUPlus[:, 0]
+ExpUVPlus = np.column_stack((y_plus, uv))
+ExpUrmsPlus = np.column_stack((y_plus, uu))
+ExpVrmsPlus = np.column_stack((y_plus, vv))
+ExpWrmsPlus = np.column_stack((y_plus, ww))
 
 # %% Compare van Driest transformed mean velocity profile
 # xx = np.arange(27.0, 60.0, 0.25)
@@ -89,17 +135,17 @@ plt.savefig(path2 + 'StreamwiseBLProfile.svg', bbox_inches='tight', pad_inches=0
 #MeanFlow.ExtraSeries('z', z0, z0)
 MeanFlow.AddWallDist(3.0)
 MeanFlow.AddMu(13718)
-x0 = 63.0 #43.0
+x0 = -20.0 #43.0
 # for x0 in xx:
 BLProf = copy.copy(MeanFlow)
 BLProf.ExtraSeries('x', x0, x0)
-# BLProf.SpanAve()
+BLProf.SpanAve()
 u_tau = fv.UTau(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
 Re_tau = BLProf.rho[0]*u_tau/BLProf.mu[0]*2
 print("Re_tau=", Re_tau)
 Re_theta = '2000'
 StdUPlus1, StdUPlus2 = fv.StdWallLaw()
-ExpUPlus = fv.ExpWallLaw(Re_theta)[0]
+#ExpUPlus = fv.ExpWallLaw(Re_theta)[0]
 CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
 fig, ax = plt.subplots(figsize=(5, 4))
 # matplotlib.rc('font', size=textsize)
@@ -122,13 +168,13 @@ plt.tick_params(labelsize='medium')
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 # plt.tick_params(labelsize=numsize)
 plt.savefig(
-    path2 + 'WallLaw' + str(x0) + '.svg', bbox_inches='tight', pad_inches=0.1)
+    pathF + 'WallLaw' + str(x0) + '.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # %% Compare Reynolds stresses in Morkovin scaling
 U_inf = 469.852
-ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
-    fv.ExpWallLaw(Re_theta)
+#ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
+#    fv.ExpWallLaw(Re_theta)
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.scatter(ExpUrmsPlus[:, 0], ExpUrmsPlus[:, 1], linewidth=0.8, \
            s=8.0, facecolor="none", edgecolor='k')
@@ -159,7 +205,7 @@ ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax.grid(b=True, which='both', linestyle=':')
 plt.tick_params(labelsize='medium')
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
-plt.savefig(path2 + 'ReynoldStress' + str(x0) + '.svg',
+plt.savefig(pathF + 'ReynoldStress' + str(x0) + '.svg',
             bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
@@ -168,14 +214,16 @@ MeanFlow.AddWallDist(3.0)
 WallFlow = MeanFlow.DataTab.groupby("x", as_index=False).nth(1)
 WallFlow = WallFlow[WallFlow.x != -0.0078125]
 mu = fv.Viscosity(13718, WallFlow['T'])
-Cf = fv.SkinFriction(mu, WallFlow['u'], WallFlow['walldist'])
-fig2, ax2 = plt.subplots(figsize=(11.0, 2.5))
+Cf = fv.SkinFriction(mu, WallFlow['u'], WallFlow['walldist']).values
+ind = np.where(Cf[:] < 0.005)
+fig2, ax2 = plt.subplots(figsize=(10.0, 3))
 # fig = plt.figure(figsize=(8, 3.5))
 matplotlib.rc('font', size=textsize)
 # plt.tick_params(labelsize=numsize)
 # ax2 = fig.add_subplot(121)
 matplotlib.rc('font', size=textsize)
-ax2.plot(WallFlow['x'], Cf, 'k', linewidth=1.5)
+xwall = WallFlow['x'].values
+ax2.plot(xwall[ind], Cf[ind], 'k', linewidth=1.5)
 ax2.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax2.set_ylabel(r'$\langle C_f \rangle$', fontsize=textsize)
 ax2.set_xlim([-20.0, 40.0])
@@ -184,23 +232,23 @@ ax2.axvline(x=11.0, color='gray', linestyle='--', linewidth=1.0)
 ax2.grid(b=True, which='both', linestyle=':')
 ax2.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
-plt.savefig(path2+'Cf.svg',bbox_inches='tight', pad_inches=0.1)
+plt.savefig(pathF+'Cf.svg',bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # %% pressure coefficiency
 fa = 1.7 * 1.7 * 1.4
-fig3, ax3 = plt.subplots(figsize=(10, 2.5))
+fig3, ax3 = plt.subplots(figsize=(9, 3))
 # ax3 = fig.add_subplot(122)
 ax3.plot(WallFlow['x'], WallFlow['p'] * fa, 'k', linewidth=1.5)
 ax3.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax3.set_ylabel(r'$\langle p_w \rangle/p_{\infty}$', fontsize=textsize)
 ax3.set_xlim([-20.0, 40.0])
 ax3.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
-ax3.axvline(x=10.9, color='gray', linestyle='--', linewidth=1.0)
+ax3.axvline(x=11, color='gray', linestyle='--', linewidth=1.0)
 ax3.grid(b=True, which='both', linestyle=':')
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(path2 + 'Cp.svg', dpi=300)
+plt.savefig(pathF + 'Cp.svg', dpi=300)
 plt.show()
 
 # %% Load data for Computing intermittency factor

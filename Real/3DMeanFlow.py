@@ -36,10 +36,14 @@ font = {'family' : 'Times New Roman',
          'weight' : 'normal',
          }
 
-path = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
-path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
-path2 = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/3AF/"
-path3 = "/media/weibo/Data1/BFS_M1.7L_0505/MeanFlow/"
+path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+pathP = path + "probes/"
+pathF = path + "3AF/Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
+
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 textsize = 22
@@ -54,7 +58,8 @@ MeanFlow = DataPost()
 # MeanFlow.UserData(VarName, path2+'Meanflow.dat', 1, Sep='\t')
 #VarName = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T', 'uu', 'uv',
 #           'uw', 'vv', 'vw', 'ww', 'Q-criterion', 'L2-criterion', 'gradp']
-MeanFlow.UserDataBin(path3+'MeanFlow.h5') #, VarName=VarName)
+MeanFlow.UserDataBin(pathM+'MeanFlow.h5') #, VarName=VarName)
+# MeanFlow = pd.read_hdf(pathM+"MeanFlow.h5")
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x<0.0) & (y<0.0)
 # %% Determine Dividing, Sonic, Boundary, Shock Line
@@ -154,6 +159,7 @@ plt.show()
 """
 
 # %% Plot rho contour of the mean flow field
+MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
 rho  = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 print("rho_max=", np.max(MeanFlow.rho))
 print("rho_min=", np.min(MeanFlow.rho))
@@ -176,16 +182,16 @@ cbar = plt.colorbar(cbar, cax = cbaxes, orientation="horizontal", ticks=rg2)
 cbar.set_label(r'$\langle \rho \rangle/\rho_{\infty}$',
                rotation=0, fontdict=font)
 # Add shock wave
-shock = np.loadtxt(path3+'Shock.dat', skiprows=1)
+shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], 'w', linewidth=1.5)
 # Add sonic line
-sonic = np.loadtxt(path3+'SonicLine.dat', skiprows=1)
+sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
 ax.plot(sonic[:, 0], sonic[:, 1], 'w--', linewidth=1.5)
 # Add boundary layer
-boundary = np.loadtxt(path3+'BoundaryLayer.dat', skiprows=1)
+boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
 ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.5)
 # Add dividing line(separation line)
-dividing = np.loadtxt(path3+'DividingLine.dat', skiprows=1)
+dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.5)
 # streamlines
 x1 = np.linspace(0.0, 12.0, 120)
@@ -198,7 +204,7 @@ v = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.v, (xbox, ybox))
 ax.streamplot(xbox, ybox, u, v, color='w', density=[3.0, 2.0], arrowsize=0.7,
               start_points=seeds.T, maxlength=30.0, linewidth=1.0)
 
-plt.savefig(path2+'MeanFlow.svg', bbox_inches='tight')
+plt.savefig(pathF+'MeanFlow.svg', bbox_inches='tight')
 plt.show()
 
 # %% Plot schematic of the mean flow field
