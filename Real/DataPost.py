@@ -24,11 +24,20 @@ from numpy import NaN, Inf, arange, isscalar, asarray, array
 import time
 import sys
 import re
+import os
+import plt2pandas as p2p
 
 class DataPost(object):
     def __init__(self):
         pass
         self._DataTab = pd.DataFrame()
+        self.MeanFlow = pd.DataFrame()
+        self.TriFlow = pd.DataFrame()
+        self.ProbeSignal = pd.DataFrame()
+
+    def add_variable(frame, var_name, var_val):
+        frame[var_name] = var_val
+
 
     def LoadData(self, Infile, skiprows = None, \
                  Sep = None, Uniq = True):
@@ -202,20 +211,40 @@ class DataPost(object):
         return self._DataTab['u'].values
 
     @property
+    def u_m(self):
+        return self._DataTab['<u>'].values
+
+    @property
     def v(self):
         return self._DataTab['v'].values
+
+    @property
+    def v_m(self):
+        return self._DataTab['<v>'].values
 
     @property
     def w(self):
         return self._DataTab['w'].values
 
     @property
+    def w_m(self):
+        return self._DataTab['<w>'].values
+
+    @property
     def rho(self):
         return self._DataTab['rho'].values
 
     @property
+    def rho_m(self):
+        return self._DataTab['<rho>'].values
+
+    @property
     def p(self):
         return self._DataTab['p'].values
+
+    @property
+    def p_m(self):
+        return self._DataTab['<p>'].values
 
     @property
     def Mach(self):
@@ -230,31 +259,35 @@ class DataPost(object):
         return self._DataTab['mu'].values
 
     @property
+    def mu_m(self):
+        return self._DataTab['<mu>'].values
+
+    @property
     def walldist(self):
         return self._DataTab['walldist'].values
 
     @property
     def uu(self):
-        return self._DataTab['uu'].values
+        return self._DataTab['<u`u`>'].values
     @property
     def vv(self):
-        return self._DataTab['vv'].values
+        return self._DataTab['<v`v`>'].values
 
     @property
     def ww(self):
-        return self._DataTab['ww'].values
+        return self._DataTab['<w`w`>'].values
 
     @property
     def uv(self):
-        return self._DataTab['uv'].values
+        return self._DataTab['<u`v`>'].values
 
     @property
     def uw(self):
-        return self._DataTab['uw'].values
+        return self._DataTab['<u`w`>'].values
 
     @property
     def vw(self):
-        return self._DataTab['vw'].values
+        return self._DataTab['<v`w`>'].values
 
     @property
     def UGrad(self):
@@ -280,6 +313,17 @@ class DataPost(object):
     def L2crit(self):
         return self._DataTab['L2-criterion'].values
 
+    def LoadMeanFlow(self, path):
+        exists = os.path.isfile(path + 'MeanFlow/MeanFlow.h5')
+        if exists:
+            self._DataTab = pd.read_hdf(path + 'MeanFlow/MeanFlow.h5')
+        else:
+            df = p2p.ReadAllINCAResults(44, path + 'TP_stat/',
+                                        path + 'MeanFlow/',
+                                        SpanAve=True,
+                                        OutFile='MeanFlow')
+            self._DataTab = df
+        
 #   Obtain variables profile with an equal value (x, y, or z)
     def IsoProfile2D (self, qx, Iso_qx, qy):
         assert isinstance(qx, str), \

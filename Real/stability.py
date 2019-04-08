@@ -178,10 +178,21 @@ dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)[:-2, :]
 #y0 = np.arange(0.0625, 1.3125, 0.03125)*(-1)
 #x1 = np.arange(5.0, 11.25, 4*0.0625)
 #y1 = np.arange(1.3125, 2.875, 0.0625)*(-1)
-#x2 = np.arange(11.1875, 50.0+0.0625, 0.0625)
-#y2 = np.ones(np.size(x2))*(-2.875)
-#xx = np.concatenate((x0, x1, x2), axis=0)
-#yy = np.concatenate((y0, y1, y2), axis=0)
+x2 = np.arange(11.1875, 50.0+0.0625, 0.0625)
+y2 = np.ones(np.size(x2))*(-2.99342)
+x3 = np.concatenate((dividing[:,0], x2), axis=0)
+y3 = np.concatenate((dividing[:,1], y2), axis=0)
+xx = np.zeros(np.size(x3))
+yy = np.zeros(np.size(y3))
+frame1 = fluc.loc[fluc['z'] == 0, ['x', 'y']]
+frame2 = frame1.query("x>=0.0 & y<=3.0")
+xmesh = frame2['x'].values
+ymesh = frame2['y'].values
+for i in range(np.size(x3)):
+    variance = np.sqrt(np.square(xmesh - x3[i]) + np.square(ymesh - y3[i]))
+    idx = np.where(variance == np.min(variance))[0][0]
+    xx[i] = xmesh[idx]
+    yy[i] = ymesh[idx]
 grouped = fluc.groupby(['x', 'y'])
 pert1 = grouped.mean().reset_index()
 xmesh, ymesh = np.meshgrid(dividing[:, 0], dividing[:, 1])
@@ -267,11 +278,6 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$\sqrt{u^{\prime 2}}/u_{\infty}$", fontsize=textsize)
 ax.plot(xval, np.sqrt(var1), 'k')
 ax.set_xlim([-0.5, 20.5])
-# ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
-# ax.axvline(x=3.4, linewidth=1.0, linestyle='--', color='k')
-# ax.axvline(x=6.6, linewidth=1.0, linestyle='--', color='k')
-# ax.axvline(x=9.0, linewidth=1.0, linestyle='--', color='k')
-# ax.axvline(x=11.4, linewidth=1.0, linestyle='--', color='k')
 #ax.plot(pert['x'], np.sqrt(pert['<u`u`>']))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 # ax.grid(b=True, which="both", linestyle=":")
@@ -312,7 +318,7 @@ grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
 var = 'p'    
 fa = 1.7*1.7*1.4
-timepoints = np.arange(800.0, 1149.5 + 0.5, 0.5)
+timepoints = np.arange(800, 1149.5 + 0.5, 0.5)
 Snapshots = DataFrame[['x', 'y', 'z', var]]
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
@@ -352,10 +358,10 @@ plt.savefig(pathF + "RMSMap.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
     
 # %% compute
-#x0 = xx
-#y0 = yy
-x0 = xnew
-y0 = ynew
+x0 = xx
+y0 = yy
+#x0 = xnew
+#y0 = ynew
 # FPSD = np.zeros((np.ceil(np.size(timepoints)/freq_samp), np.size(x0)))
 FPSD = np.zeros((int(np.size(timepoints)/freq_samp), np.size(x0)))
 for i in range(np.size(x0)):
@@ -364,15 +370,17 @@ for i in range(np.size(x0)):
 
 # %% Plot WSPD map along the streamwise
 SumFPSD = np.sum(FPSD, axis=0)
-FPSD1 = FPSD/SumFPSD
+FPSD1 = np.log(FPSD/SumFPSD)
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-fig, ax = plt.subplots(figsize=(10, 4))
+fig, ax = plt.subplots(figsize=(8, 3.5))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 print(np.max(FPSD1))
-lev = np.linspace(0.0, 0.10, 41)
+print(np.min(FPSD1))
+lev = np.linspace(-10, -2, 41)
+# lev = np.linspace(0.0, 0.1, 41)
 cbar = ax.contourf(x0, freq, FPSD1, cmap='gray_r', levels=lev)
 # ax.axvline(x=10.9, color="k", linestyle="--", linewidth=1.0)
 ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
@@ -382,12 +390,13 @@ ax.axvline(x=9.7, linewidth=1.0, linestyle='--', color='k')
 ax.axvline(x=12., linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
 ax.set_xlim([0.0, 30.0])
-rg = np.linspace(0.0, 0.10, 5)
+rg = np.linspace(-10, -2, 5)
+# rg = np.linspace(0.0, 0.1, 5)
 cbar = plt.colorbar(cbar, ticks=rg)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.update_ticks()
-barlabel = r'$f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d} f$'
+barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
 cbar.set_label(barlabel, rotation=90, fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)

@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import warnings
 import pandas as pd
-from DataPost import DataPost
+# from DataPost import DataPost
 from scipy.interpolate import interp1d, griddata
 from scipy.integrate import trapz, simps
 import scipy.optimize
@@ -177,9 +177,9 @@ def FW_PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
 
 
 def FW_PSD_Map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
-    frame1 = orig.loc[orig['x'] == xyz[0]]
+    frame1 = orig.loc[np.around(orig['x'], 5) == np.around(xyz[0], 5)]
     # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
-    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    frame2 = frame1.loc[np.around(frame1['y'], 5) == np.around(xyz[1], 5)]
     orig = frame2.loc[frame2['z'] == xyz[2]]
     varzone = orig[var]
     Freq, FPSD = FW_PSD(varzone, dt, Freq_samp,
@@ -325,8 +325,10 @@ def ExpWallLaw(Re_theta):
 
 
 def UTau(walldist, u, rho, mu):
-    rho_wall = rho[1]
-    mu_wall = mu[1]
+    if (walldist[0] != 0):
+        sys.exit('Please reset wall distance from zero!!!')
+    rho_wall = rho[0]
+    mu_wall = mu[0]
     tau_wall = mu_wall * u[1] / walldist[1]
     u_tau = np.sqrt(np.abs(tau_wall / rho_wall))
     return u_tau
@@ -338,9 +340,11 @@ def UTau(walldist, u, rho, mu):
 def DirestWallLaw(walldist, u, rho, mu):
     if (np.diff(walldist) < 0.0).any():
         sys.exit("the WallDist must be in ascending order!!!")
+    if (walldist[0] != 0):
+        sys.exit('Please reset wall distance from zero!!!')
     m = np.size(u)
-    rho_wall = rho[1]
-    mu_wall = mu[1]
+    rho_wall = rho[0]
+    mu_wall = mu[0]
     u_tau = UTau(walldist, u, rho, mu)
     u_van = np.zeros(m)
     for i in range(m):
@@ -348,6 +352,8 @@ def DirestWallLaw(walldist, u, rho, mu):
     u_plus_van = u_van / u_tau
     y_plus = u_tau * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
+    y_plus[0] = 1
+    u_plus_van[0] = 1
     UPlusVan = np.column_stack((y_plus, u_plus_van))
     return UPlusVan
 

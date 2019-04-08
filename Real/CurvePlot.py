@@ -68,7 +68,8 @@ VarName = [
 ]
 
 MeanFlow = DataPost()
-MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
+MeanFlow.LoadMeanFlow(path)
+# MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
 # MeanFlow.UserData(VarName, path4 + "MeanFlow2.dat", 1, Sep="\t")
 MeanFlow.AddWallDist(3.0)
 
@@ -106,14 +107,45 @@ plt.savefig(
     pathF + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
 )
 
+# %% Compute reference data
+ExpData = np.loadtxt(path + "vel_1060_LES_M1p6.dat", skiprows=14)
+m, n = ExpData.shape
+y_delta = ExpData[:, 0]
+u = ExpData[:, 1]
+rho = ExpData[:, 3]
+T = ExpData[:, 4]   # how it normalized?
+urms = ExpData[:, 5]
+vrms = ExpData[:, 6]
+wrms = ExpData[:, 7]
+uv = ExpData[:, 8]
+mu = 1.0/13506*np.power(T, 0.75)
+u_tau = fv.UTau(y_delta, u, rho, mu)
+Re_tau = rho[0]*u_tau/mu[0]*2
+ExpUPlus = fv.DirestWallLaw(y_delta, u, rho, mu)
+xi = np.sqrt(rho / rho[0])
+U_inf = 1.6 * np.sqrt(1.4*288*200)
+uu = xi * np.sqrt(urms * U_inf) 
+vv = xi * np.sqrt(vrms * U_inf) 
+ww = xi * np.sqrt(wrms * U_inf) 
+uv = xi * np.sqrt(np.abs(uv) * U_inf) * (-1)
+y_plus = ExpUPlus[:, 0]
+ExpUVPlus = np.column_stack((y_plus, uv))
+ExpUrmsPlus = np.column_stack((y_plus, uu))
+ExpVrmsPlus = np.column_stack((y_plus, vv))
+ExpWrmsPlus = np.column_stack((y_plus, ww))
+
 # %% Compare van Driest transformed mean velocity profile
 # xx = np.arange(27.0, 60.0, 0.25)
 # z0 = -0.5
 # MeanFlow.UserDataBin(path + 'MeanFlow4.h5')
 # MeanFlow.ExtraSeries('z', z0, z0)
+MeanFlow.AddVariable('u', MeanFlow.DataTab['<u>'])
+MeanFlow.AddVariable('rho', MeanFlow.DataTab['<rho>'])
+MeanFlow.AddVariable('mu', MeanFlow.DataTab['<mu>'])
+MeanFlow.AddVariable('T', MeanFlow.DataTab['<T>'])
 MeanFlow.AddWallDist(3.0)
 MeanFlow.AddMu(13718)
-x0 = -20.0 #43.0
+x0 = -10.0 #43.0
 # for x0 in xx:
 BLProf = copy.copy(MeanFlow)
 BLProf.ExtraSeries('x', x0, x0)
@@ -164,6 +196,10 @@ plt.show()
 
 # %% Compare Reynolds stresses in Morkovin scaling
 U_inf = 469.852
+BLProf.AddVariable('uu', BLProf.DataTab['<u`u`>'])
+BLProf.AddVariable('vv', BLProf.DataTab['<v`v`>'])
+BLProf.AddVariable('ww', BLProf.DataTab['<w`w`>'])
+BLProf.AddVariable('uv', BLProf.DataTab['<u`v`>'])
 #ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
 #    fv.ExpWallLaw(Re_theta)
 fig, ax = plt.subplots(figsize=(5, 4))
