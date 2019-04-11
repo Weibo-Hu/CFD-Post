@@ -20,6 +20,7 @@ import FlowVar as fv
 from timer import timer
 import sys
 import os
+from planarfield import PlanarField as pf
 
 plt.close("All")
 plt.rc("text", usetex=True)

@@ -14,10 +14,11 @@ import matplotlib
 import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, splev, splrep
 import copy
-from DataPost import DataPost
-import FlowVar as fv
+from data_post import DataPost
+import variable_analysis as fv
 from timer import timer
 import os
+from planar_field import PlanarField as pf
 
 plt.close("All")
 plt.rc("text", usetex=True)
@@ -31,7 +32,7 @@ font1 = {
     "weight": "normal",
     "size": "medium",
 }
-path = "/media/weibo/Data2/DF_example/8/"
+path = "/media/weibo/Data2/DF_example/test/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -68,7 +69,9 @@ VarName = [
 ]
 
 MeanFlow = DataPost()
-MeanFlow.LoadMeanFlow(path)
+MeanFlow.LoadMeanFlow(path, nfiles=15)
+meanflow = pf()
+# meanflow.load_meanflow(path, nfiles=49)
 # MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
 # MeanFlow.UserData(VarName, path4 + "MeanFlow2.dat", 1, Sep="\t")
 MeanFlow.AddWallDist(3.0)
@@ -108,7 +111,7 @@ plt.savefig(
 )
 
 # %% Compute reference data
-ExpData = np.loadtxt(path + "vel_1060_LES_M1p6.dat", skiprows=14)
+ExpData = np.loadtxt(path + "vel_1060_LES_M1p6.dat", skiprows=0)
 m, n = ExpData.shape
 y_delta = ExpData[:, 0]
 u = ExpData[:, 1]
@@ -120,14 +123,13 @@ wrms = ExpData[:, 7]
 uv = ExpData[:, 8]
 mu = 1.0/13506*np.power(T, 0.75)
 u_tau = fv.UTau(y_delta, u, rho, mu)
-Re_tau = rho[0]*u_tau/mu[0]*2
+Re_tau = rho[0]*u_tau/mu[0]
 ExpUPlus = fv.DirestWallLaw(y_delta, u, rho, mu)
 xi = np.sqrt(rho / rho[0])
-U_inf = 1.6 * np.sqrt(1.4*288*200)
-uu = xi * np.sqrt(urms * U_inf) 
-vv = xi * np.sqrt(vrms * U_inf) 
-ww = xi * np.sqrt(wrms * U_inf) 
-uv = xi * np.sqrt(np.abs(uv) * U_inf) * (-1)
+uu = np.sqrt(urms) / u_tau * xi
+vv = np.sqrt(vrms) / u_tau * xi
+ww = np.sqrt(wrms) / u_tau * xi
+uv = np.sqrt(np.abs(uv)) / u_tau * xi * (-1)
 y_plus = ExpUPlus[:, 0]
 ExpUVPlus = np.column_stack((y_plus, uv))
 ExpUrmsPlus = np.column_stack((y_plus, uu))
@@ -139,24 +141,30 @@ ExpWrmsPlus = np.column_stack((y_plus, ww))
 # z0 = -0.5
 # MeanFlow.UserDataBin(path + 'MeanFlow4.h5')
 # MeanFlow.ExtraSeries('z', z0, z0)
+
 MeanFlow.AddVariable('u', MeanFlow.DataTab['<u>'])
 MeanFlow.AddVariable('rho', MeanFlow.DataTab['<rho>'])
 MeanFlow.AddVariable('mu', MeanFlow.DataTab['<mu>'])
 MeanFlow.AddVariable('T', MeanFlow.DataTab['<T>'])
-MeanFlow.AddWallDist(3.0)
+MeanFlow.AddWallDist(0.0)
 MeanFlow.AddMu(13718)
-x0 = -10.0 #43.0
+x0 = 25 #43.0
 # for x0 in xx:
 BLProf = copy.copy(MeanFlow)
 BLProf.ExtraSeries('x', x0, x0)
-BLProf.SpanAve()
-u_tau = fv.UTau(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
-Re_tau = BLProf.rho[0] * u_tau / BLProf.mu[0] * 2
+#%%
+MeanFlow = pf()
+MeanFlow.load_meanflow(path, nfiles=15)
+x0 = 20
+BLProf = MeanFlow.yprofile('x', x0)
+BLProf['walldist'] = BLProf['y'].values + 0.0
+u_tau = fv.u_tau(BLProf, option='mean')
+Re_tau = BLProf['<rho>'][0] * u_tau / BLProf['<mu>'][0]
 print("Re_tau=", Re_tau)
-Re_theta = "2000"
-StdUPlus1, StdUPlus2 = fv.StdWallLaw()
-#ExpUPlus = fv.ExpWallLaw(Re_theta)[0]
-CalUPlus = fv.DirestWallLaw(BLProf.walldist, BLProf.u, BLProf.rho, BLProf.mu)
+Re_theta = 1800
+StdUPlus1, StdUPlus2 = fv.std_wall_law()
+ExpUPlus = fv.ref_wall_law(Re_theta)[0]
+CalUPlus = fv.direst_transform(BLProf, option='mean')
 fig, ax = plt.subplots(figsize=(5, 4))
 # matplotlib.rc('font', size=textsize)
 ax.plot(
@@ -195,13 +203,8 @@ plt.savefig(
 plt.show()
 
 # %% Compare Reynolds stresses in Morkovin scaling
-U_inf = 469.852
-BLProf.AddVariable('uu', BLProf.DataTab['<u`u`>'])
-BLProf.AddVariable('vv', BLProf.DataTab['<v`v`>'])
-BLProf.AddVariable('ww', BLProf.DataTab['<w`w`>'])
-BLProf.AddVariable('uv', BLProf.DataTab['<u`v`>'])
-#ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
-#    fv.ExpWallLaw(Re_theta)
+ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
+    fv.ref_wall_law(Re_theta)
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.scatter(
     ExpUrmsPlus[:, 0],
@@ -235,12 +238,11 @@ ax.scatter(
     facecolor="none",
     edgecolor="gray",
 )
-xi = np.sqrt(BLProf.rho / BLProf.rho[0])
-# UUPlus = BLProf.uu / u_tau
-uu = xi * np.sqrt(BLProf.uu * U_inf)
-vv = xi * np.sqrt(BLProf.vv * U_inf)
-ww = xi * np.sqrt(BLProf.ww * U_inf)
-uv = xi * np.sqrt(np.abs(BLProf.uv) * U_inf) * (-1)
+xi = np.sqrt(BLProf['<rho>'] / BLProf['<rho>'][0])
+uu = np.sqrt(BLProf['<u`u`>']) / u_tau * xi
+vv = np.sqrt(BLProf['<v`v`>']) / u_tau * xi
+ww = np.sqrt(BLProf['<w`w`>']) / u_tau * xi
+uv = BLProf['<u`v`>'] / u_tau**2 * xi**2
 # spl = splrep(CalUPlus[:, 0], uu, s=0.1)
 # uu = splev(CalUPlus[:, 0], spl)
 ax.plot(CalUPlus[:, 0], uu, "k", linewidth=1.5)

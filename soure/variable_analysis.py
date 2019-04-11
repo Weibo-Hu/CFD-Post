@@ -288,7 +288,7 @@ def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
 
 
 # Obtain the standard law of wall (turbulence)
-def StdWallLaw():
+def std_wall_law():
     ConstK = 0.41
     ConstC = 5.2
     yplus1 = np.arange(1, 15, 0.1)  # viscous sublayer velocity profile
@@ -303,13 +303,37 @@ def StdWallLaw():
 # Draw reference experimental data of turbulence
 # 0y/\delta_{99}, 1y+, 2U+, 3urms+, 4vrms+, 5wrms+, 6uv+, 7prms+, 8pu+,
 # 9pv+, 10S(u), 11F(u), 12dU+/dy+, 13V+, 14omxrms^+, 15omyrms^+, 16omzrms^+
-def ExpWallLaw(Re_theta):
-    if isinstance(Re_theta, str):
-        ExpData = np.loadtxt("vel_" + Re_theta + "_dns.prof", skiprows=14)
+def ref_wall_law(Re_theta):
+    path = os.path.abspath('..') + '/database/'
+    if Re_theta <= 830:
+        file = path + 'vel_0670_dns.prof'
+    elif 830 < Re_theta <= 1200:
+        file = path + 'vel_1000_dns.prof'
+    elif 1200 < Re_theta <= 1700:
+        file = path + 'vel_1410_dns.prof'
+    elif 1700 < Re_theta <= 2075:
+        file = path + 'vel_2000_dns.prof'
+    elif 2075 < Re_theta <= 2300:
+        file = path + 'vel_2150_dns.prof'
+    elif 2300 < Re_theta <= 2500:
+        file = path + 'vel_2400_dns.prof'
+    elif 2500 < Re_theta <= 2800:
+        file = path + 'vel_2540_dns.prof'
+    elif 2800 < Re_theta <= 3150:
+        file = path + 'vel_3030_dns.prof'
+    elif 3150 < Re_theta <= 3450:
+        file = path + 'vel_3270_dns.prof'
+    elif 3450 < Re_theta <= 3800:
+        file = path + 'vel_3630_dns.prof'
+    elif 3800 < Re_theta <= 4000:
+        file = path + 'vel_3970_dns.prof'
     else:
-        sys.exit("Re_theta must be a string!!!")
+        file = path + 'vel_4060_dns.prof'
+
+    print('Take reference data: ' + file)
+    ExpData = np.loadtxt(file, skiprows=14)
     m, n = ExpData.shape
-    y_delta = ExpData[:, 0]
+    # y_delta = ExpData[:, 0]
     y_plus = ExpData[:, 1]
     u_plus = ExpData[:, 2]
     urms_plus = ExpData[:, 3]
@@ -323,21 +347,61 @@ def ExpWallLaw(Re_theta):
     WrmsPlus = np.column_stack((y_plus, wrms_plus))
     return (UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
 
+def re_theta(frame, option):
+    re = frame.re * frame.theta
+    return (re_theat)
 
-def UTau(walldist, u, rho, mu):
-    if (walldist[0] != 0):
-        sys.exit('Please reset wall distance from zero!!!')
-    rho_wall = rho[0]
-    mu_wall = mu[0]
-    tau_wall = mu_wall * u[1] / walldist[1]
-    u_tau = np.sqrt(np.abs(tau_wall / rho_wall))
-    return u_tau
+def u_tau(frame, option='mean'):
+    """
+    input
+    ------
+        boundary layer profile
+    return
+    ------
+        friction/shear velocity from mean or instantaneous flow
+    """
+    if (frame['walldist'].values[0] != 0):
+        sys.exit('Please reset wall distance/velocity from zero!!!')
+    if option == 'mean':
+#       rho_wall = frame['rho_m'].values[0]
+#       mu_wall = frame['mu_m'].values[0]
+#       delta_u = frame['u_m'].values[1] - frame['u_m'].values[0]
+        rho_wall = frame['<rho>'].values[0]
+        mu_wall = frame['<mu>'].values[0]
+        delta_u = frame['<u>'].values[1] - frame['<u>'].values[0]
+    else:
+        rho_wall = frame['rho'].values[0]
+        mu_wall = frame['mu'].values[0]
+        delta_u = frame['u'].values[1] - frame['u'].values[0]
+
+    tau_wall = mu_wall * delta_u / frame['walldist'].values[1]
+    shear_velocity = np.sqrt(np.abs(tau_wall / rho_wall))
+    return (shear_velocity)
 
 
 # This code validate boundary layer profile by
 # incompressible, Van Direst transformed
 # boundary profile from mean reults
-def DirestWallLaw(walldist, u, rho, mu):
+def direst_transform(frame, option='mean'):
+    """
+    This code validate boundary layer profile by
+    incompressible, Van Direst transformed
+    boundary profile from mean reults
+    """
+    if option == 'mean':
+        walldist = frame['walldist'].values
+#       u = frame['u_m']
+#       rho = frame['rho_m']
+#       mu = frame['mu_m']
+        u = frame['<u>']
+        rho = frame['<rho>']
+        mu = frame['<mu>']
+    else:
+        walldist = frame['walldist'].values
+        u = frame['u']
+        rho = frame['rho']
+        mu = frame['mu']
+
     if (np.diff(walldist) < 0.0).any():
         sys.exit("the WallDist must be in ascending order!!!")
     if (walldist[0] != 0):
@@ -345,18 +409,35 @@ def DirestWallLaw(walldist, u, rho, mu):
     m = np.size(u)
     rho_wall = rho[0]
     mu_wall = mu[0]
-    u_tau = UTau(walldist, u, rho, mu)
+    shear_velocity = u_tau(frame, option=option)
     u_van = np.zeros(m)
     for i in range(m):
         u_van[i] = np.trapz(rho[: i + 1] / rho_wall, u[: i + 1])
-    u_plus_van = u_van / u_tau
-    y_plus = u_tau * walldist * rho_wall / mu_wall
+    u_plus_van = u_van / shear_velocity
+    y_plus = shear_velocity * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
     y_plus[0] = 1
     u_plus_van[0] = 1
     UPlusVan = np.column_stack((y_plus, u_plus_van))
-    return UPlusVan
+    return (UPlusVan)
 
+def DirestWallLawRR(walldist, u_tau, uu, rho):
+    if (np.diff(walldist) < 0.0).any():
+        sys.exit("the WallDist must be in ascending order!!!")
+    if (walldist[0] != 0):
+        sys.exit('Please reset wall distance from zero!!!')
+    m = np.size(uu)
+    rho_wall = rho[0]
+    uu_van = np.zeros(m)
+    for i in range(m):
+        uu_van[i] = np.trapz(rho[: i + 1] / rho_wall, uu[: i + 1])
+    uu_plus_van = uu_van / u_tau
+    # y_plus = u_tau * walldist * rho_wall / mu_wall
+    # return(y_plus, u_plus_van)
+    # y_plus[0] = 1
+    # u_plus_van[0] = 1
+    # UPlusVan = np.column_stack((y_plus, u_plus_van))
+    return uu_plus_van
 
 # Obtain reattachment location with time
 def ReattachLoc(InFolder, OutFolder, timezone, opt=2):

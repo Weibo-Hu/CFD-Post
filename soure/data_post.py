@@ -313,12 +313,12 @@ class DataPost(object):
     def L2crit(self):
         return self._DataTab['L2-criterion'].values
 
-    def LoadMeanFlow(self, path):
+    def LoadMeanFlow(self, path, nfiles=44):
         exists = os.path.isfile(path + 'MeanFlow/MeanFlow.h5')
         if exists:
             self._DataTab = pd.read_hdf(path + 'MeanFlow/MeanFlow.h5')
         else:
-            df = p2p.ReadAllINCAResults(44, path + 'TP_stat/',
+            df = p2p.ReadAllINCAResults(nfiles, path + 'TP_stat/',
                                         path + 'MeanFlow/',
                                         SpanAve=True,
                                         OutFile='MeanFlow')
