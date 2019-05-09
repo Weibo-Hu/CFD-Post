@@ -12,74 +12,75 @@ import sys
 class LineField(object):
     def __init__(self):
         """ """
+        self._data_field = pd.DataFrame()
         self.ProbeSignal = pd.DataFrame()
 
     @property
     def ProbeSignal(self):
-        return self._ProbeSignal
+        return self._data_field
 
     @ProbeSignal.setter
     def ProbeSignal(self, frame):
         assert isinstance(frame, pd.DataFrame)
-        self._ProbeSignal = frame
+        self._data_field = frame
 
     @property
     def x(self):
-        return self.ProbeSignal['x'].values
+        return self._data_field['x'].values
 
     @property
     def y(self):
-        return self.ProbeSignal['y'].values
+        return self._data_field['y'].values
 
     @property
     def z(self):
-        return self.ProbeSignal['z'].values
+        return self._data_field['z'].values
 
     @property
     def time(self):
-        return self.ProbeSignal['Solution Time'].values
+        return self._data_field['Solution Time'].values
 
     @property
     def walldist(self):
-        return self.ProbeSignal['walldist'].values
+        return self._data_field['walldist'].values
 
     @property
     def u(self):
-        return self.ProbeSignal['u'].values
+        return self._data_field['u'].values
 
     @property
     def v(self):
-        return self.ProbeSignal['v'].values
+        return self._data_field['v'].values
 
     @property
     def w(self):
-        return self.ProbeSignal['w'].values
+        return self._data_field['w'].values
 
     @property
     def rho(self):
-        return self.ProbeSignal['rho'].values
+        return self._data_field['rho'].values
 
     @property
     def p(self):
-        return self.ProbeSignal['p'].values
+        return self._data_field['p'].values
 
     @property
     def Mach(self):
-        return self.ProbeSignal['Mach'].values
+        return self._data_field['Mach'].values
 
     @property
     def T(self):
-        return self.ProbeSignal['T'].values
+        return self._data_field['T'].values
 
     @property
     def mu(self):
-        return self.ProbeSignal['mu'].values
+        return self._data_field['mu'].values
 
     def add_variable(self, var_name, var_val):
-        if var_name in self.ProbeSignal.columns:
+        if var_name in self._data_field.columns:
             sys.exit(var_name + "is already in dataframe")
         else:
-            self.ProbeSignal[var_name] = var_val
+            self._data_field[var_name] = var_val
 
     @classmethod
     def uniq1d(cls, frame, var_name):

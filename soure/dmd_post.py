@@ -9,7 +9,6 @@ Created on Thu Sep 27 16:59:58 2018
 # %% Load necessary module
 import matplotlib
 import matplotlib.pyplot as plt
-import pylab as pl
 import matplotlib.animation as animation
 from matplotlib import gridspec
 import numpy as np
@@ -19,9 +18,23 @@ from DMD import DMD
 from scipy.interpolate import griddata
 from sparse_dmd import dmd, sparse
 import os
+from glob import glob
 import sys
 import plt2pandas as p2p
-import types
+
+
+# %% data path settings
+path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+pathP = path + "probes/"
+pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
+pathV = path + 'video/'
+pathD = path + 'DMD/'
+
+# %% figures properties settings
 plt.close("All")
 plt.rc('text', usetex=True)
 font = {
@@ -30,26 +43,20 @@ font = {
 }
 
 matplotlib.rc('font', **font)
-textsize = 24
-numsize = 20
+textsize = 18
+numsize = 15
 
 # %% load data
-path = "/media/weibo/Data3/BFS_M1.7L_0505/"
-pathSN = "/media/weibo/Data3/BFS_M1.7L_0505/Snapshots/"
-pathF = "Figures/"
-pathI = "Instant/"
-pathM = path+"MeanFlow/"
-pathV = path+"video/"
-pathD = path + "DMD/"
 timepoints = np.arange(800, 1149.50 + 0.5, 0.5)
-dirs = sorted(os.listdir(pathSN))
+dirs = glob(pathS+'*.h5')
+dirs.sort( key=lambda f: int(''.join(filter(str.isdigit, f))) )
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
-DataFrame = pd.read_hdf(pathSN + dirs[0])
+# preload
+DataFrame = pd.read_hdf(dirs[0])
 DataFrame['walldist'] = DataFrame['y']
 DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
 NewFrame = DataFrame.query("x>=-5.0 & x<=45.0 & walldist>=0.0 & y<=5.0")
-#NewFrame = DataFrame.query("x>=9.0 & x<=13.0 & y>=-3.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = DataFrame['x'][ind] # NewFrame['x']
 yval = DataFrame['y'][ind] # NewFrame['y']
@@ -58,9 +65,7 @@ x1 = -5.0
 x2 = 25.0
 y1 = -3.0
 y2 = 5.0
-#with timer("Load Data"):
-#    Snapshots = np.vstack(
-#        [pd.read_hdf(InFolder + dirs[i])['u'] for i in range(np.size(dirs))])
+# load data
 var0 = 'u'
 var1 = 'v'
 var2 = 'p'
@@ -70,7 +75,7 @@ FirstFrame = DataFrame[col].values
 Snapshots = FirstFrame[ind].ravel(order='F')
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
-        TempFrame = pd.read_hdf(pathSN + dirs[i+1])
+        TempFrame = pd.read_hdf(dirs[i+1])
         if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
         NextFrame = TempFrame[col].values
@@ -92,13 +97,21 @@ varset = { var0: [0, m],
            var1: [m, 2*m],
            var2: [2*m, 3*m]
         }
-# Snapshots1 = Snapshots[:, :-1]
 dt = 0.5
 bfs = dmd.DMD(Snapshots, dt=dt)
 with timer("DMD computing"):
     bfs.compute()
 print("The residuals of DMD is ", bfs.residuals)
 eigval = bfs.eigval
+# save results
+meanflow.to_hdf(pathD + 'MeanFlow.h5', 'w', format='fixed')
+
+np.save(pathD + 'eigval', bfs.eigval) # \mu
+np.save(pathD + 'modes', bfs.modes) # \phi
+np.save(pathD + 'lambda', bfs.frequencies) # \lambda
+np.save(pathD + 'omega', bfs.omega) # Imag(\lambda)
+np.save(pathD + 'beta', bfs.beta) # Real(\lambda)
+np.save(pathD + 'amplitudes', bfs.amplitudes) # \alpha
 
 # %% SPDMD
 bfs1 = sparse.SparseDMD(Snapshots, bfs, dt=dt)
@@ -113,6 +126,11 @@ bfs1.sparse.Nz[sp]
 bfs1.sparse.gamma[sp] 
 r = np.size(eigval)
 sp_ind = np.arange(r)[bfs1.sparse.nonzero[:, sp]]
+
+np.savez(pathD + 'sparse.npz',
+         Nz=bfs1.sparse.Nz,
+         gamma=bfs1.sparse.gamma,
+         nonzero=bfs1.sparse.nonzero)
 
 # %% Eigvalue Spectrum
 var = var0

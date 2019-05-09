@@ -65,27 +65,34 @@ def Viscosity(Re_delta, T):
 
 # Obtain BL thickness, momentum thickness, displacement thickness
 def BLThickness(y, u, rho=None, opt=None):
-    ind1 = np.where(u[:] > 0.98)
-    err = np.diff(u)
-    ind2 = np.where(np.abs(err[:]) < 0.01)
-    ind = np.intersect1d(ind1, ind2)[0]
-    delta = y[ind]
-    u_d = u[ind]
+    ind = np.argsort(y) # sort y from small to large
+    bc = int(np.rint(np.size(y) * 0.9))
+    y1 = y[ind][:bc] # remove the part near the farfield boundary conditions
+    u1 = u[ind][:bc] # remove the part near the farfield boundary conditions
+    bl = np.where(u1[:] >= 0.99)[0][0]
+    if np.size(bl) == 0:
+        sys.exit('This is not a complete boundary layer profile!!!')
+    delta = y1[bl]
+    u_d = u1[bl]
     if opt == None:
-        return delta
+        return(delta, u_d)
     elif opt == 'displacement':
-        rho_d = rho[ind]
-        a1 = rho*u/rho_d/u_d
-        var = 1-a1[:ind]
-        delta_star = np.trapz(var, y[:ind])
-        return(delta_star)
+        rho1 = rho[ind][:bc]
+        rho_d = np.max(rho1)
+        u_d = np.max(u1)
+        a1 = rho1*u1/rho_d/u_d
+        var = 1-a1
+        delta_star = np.trapz(var, y1)
+        return(delta_star, u_d, rho_d)
     elif opt == 'momentum':
-        rho_d = rho[ind]
-        a1 = 1-u/u_d
-        a2 = rho*u/rho_d/u_d
-        var = a1[:ind]*a2[:ind]
-        theta = np.trapz(var, y[:ind])
-        return theta
+        rho1 = rho[ind][:bc]
+        rho_d = np.max(rho1)
+        u_d = np.max(u1)
+        a1 = 1-u1/u_d
+        a2 = rho1*u1/rho_d/u_d
+        var = a1 * a2
+        theta = np.trapz(var, y1)
+        return(theta, u_d, rho_d)
     
 
 # Obtain radius of curvature

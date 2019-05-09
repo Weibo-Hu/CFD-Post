@@ -20,6 +20,17 @@ from timer import timer
 import os
 from planar_field import PlanarField as pf
 
+
+# %% data path settings
+path = "/media/weibo/Data2/DF_test/digital_filter_inflow/"
+pathP = path + "probes/"
+pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
+
+# %% figures properties settings
 plt.close("All")
 plt.rc("text", usetex=True)
 font = {
@@ -27,25 +38,11 @@ font = {
     "weight": "normal",
     "size": "large",
 }
-font1 = {
-    "family": "Times New Roman",  # 'color' : 'k',
-    "weight": "normal",
-    "size": "medium",
-}
-path = "/media/weibo/Data2/DF_example/test/"
-pathP = path + "probes/"
-pathF = path + "Figures/"
-pathM = path + "MeanFlow/"
-pathS = path + "SpanAve/"
-pathT = path + "TimeAve/"
-pathI = path + "Instant/"
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 18
 numsize = 15
-matplotlib.rc("font", size=textsize)
-timezone = np.arange(800, 1149.50 + 0.5, 0.5)
-x1x2 = [800, 1150]
+
 # %% Load Data
 VarName = [
     "x",
@@ -68,31 +65,34 @@ VarName = [
     "gradp",
 ]
 
-MeanFlow = DataPost()
-MeanFlow.LoadMeanFlow(path, nfiles=15)
-meanflow = pf()
-# meanflow.load_meanflow(path, nfiles=49)
-# MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
-# MeanFlow.UserData(VarName, path4 + "MeanFlow2.dat", 1, Sep="\t")
-MeanFlow.AddWallDist(3.0)
+timezone = np.arange(800, 1149.50 + 0.5, 0.5)
+x1x2 = [800, 1150]
+StepHeight = 0.0
+MeanFlow = pf()
+MeanFlow.load_meanflow(path, nfiles=15)
+MeanFlow.add_walldist(StepHeight)
 
 # %% Plot BL profile along streamwise
 xcoord = np.array([-40, -5, 0, 5.0, 10, 15, 20, 30, 40])
 num = np.size(xcoord)
 xtick = np.zeros(num + 1)
 xtick[-1] = 1.0
-fig, ax = plt.subplots(figsize=(10, 3.5))
-# matplotlib.rc('font', size=14)
+fig, ax = plt.subplots(figsize=(6.4, 2.1))
+# fig.set_size_inches(3.2, 1.0)
+matplotlib.rc('font', size=textsize)
 ax.plot(np.arange(num + 1), np.zeros(num + 1), "w-")
 ax.set_xlim([0, num + 0.5])
 ax.set_ylim([0, 4])
 ax.set_xticks(np.arange(num + 1))
 labels = [item.get_text() for item in ax.get_xticklabels()]
 labels = xtick
+var = '<u>'
 # ax.set_xticklabels(labels, fontdict=font)
 ax.set_xticklabels(["$%d$" % f for f in xtick])
 for i in range(num):
-    y0, q0 = MeanFlow.BLProfile("x", xcoord[i], "u")
+    df = MeanFlow.yprofile("x", xcoord[i])
+    y0 = df['y']
+    q0 = df[var]
     ax.plot(q0 + i, y0, "k-")
     ax.text(
         i + 0.75,
@@ -111,61 +111,52 @@ plt.savefig(
 )
 
 # %% Compute reference data
-ExpData = np.loadtxt(path + "vel_1060_LES_M1p6.dat", skiprows=0)
-m, n = ExpData.shape
-y_delta = ExpData[:, 0]
-u = ExpData[:, 1]
-rho = ExpData[:, 3]
-T = ExpData[:, 4]   # how it normalized?
-urms = ExpData[:, 5]
-vrms = ExpData[:, 6]
-wrms = ExpData[:, 7]
-uv = ExpData[:, 8]
-mu = 1.0/13506*np.power(T, 0.75)
-u_tau = fv.UTau(y_delta, u, rho, mu)
-Re_tau = rho[0]*u_tau/mu[0]
-ExpUPlus = fv.DirestWallLaw(y_delta, u, rho, mu)
-xi = np.sqrt(rho / rho[0])
-uu = np.sqrt(urms) / u_tau * xi
-vv = np.sqrt(vrms) / u_tau * xi
-ww = np.sqrt(wrms) / u_tau * xi
-uv = np.sqrt(np.abs(uv)) / u_tau * xi * (-1)
-y_plus = ExpUPlus[:, 0]
-ExpUVPlus = np.column_stack((y_plus, uv))
-ExpUrmsPlus = np.column_stack((y_plus, uu))
-ExpVrmsPlus = np.column_stack((y_plus, vv))
-ExpWrmsPlus = np.column_stack((y_plus, ww))
+# ExpData = np.loadtxt(path + "vel_1060_LES_M1p6.dat", skiprows=0)
+# m, n = ExpData.shape
+# y_delta = ExpData[:, 0]
+# u = ExpData[:, 1]
+# rho = ExpData[:, 3]
+# T = ExpData[:, 4]   # how it normalized?
+# urms = ExpData[:, 5]
+# vrms = ExpData[:, 6]
+# wrms = ExpData[:, 7]
+# uv = ExpData[:, 8]
+# mu = 1.0/13506*np.power(T, 0.75)
+# u_tau = fv.UTau(y_delta, u, rho, mu)
+# Re_tau = rho[0]*u_tau/mu[0]
+# ExpUPlus = fv.DirestWallLaw(y_delta, u, rho, mu)
+# xi = np.sqrt(rho / rho[0])
+# uu = np.sqrt(urms) / u_tau * xi
+# vv = np.sqrt(vrms) / u_tau * xi
+# ww = np.sqrt(wrms) / u_tau * xi
+# uv = np.sqrt(np.abs(uv)) / u_tau * xi * (-1)
+# y_plus = ExpUPlus[:, 0]
+# ExpUVPlus = np.column_stack((y_plus, uv))
+# ExpUrmsPlus = np.column_stack((y_plus, uu))
+# ExpVrmsPlus = np.column_stack((y_plus, vv))
+# ExpWrmsPlus = np.column_stack((y_plus, ww))
 
-# %% Compare van Driest transformed mean velocity profile
-# xx = np.arange(27.0, 60.0, 0.25)
-# z0 = -0.5
-# MeanFlow.UserDataBin(path + 'MeanFlow4.h5')
-# MeanFlow.ExtraSeries('z', z0, z0)
-
-MeanFlow.AddVariable('u', MeanFlow.DataTab['<u>'])
-MeanFlow.AddVariable('rho', MeanFlow.DataTab['<rho>'])
-MeanFlow.AddVariable('mu', MeanFlow.DataTab['<mu>'])
-MeanFlow.AddVariable('T', MeanFlow.DataTab['<T>'])
-MeanFlow.AddWallDist(0.0)
-MeanFlow.AddMu(13718)
-x0 = 25 #43.0
-# for x0 in xx:
-BLProf = copy.copy(MeanFlow)
-BLProf.ExtraSeries('x', x0, x0)
-#%%
-MeanFlow = pf()
-MeanFlow.load_meanflow(path, nfiles=15)
-x0 = 20
+# %% Compare wall law: computation, theory, experiment by van Driest transformation
+x0 = 15
 BLProf = MeanFlow.yprofile('x', x0)
-BLProf['walldist'] = BLProf['y'].values + 0.0
 u_tau = fv.u_tau(BLProf, option='mean')
-Re_tau = BLProf['<rho>'][0] * u_tau / BLProf['<mu>'][0]
+mu_inf = BLProf['<mu>'].values[-1]
+delta, u_inf = fv.BLThickness(BLProf['y'], BLProf['<u>'])
+delta_star, u_inf, rho_inf = fv.BLThickness(
+        BLProf['y'], BLProf['<u>'], rho=BLProf['<rho>'], opt='displacement')
+theta, u_inf, rho_inf = fv.BLThickness(
+        BLProf['y'], BLProf['<u>'], rho=BLProf['<rho>'], opt='momentum')
+Re_theta = rho_inf * u_inf * theta / mu_inf
+Re_delta_star = rho_inf * u_inf * delta_star / mu_inf
+Re_tau = BLProf['<rho>'].values[0] * u_tau / BLProf['<mu>'].values[0] * delta
 print("Re_tau=", Re_tau)
-Re_theta = 1800
+print("Re_theta=", Re_theta)
+print("Re_delta*=", Re_delta_star)
+Re_theta = 1000
 StdUPlus1, StdUPlus2 = fv.std_wall_law()
 ExpUPlus = fv.ref_wall_law(Re_theta)[0]
 CalUPlus = fv.direst_transform(BLProf, option='mean')
-fig, ax = plt.subplots(figsize=(5, 4))
+fig, ax = plt.subplots(figsize=(3.2, 3))
 # matplotlib.rc('font', size=textsize)
 ax.plot(
     StdUPlus1[:, 0],

@@ -11,13 +11,8 @@ Created on Sun Dec 10 22:24:50 2017
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib
 import pandas as pd
-from contextlib import contextmanager
 from scipy.interpolate import interp1d
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-from scipy.interpolate import griddata
 from scipy.interpolate import spline
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
@@ -29,7 +24,7 @@ import plt2pandas as p2p
 
 class DataPost(object):
     def __init__(self):
-        pass
+
         self._DataTab = pd.DataFrame()
         self.MeanFlow = pd.DataFrame()
         self.TriFlow = pd.DataFrame()

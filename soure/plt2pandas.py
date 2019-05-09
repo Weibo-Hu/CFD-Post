@@ -12,9 +12,9 @@ import sys
 import warnings
 import numpy as np
 from scipy.interpolate import griddata
-from data_post import DataPost
 from timer import timer
 import logging as log
+from glob import glob
 
 log.basicConfig(level=log.INFO)
 
@@ -247,10 +247,9 @@ def SaveSlice(df, SolTime, SpanAve, SavePath):
 def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2=None,
                        FileName=None, SpanAve=None, OutFile=None):
     if FileName is None:
-        files = os.listdir(FoldPath)
-        FileName = [os.path.join(FoldPath, name) for name in files]
-        # from glob import glob
-        # FileName = glob(FoldPath+"*.plt")
+        # files = os.listdir(FoldPath)
+        # FileName = [os.path.join(FoldPath, name) for name in files]
+        FileName = glob(FoldPath+'*.plt')
         dataset = tp.data.load_tecplot(FileName, read_data_option=2)
         if (np.size(FileName) != BlockNO):
             sys.exit("You're missing some blocks!!!")
