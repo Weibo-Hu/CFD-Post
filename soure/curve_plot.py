@@ -22,7 +22,7 @@ from planar_field import PlanarField as pf
 
 
 # %% data path settings
-path = "/media/weibo/Data2/DF_test/digital_filter_inflow/"
+path = "/media/weibo/Data2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -40,8 +40,8 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 18
-numsize = 15
+textsize = 15
+numsize = 12
 
 # %% Load Data
 VarName = [
@@ -67,47 +67,37 @@ VarName = [
 
 timezone = np.arange(800, 1149.50 + 0.5, 0.5)
 x1x2 = [800, 1150]
-StepHeight = 0.0
+StepHeight = 3.0
 MeanFlow = pf()
-MeanFlow.load_meanflow(path, nfiles=15)
+MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 
-# %% Plot BL profile along streamwise
-xcoord = np.array([-40, -5, 0, 5.0, 10, 15, 20, 30, 40])
-num = np.size(xcoord)
-xtick = np.zeros(num + 1)
-xtick[-1] = 1.0
-fig, ax = plt.subplots(figsize=(6.4, 2.1))
-# fig.set_size_inches(3.2, 1.0)
-matplotlib.rc('font', size=textsize)
-ax.plot(np.arange(num + 1), np.zeros(num + 1), "w-")
-ax.set_xlim([0, num + 0.5])
-ax.set_ylim([0, 4])
-ax.set_xticks(np.arange(num + 1))
-labels = [item.get_text() for item in ax.get_xticklabels()]
-labels = xtick
-var = '<u>'
-# ax.set_xticklabels(labels, fontdict=font)
-ax.set_xticklabels(["$%d$" % f for f in xtick])
-for i in range(num):
+# %% plot BL profile along streamwise
+MeanFlow.copy_meanval()
+fig, ax = plt.subplots(1, 7, figsize=(6.4, 2.2))
+fig.subplots_adjust(hspace=0.5, wspace=0.15)
+matplotlib.rc('font', size=numsize)
+title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
+matplotlib.rcParams['xtick.direction'] = 'in'
+matplotlib.rcParams['ytick.direction'] = 'in'
+xcoord = np.array([-40, 0, 5, 10, 15, 20, 30])
+for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
-    y0 = df['y']
-    q0 = df[var]
-    ax.plot(q0 + i, y0, "k-")
-    ax.text(
-        i + 0.75,
-        3.0,
-        r"$x/\delta_0={}$".format(xcoord[i]),
-        rotation=90,
-        fontsize=numsize,
-    )
+    y0 = df['walldist']
+    q0 = df['u']
+    ax[i].plot(q0, y0, "k-")
+    ax[i].set_ylim([0, 3])
+    if i != 0:
+        ax[i].set_yticklabels('')
+    ax[i].set_xticks([0, 0.5, 1], minor=True) 
+    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=numsize-2)
+    ax[i].grid(b=True, which="both", linestyle=":")
+ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
+ax[3].set_xlabel(r'$u/u_\infty$', fontsize=textsize)
 plt.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$u/u_{\infty}$", fontsize=textsize)
-ax.set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
-ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    pathF + "StreamwiseBLProfile.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% Compute reference data
@@ -348,14 +338,14 @@ plt.savefig(pathF + "Gortler.svg", dpi=300)
 plt.show()
 
 # %% Plot streamwise skin friction
-MeanFlow.AddWallDist(3.0)
-WallFlow = MeanFlow.DataTab.groupby("x", as_index=False).nth(1)
+MeanFlow.copy_meanval()
+WallFlow = MeanFlow.PlanarData.groupby("x", as_index=False).nth(1)
 WallFlow = WallFlow[WallFlow.x != -0.0078125]
 mu = fv.Viscosity(13718, WallFlow["T"])
 Cf = fv.SkinFriction(mu, WallFlow["u"], WallFlow["walldist"]).values
 ind = np.where(Cf[:] < 0.005)
 # fig2, ax2 = plt.subplots(figsize=(5, 2.5))
-fig = plt.figure(figsize=(10, 3))
+fig = plt.figure(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 ax2 = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)

@@ -87,8 +87,8 @@ with timer("Load Data"):
         NextFrame = TempFrame[col].values
         Snapshots = np.vstack((Snapshots, NextFrame[ind].ravel(order='F')))
         DataFrame += TempFrame
-Snapshots = Snapshots.T  
-# Snapshots = Snapshots[ind, :] 
+Snapshots = Snapshots.T
+# Snapshots = Snapshots[ind, :]
 Snapshots = Snapshots*fa
 m, n = np.shape(Snapshots)
 o = np.size(col)
@@ -104,7 +104,7 @@ varset = { var0: [0, m],
         }
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
-    
+
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
         rm.POD(Snapshots, pathF, fluc='True', method='svd')
@@ -159,7 +159,7 @@ c2 = -c1 #0.063
 
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
-cbar = ax.contourf(x, y, u, cmap='RdBu_r', levels=lev1) #, extend='both') 
+cbar = ax.contourf(x, y, u, cmap='RdBu_r', levels=lev1) #, extend='both')
 #ax.contour(x, y, u, levels=lev2, colors='k', linewidths=0.8, extend='both')
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'), extend='both')
 ax.grid(b=True, which='both', linestyle=':')  # blue, grey, red
@@ -173,12 +173,12 @@ ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
-cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", 
+cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
                      ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
-cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0, 
+cbar1.set_label(r'$\varphi_{}$'.format(var), rotation=0,
                 x=-0.18, labelpad=-29, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
@@ -269,7 +269,7 @@ err = Snapshots - (reconstruct + np.tile(meanflow.reshape(m, 1), (1, n)))
 print("Errors of POD: ", np.linalg.norm(err)/n)
 # %% Test POD using meaning flow
 def PODMeanflow(Snapshots):
-    
+
     with timer("POD mean flow computing"):
         eigval, eigvec, phi, coeff = \
             rm.POD(Snapshots, SaveFolder, method='svd')

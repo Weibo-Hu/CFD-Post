@@ -2,7 +2,7 @@
 """
 Created on Sun Dec 10 22:24:50 2017
     This code for reading data from specific file so that post-processing data, including:
-    1. FileName (infile, VarName, (row1), (row2), (unique) ): sort data and 
+    1. FileName (infile, VarName, (row1), (row2), (unique) ): sort data and
     delete duplicates, SPACE is NOT allowed in VarName
     2. MergeFile (NameStr, FinalFile): NameStr-input file name to be merged
     3. GetMu (T): calculate Mu if not get from file
@@ -90,7 +90,7 @@ class DataPost(object):
     def AddMach(self, Ma_inf):
         c = self._DataTab['u']**2+self._DataTab['v']**2+self._DataTab['w']**2
         self._DataTab['Mach'] = Ma_inf * np.sqrt(c/self._DataTab['T'])
-    
+
 
     @classmethod
     def SutherlandLaw (cls, T, T_inf = None, UnitMode = True):
@@ -287,7 +287,7 @@ class DataPost(object):
     @property
     def UGrad(self):
         return self._DataTab['UGrad'].values
-    
+
     @property
     def rhoGrad(self):
         return self._DataTab['|grad(rho)|'].values
@@ -318,7 +318,7 @@ class DataPost(object):
                                         SpanAve=True,
                                         OutFile='MeanFlow')
             self._DataTab = df
-        
+
 #   Obtain variables profile with an equal value (x, y, or z)
     def IsoProfile2D (self, qx, Iso_qx, qy):
         assert isinstance(qx, str), \
@@ -550,7 +550,7 @@ class DataPost(object):
                      kpsh=False, valley=False, show=False, ax=None):
 
         """Detect peaks in data based on their amplitude and other features.
-    
+
         Parameters
         ----------
         x : 1D array_like
@@ -574,7 +574,7 @@ class DataPost(object):
         show : bool, optional (default = False)
             if True (1), plot data in matplotlib figure.
         ax : a matplotlib.axes.Axes instance, optional (default = None).
-    
+
         Returns
         -------
         ind : 1D array_like
@@ -695,7 +695,7 @@ class DataPost(object):
     @classmethod
     def peakdet (cls, v, delta, x = None):
         """
-        Returns two arrays [MAXTAB, MINTAB] 
+        Returns two arrays [MAXTAB, MINTAB]
         MAXTAB and MINTAB consists of two columns. (1:indices, 2:values).
         A point is considered a maximum peak if it has the maximal
         value, and was preceded (to the left) by a value lower by DELTA.

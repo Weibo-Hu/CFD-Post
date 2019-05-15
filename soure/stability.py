@@ -15,12 +15,12 @@ import matplotlib
 import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, splev, splrep
 from scipy import signal
-from DataPost import DataPost
-import FlowVar as fv
+from data_post import DataPost
+import variable_analysis as fv
 from timer import timer
 import sys
 import os
-from planarfield import PlanarField as pf
+from planar_field import PlanarField as pf
 
 plt.close("All")
 plt.rc("text", usetex=True)
@@ -30,7 +30,7 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+path = "/media/weibo/Data2/BFS_M1.7L/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -40,8 +40,8 @@ pathI = path + "Instant/"
 
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 18
-numsize = 15
+textsize = 15
+numsize = 12
 matplotlib.rc("font", size=textsize)
 
 VarName = [
@@ -58,15 +58,16 @@ VarName = [
     "L2-criterion",
 ]
 
-# fluc = p2p.ReadAllINCAResults(240, path+'TP_stat', 
-#                               FoldPath2=pathM, OutFile='TP_stat')
-fluc = pd.read_hdf(pathM+'TP_stat.h5')
+StepHeight = 3.0
+MeanFlow = pf()
+MeanFlow.load_meanflow(path)
+MeanFlow.add_walldist(StepHeight)
 # %% Plot BL profile along streamwise direction
 # load data
 loc = ['z', 'y']
 val = [0.0, -2.99704]
 pert = fv.PertAtLoc(fluc, '<u`u`>', loc, val)
-fig, ax = plt.subplots(figsize=(10, 3.5))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=14)
 ax.set_ylabel(r"$\sqrt{u^{\prime 2}}/u_{\infty}$", fontsize=textsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -84,7 +85,7 @@ plt.savefig(
 loc = ['x', 'z']
 val = [10.0, 0.0]
 pert = fv.PertAtLoc(fluc, '<u`u`>', loc, val)
-fig, ax = plt.subplots(figsize=(10, 3.5))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=14)
 ax.set_xlabel(r"$u^{\prime}/u_{\infty}$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
@@ -427,34 +428,11 @@ VarName = [
     "L2-criterion",
     "gradp",
 ]
-MeanFlow = DataPost()
-# MeanFlow.UserData(VarName, pathM + "MeanFlow.dat", 1, Sep="\t")
-MeanFlow.UserDataBin(pathM + "MeanFlow.h5")
-MeanFlow.AddWallDist(3.0)
-# %% plot BL profile
-fig, ax = plt.subplots(1, 7, figsize=(10, 3.5))
-fig.subplots_adjust(hspace=0.5, wspace=0.15)
-matplotlib.rc('font', size=14)
-title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
-matplotlib.rcParams['xtick.direction'] = 'in'
-matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-40, 0, 5, 10, 15, 20, 30])
-for i in range(np.size(xcoord)):
-    y0, q0 = MeanFlow.BLProfile('x', xcoord[i], 'u')
-    ax[i].plot(q0, y0, "k-")
-    ax[i].set_ylim([0, 3])
-    if i != 0:
-        ax[i].set_yticklabels('')
-    ax[i].set_xticks([0, 0.5, 1], minor=True) 
-    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=numsize-2)
-    ax[i].grid(b=True, which="both", linestyle=":")
-ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
-ax[3].set_xlabel(r'$u/u_\infty$', fontsize=textsize)
-plt.tick_params(labelsize=numsize)
-plt.show()
-plt.savefig(
-    pathF + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
-)
+
+StepHeight = 3.0
+MeanFlow = pf()
+MeanFlow.load_meanflow(pathM)
+MeanFlow.add_walldist(StepHeight)
 
 # %% plot BL fluctuations profile
 TempFlow = DataPost()

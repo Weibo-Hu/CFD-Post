@@ -631,6 +631,11 @@ def ShockLine(dataframe, path):
 def SonicLine(dataframe, path, option='Mach', Ma_inf=1.7):
     # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    if 'u' not in dataframe.columns:
+        dataframe['u'] = dataframe['<u>']
+        dataframe['v'] = dataframe['<v>']
+        dataframe['w'] = dataframe['<w>']
+        dataframe['T'] = dataframe['<T>']
     if option == 'velocity':
         if 'w' in dataframe.columns:
             c = np.sqrt(dataframe['u'] ** 2 + dataframe['v'] ** 2
@@ -658,6 +663,8 @@ def SonicLine(dataframe, path, option='Mach', Ma_inf=1.7):
 def DividingLine(dataframe, path=None):
     NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
+    if 'u' not in NewFrame.columns:
+        NewFrame['u'] = NewFrame['<u>']
     u = griddata((NewFrame.x, NewFrame.y), NewFrame.u, (x, y))
     fig, ax = plt.subplots(figsize=(10, 4))
     cs1 = ax.contour(
@@ -692,6 +699,10 @@ def DividingLine(dataframe, path=None):
 def BoundaryEdge(dataframe, path):
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    if 'u' not in dataframe.columns:
+        dataframe.loc[:,'u'] = dataframe['<u>']
+        # dataframe['u'] = dataframe['<u>']
+
     u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
     umax = u[-1, :]
     rg1 = (x[1, :] < 10.375)  # in front of the shock

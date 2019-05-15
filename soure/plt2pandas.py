@@ -244,7 +244,7 @@ def SaveSlice(df, SolTime, SpanAve, SavePath):
     return df
 
 
-def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2=None,
+def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2=None, Equ=None,
                        FileName=None, SpanAve=None, OutFile=None):
     if FileName is None:
         # files = os.listdir(FoldPath)
@@ -256,6 +256,8 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2=None,
     else:
         dataset = tp.data.load_tecplot(FileName, read_data_option=2)
         BlockNO = dataset.num_zones
+    if Equ is not None:
+        tp.data.operate.execute_equation(Equ)
     VarList = [v.name for v in dataset.variables()]
     zone = dataset.zone
     for j in range(BlockNO):

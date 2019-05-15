@@ -6,6 +6,7 @@ Created on Wed May  8 10:39:40 2019
 
 @author: weibo
 """
+# %% Load libraries
 import tecplot as tp
 from tecplot.constant import *
 from tecplot.exception import *
@@ -16,7 +17,7 @@ import numpy as np
 from glob import glob
 
 # %% data path settings
-path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+path = "/media/weibo/Data2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -31,14 +32,16 @@ pathD = path + 'DMD/'
 # if '-c' in sys.argv:
 #     tp.session.connect() 
 tp.session.connect()
-datafile = glob(path + 'TP_data_01446798/' + '*.plt')   
+FileId = pd.read_csv(path + "ReadList.dat", sep='\t')
+filelist = FileId['name'].to_list()
+datafile = [os.path.join(path + 'TP_data_00967937/', name) for name in filelist]
+  
 dataset = tp.data.load_tecplot(datafile)
-
 frame = tp.active_frame()
 frame.plot().use_lighting_effect=False
 plot = frame.plot(PlotType.Cartesian3D)
 
-#tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
+tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
 #tp.macro.execute_command('''$!FrameControl ActivateByNumber Frame = 1''')
 #tp.macro.execute_command('''$!Pick Shift
 #                         X = -2.35294117647
@@ -75,12 +78,14 @@ isosf0.definition_contour_group = plot.contour(1)
 isosf0.isosurface_values[0] = -0.0005
 
 contr2 = plot.contour(2)
-contr2.colormap_name = 'Magma'
+contr2.colormap_name = 'Small Rainbow'
 contr2.variable = dataset.variable('u')
 lev2 = np.arange(-0.4, 1.2 + 0.08, 0.08)
 contr2.levels.reset_levels(lev2)
 contr2.labels.step = 5
 contr2.legend.show = True
+contr2.legend.number_font.typeface = 'Times'
+contr2.legend.vertical = False
 contr2.legend.row_spacing = 2.0
 contr2.legend.box.box_type = tp.constant.TextBox.None_
 isosf0.contour.flood_contour_group = contr2
@@ -153,8 +158,8 @@ tp.macro.execute_command(""" $!AttachText
 
 z_axes = plot.axes.z_axis
 z_axes.show = True
-z_axes.min = -2.5
-z_axes.max = 2.8
+z_axes.min = -8.0
+z_axes.max = 8.2
 z_axes.ticks.spacing = 2
 z_axes.tick_labels.font.typeface = 'Times'
 z_axes.tick_labels.font.size = 3.5
@@ -173,4 +178,4 @@ tp.macro.execute_command(""" $!AttachText
                          TextType=Latex
                          Text = '$z/\\delta_0$' """)
 
-tp.export.save_png(pathF + 'test.png', width=2048, supersample=3) 
+tp.export.save_png(pathF + 'test.png', width=4096, supersample=3) 

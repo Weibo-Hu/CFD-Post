@@ -15,175 +15,90 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter, ScalarFormatt
 from scipy.interpolate import griddata
 from scipy.interpolate import spline, interp1d, splev, splrep
 from scipy import integrate, signal
-import sys
-from DataPost import DataPost
-import FlowVar as fv
+from data_post import DataPost
+import variable_analysis as fv
+from line_field import LineField as lf
 import os
 
-plt.close("All")
-plt.rc('text', usetex=True)
-font = {
-    'family': 'Times New Roman',  # 'color' : 'k',
-    'weight': 'normal',
-}
-
-matplotlib.rc('font', **font)
-textsize = 18
-numsize = 15
-
-font0 = {'family' : 'Times New Roman',
-        'color' : 'k',
-        'weight' : 'normal',
-        'size' : 12,
-        }
-font1 = {'family' : 'Times New Roman',
-        'color' : 'k',
-        'weight' : 'normal',
-        'size' : 14,}
-
-font2 = {'family' : 'Times New Roman',
-         'color' : 'k',
-         'weight' : 'normal',
-         'size' : 16,
-        }
-
-font3 = {'family' : 'Times New Roman',
-        'color' : 'k',
-        'weight' : 'normal',
-        'size' : 18,
-}
-
-path = "/media/weibo/Data2/DF_example/8/"
+# %% data path settings
+path = "/media/weibo/Data2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
+
+# %% figures properties settings
+plt.close("All")
+plt.rc("text", usetex=True)
+font = {
+    "family": "Times New Roman",  # 'color' : 'k',
+    "weight": "normal",
+    "size": "large",
+}
+matplotlib.rcParams["xtick.direction"] = "in"
+matplotlib.rcParams["ytick.direction"] = "in"
+textsize = 15
+numsize = 12
+
+# %% Time evolution of a specific variable at several streamwise locations
+probe = lf()
+fa = 1.7 * 1.7 * 1.4
+var = 'p'
+timezone = [400, 600]
+xloc = [-40.0, -30.0, -20.0, -10.0, -1.0]
+fig, ax = plt.subplots(5, 1, figsize=(6.4, 5.6))
+fig.subplots_adjust(hspace=0.6, wspace=0.15)
+matplotlib.rc('font', size=numsize)
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-
-textsize = 22
-labsize = 20
-t0 = 600
-t1 = 100 #600 #960
-t2 = 180 #1000.0 #
-
-#%% Read data for Streamwise variations of frequency of a specific variable
-Probe0 = DataPost()
-xloc = [-40.0, -30.0, -20.0, -10.0]
-yloc = [0.0, 0.0, 0.0, 0.0]
-#xloc = [-30.0, -20, -10.0, -5.0]
-#yloc = [0.0, 0.0, 0.0, 0.0]
-Probe0.LoadProbeData(xloc[0], yloc[0], 0.0, pathP, Uniq=True)
-Probe0.ExtraSeries('time', t1, t2)
-#Probe0.DataTab.to_csv(OutFolder+'ProbeE3.dat', sep='\t', index=False, float_format='%.8e')
-#Probe0.AveAtSameXYZ('All')
-#time1 = Probe0.time
-Probe10 = DataPost()
-Probe10.LoadProbeData(xloc[1], yloc[1], 0.0, pathP, Uniq=True)
-#Probe10.unique_rows()
-Probe10.ExtraSeries('time', t1, t2)
-#Probe10.AveAtSameXYZ('All')
-
-Probe20 = DataPost()
-Probe20.LoadProbeData(xloc[2], yloc[2], 0.0, pathP, Uniq=True)
-#Probe20.unique_rows()
-Probe20.ExtraSeries('time', t1, t2)
-#Probe20.AveAtSameXYZ('All')
-#time2 = Probe20.time
-
-Probe30 = DataPost()
-Probe30.LoadProbeData(xloc[3], yloc[3], 0.0, pathP, Uniq=True)
-#Probe30.unique_rows()
-Probe30.ExtraSeries('time', t1, t2)
-#Probe30.AveAtSameXYZ('All')
-
-
-#%% Streamwise variations of time evolution of a specific variable
-fa = 1.0 #1.7*1.7*1.4
-matplotlib.rc('font', size=textsize)
-fig = plt.figure(figsize=(10, 8))
-matplotlib.rc('font', size=18)
-ax = fig.add_subplot(411)
-xlabel = r'$x/\delta_0={}, \ y/\delta_0={}$'
-ytitle = r'$u/u_\infty$' # 'r'$p/p_\infty$'
-var = 'u'
-ax.set_title(xlabel.format(xloc[0], yloc[0]), fontsize=numsize)
-ax.set_xlim([t1, t2])
-ax.set_xticklabels('')
-ax.set_ylabel(ytitle, fontsize=textsize)
-ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.offsetText.set_fontsize(numsize)
-#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-#ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-#ax.text (850, 6.5, 'x=0', fontdict = font2)
-ax.grid(b=True, which='both', linestyle=':')
-#Probe0P = Probe0.p-BProbe0P
-#grow0, time0 = Probe0.GrowthRate(Probe0.time, Probe0P)
-#ax.plot (time0, grow0, 'k', linewidth = 1.5)
-#Probe0.AddUGrad(0.015625)
-meanval = np.mean(getattr(Probe0, var)*fa)
-ax.plot(Probe0.time, getattr(Probe0, var)*fa-meanval, 'k', linewidth=1.0)
-ax.tick_params(labelsize=numsize)
-
-#ax.annotate("(a)", xy=(-0.05, 1.2), xycoords='axes fraction', fontsize=labsize)
-ax.tick_params(labelsize=numsize)
-# fit curve
-def func(t, A, B):
-    return A / t + B
-popt, pcov = Probe0.fit_func(func, Probe0.time, getattr(Probe0, var), guess=None)
-A, B = popt
-fitfunc = lambda t: A / t + B
-#ax.plot(Probe0.time, fitfunc(Probe0.time), 'b', linewidth=1.5)
-
-
-ax = fig.add_subplot(412)
-ax.set_title(xlabel.format(xloc[1], yloc[1]), fontsize=numsize)
-ax.set_xlim([t1, t2])
-ax.set_xticklabels('')
-ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.offsetText.set_fontsize(numsize)
-#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-#ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-ax.set_ylabel(ytitle, fontsize=textsize)
-ax.grid(b=True, which='both', linestyle = ':')
-meanval = np.mean(getattr(Probe10, var)*fa)
-ax.plot(Probe10.time, getattr(Probe10, var)*fa-meanval, 'k', linewidth=1.0)
-#ax.annotate("(b)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
-ax.tick_params(labelsize=numsize)
-
-ax = fig.add_subplot(413)
-ax.set_title(xlabel.format(xloc[2], yloc[2]), fontsize=numsize)
-ax.set_xlim([t1, t2])
-ax.set_xticklabels('')
-ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.offsetText.set_fontsize(numsize)
-#ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-#ax.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-ax.set_ylabel(ytitle, fontsize=textsize)
-ax.grid(b=True, which ='both', linestyle =':')
-meanval = np.mean(getattr(Probe20, var)*fa)
-ax.plot(Probe20.time, getattr(Probe20, var)*fa-meanval, 'k', linewidth=1.0)
-#ax.annotate("(c)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
-ax.tick_params(labelsize=numsize)
-
-ax = fig.add_subplot(414)
-ax.set_title(xlabel.format(xloc[3], yloc[3]), fontsize=numsize)
-ax.set_xlim([t1, t2])
-#ax.set_xticklabels ('')
-ax.set_xlabel(r'$t u_\infty/\delta_0$', fontsize=textsize)
-ax.set_ylabel(ytitle, fontsize=textsize)
-ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.offsetText.set_fontsize(numsize)
-#ax.text (850, 6.5, 'x=0', fontdict = font2)
-ax.grid(b=True, which='both', linestyle=':')
-meanval = np.mean(getattr(Probe30, var)*fa)
-ax.plot(Probe30.time, getattr(Probe30, var)*fa-meanval, 'k', linewidth=1.0)
-#ax.annotate("(d)", xy=(-0.05, 1.15), xycoords='axes fraction', fontsize=labsize)
-#ax.plot (Probe40.time, Probe40.p, 'k', linewidth = 1.5)
-ax.tick_params(labelsize=numsize)
-plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=1)
-plt.savefig(pathF+'UStreamwiseTimeEvolution.svg', bbox_inches='tight')
+for i in range(np.size(xloc)):
+    probe.load_probe(pathP, (xloc[i], 0.0, 0.0))
+    probe.extract_data(timezone)
+    temp = ( getattr(probe, var) - np.mean(getattr(probe, var)) ) * fa
+    ax[i].plot(probe.time, temp, 'k')
+    ax[i].ticklabel_format(axis='y', style='sci', 
+                           useOffset=False, scilimits=(-2, 2))
+    ax[i].set_xlim([400, 600])
+    # ax[i].set_ylim([-0.001, 0.001])
+    if i != np.size(xloc) - 1:
+        ax[i].set_xticklabels('')
+    ax[i].set_ylabel(r"$p^\prime/p_\infty$", 
+                     fontsize=textsize)
+    ax[i].grid(b=True, which='both', linestyle=':')
+    ax[i].set_title(r'$x/\delta_0={}$'.format(xloc[i]), fontsize=numsize-1)
+ax[-1].set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
 plt.show()
+plt.savefig(pathF + var + '_TimeEvolveX.svg', 
+            bbox_inches='tight', pad_inches=0.1)
 
+# %% Streamwise evolution of a specific variable
+probe = lf()
+fa = 1.0 # 1.7 * 1.7 * 1.4
+var = 'u'
+timepoint = 0.60001185E+03 # 0.60000985E+03 # 
+xloc = np.arange(-40.0, 0.0, 1.0)
+var_val = np.zeros(np.size(xloc))
+for i in range(np.size(xloc)):
+    probe.load_probe(pathP, (xloc[i], 0.0, 0.0) )
+    meanval = getattr(probe, var + '_m')
+    temp = probe.ProbeSignal
+    var_val[i] = temp.loc[temp['time']==timepoint, var] - meanval
 
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+matplotlib.rc('font', size=numsize)
+ax.plot(xloc, var_val * fa, 'k')
+ax.set_xlim([-40.0, 0.0])
+ax.set_ylim([-0.001, 0.001])
+ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$u^\prime/u_\infty$', fontsize=textsize)
+ax.ticklabel_format(axis='y', style='sci', 
+                    useOffset=False, scilimits=(-2, 2))
+ax.grid(b=True, which='both', linestyle=':')
+plt.show()
+plt.savefig(pathF + var + '_StreamwiseEvolve.svg', 
+            bbox_inches='tight', pad_inches=0.1)
 # %% Frequency Weighted Power Spectral Density
 Freq_samp = 50
 fig = plt.figure(figsize=(10,5))

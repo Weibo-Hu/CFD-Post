@@ -67,7 +67,7 @@ for folder in dirs:
 #                 header=VarList, float_format='%.10e')
 """
 # %% Extract Data for 3D DMD
-"""
+
 VarList = [
     'x',
     'y',
@@ -80,29 +80,31 @@ VarList = [
 ]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data2/BFS_M1.7C_L1/DataPost/"
+FoldPath = "/media/weibo/Data2/BFS_M1.7L/TP_data_00895454/"
 path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 
-NoBlock = 422
-skip = 1
-cube = [(-10.0, 30.0), (-3.0, 30.0), (-8, 8)]
+NoBlock = 606
+skip = 0
+cube = [(-10.0, 30.0), (-3.0, 1.0), (-8, 8)]
 dirs = os.listdir(FoldPath)
-# FileId = p2p.ExtractZone(FoldPath+dirs[0]+"/", cube, NoBlock, skip=skip)
-# FileId.to_csv(path2+str(skip)+'ReadList.dat', index=False, sep='\t')
+# FileId = p2p.ExtractZone(FoldPath + dirs[0] + "/", cube, NoBlock, skip=skip)
+FileId = p2p.ExtractZone(FoldPath, cube, NoBlock, skip=skip)
+FileId.to_csv(FoldPath+str(skip)+'ReadList.dat', index=False, sep='\t')
+FileId['name'].to_csv(FoldPath + 'ZoomZone.dat', index=False)
 
-FileId = pd.read_csv(path2 + str(skip)+ "ReadList.dat", sep='\t')
+# FileId = pd.read_csv(path2 + str(skip)+ "ReadList.dat", sep='\t')
+# 
+# dirs = os.scandir(FoldPath)
+# for folder in dirs:
+#     path = FoldPath+folder.name+"/"
+#     with timer("Read " + folder.name + " data"):
+#         DataFrame, time = \
+#         p2p.NewReadINCAResults(NoBlock, path, VarList, 
+#                                FileName=FileId['name'].tolist(),
+#                                SavePath=OutFolder, Equ=equ,
+#                                skip=skip)
 
-dirs = os.scandir(FoldPath)
-for folder in dirs:
-    path = FoldPath+folder.name+"/"
-    with timer("Read " + folder.name + " data"):
-        DataFrame, time = \
-        p2p.NewReadINCAResults(NoBlock, path, VarList, 
-                               FileName=FileId['name'].tolist(),
-                               SavePath=OutFolder, Equ=equ,
-                               skip=skip)
-"""
 
 # %% Save time-averaged flow field
 """
@@ -136,7 +138,7 @@ MeanFrame = SumFrame/num
 MeanFrame.to_hdf(OutFolder+"MeanFlow2.h5", 'w', format='fixed')
 """
 # %% Time-average DataFrame
-
+"""
 FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/Snapshots/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/MeanFlow/"
 dirs = os.scandir(FoldPath)
@@ -154,7 +156,7 @@ TimeAve.to_hdf(OutFolder + "TimeAve.h5", 'w', format='fixed')
 grouped1 = TimeAve.groupby(['x', 'y'])
 Meanframe = grouped1.mean().reset_index()
 Meanframe.to_hdf(OutFolder + "MeanFlow.h5", 'w', format='fixed')
-
+"""
 # %% convert h5 to plt for spanwise-average data
 """
 FoldPath = "/media/weibo/Data2/BFS_M1.7C_L1/DataPost/6/"
