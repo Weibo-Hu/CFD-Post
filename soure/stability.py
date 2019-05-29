@@ -97,7 +97,6 @@ plt.savefig(
     pathF + "PerturProfileY.svg", bbox_inches="tight", pad_inches=0.1
 )
 
-
 # %% Plot BL profile along spanwise
 # load data
 loc = ['x', 'y']
@@ -119,12 +118,12 @@ pert = fv.PertAtLoc(fluc, '<u`u`>', loc, val)
 ax[0].plot(np.sqrt(pert['<u`u`>']), pert['z'], 'k-')
 ax[0].set_xlim([0.0, 2e-3])
 ax[0].ticklabel_format(axis="x", style="sci", scilimits=(-1, 1))
-ax[0].set_yticks([-2.0, -1.0, 0.0, 1.0, 2.0])      
+ax[0].set_yticks([-2.0, -1.0, 0.0, 1.0, 2.0])
 ax[0].set_ylabel(r"$z/\delta_0$", fontsize=textsize)
 ax[0].tick_params(labelsize=numsize)
 ax[0].set_title(title[0], fontsize=numsize)
 ax[0].grid(b=True, which="both", linestyle=":")
-# b 
+# b
 val = valarr[1]
 pert = fv.PertAtLoc(fluc, '<u`u`>', loc, val)
 ax[1].plot(np.sqrt(pert['<u`u`>']), pert['z'], 'k-')
@@ -199,8 +198,8 @@ grouped = fluc.groupby(['x', 'y'])
 pert1 = grouped.mean().reset_index()
 xmesh, ymesh = np.meshgrid(dividing[:, 0], dividing[:, 1])
 var0 = griddata((pert1.x, pert1.y), pert1['<u`u`>'], (xmesh, ymesh))
-    
-# %% Plot Max RMS from BL profile 
+
+# %% Plot Max RMS from BL profile
 # compute
 grouped = fluc.groupby(['x', 'y'])
 pert1 = grouped.mean().reset_index()
@@ -229,12 +228,12 @@ plt.savefig(
     pathF + "MaxPertLoc.svg", bbox_inches="tight", pad_inches=0.1
 )
 
-# %% Plot amplitude of fluctuations from temporal data 
+# %% Plot amplitude of fluctuations from temporal data
 # load data
 InFolder = path + "Snapshots/"
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-var = 'u'    
+var = 'u'
 fa = 1.0 #1.7*1.7*1.4
 timepoints = np.arange(800, 1149.5 + 0.5, 0.5)
 Snapshots = DataFrame[['x', 'y', 'z', var]]
@@ -318,7 +317,7 @@ dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
 grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
-var = 'p'    
+var = 'p'
 fa = 1.7*1.7*1.4
 timepoints = np.arange(800, 1149.5 + 0.5, 0.5)
 Snapshots = DataFrame[['x', 'y', 'z', var]]
@@ -344,7 +343,7 @@ rms = np.zeros(np.size(x1))
 for i in range(np.size(x1)):
     xyz = [x1[i], y1[i], 0.0]
     rms[i] = fv.RMS_map(Snapshots, xyz, var)
-    
+
 # %% Plot RMS along the streamwise (dividing line or max perturbation location)
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
@@ -358,7 +357,7 @@ ax.grid(b=True, which="both", linestyle=":")
 ax.axvline(x=10.9, linewidth=1.0, linestyle='--', color='k')
 plt.savefig(pathF + "RMSMap.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
-    
+
 # %% compute
 x0 = xx
 y0 = yy
@@ -462,7 +461,7 @@ for i in range(np.size(xcoord)):
         ax[i].set_yticklabels('')
     # ax[i].set_xticks([0, 0.5, 1], minor=True)
     ax[i].ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
-    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), 
+    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]),
                     fontsize=numsize-2, y=0.88)
     ax[i].grid(b=True, which="both", linestyle=":")
 ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)

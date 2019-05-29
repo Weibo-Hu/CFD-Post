@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, splev, splrep
-import copy
 from data_post import DataPost
 import variable_analysis as fv
 from timer import timer
@@ -89,8 +88,8 @@ for i in range(np.size(xcoord)):
     ax[i].set_ylim([0, 3])
     if i != 0:
         ax[i].set_yticklabels('')
-    ax[i].set_xticks([0, 0.5, 1], minor=True) 
-    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=numsize-2)
+    ax[i].set_xticks([0, 0.5, 1], minor=True)
+    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=numsize - 2)
     ax[i].grid(b=True, which="both", linestyle=":")
 ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
 ax[3].set_xlabel(r'$u/u_\infty$', fontsize=textsize)
@@ -126,7 +125,8 @@ plt.savefig(
 # ExpVrmsPlus = np.column_stack((y_plus, vv))
 # ExpWrmsPlus = np.column_stack((y_plus, ww))
 
-# %% Compare wall law: computation, theory, experiment by van Driest transformation
+# %% Compare wall law:
+# %% computation, theory, experiment by van Driest transformation
 x0 = 15
 BLProf = MeanFlow.yprofile('x', x0)
 u_tau = fv.u_tau(BLProf, option='mean')
@@ -258,21 +258,26 @@ for i in range(num):
     y0, u0 = MeanFlow.BLProfile("x", xd[i], "u")
     y0, rho0 = MeanFlow.BLProfile("x", xd[i], "rho")
     delta[i] = fv.BLThickness(y0.values, u0.values)
-    delta_star[i] = fv.BLThickness(y0.values, u0.values, 
+    delta_star[i] = fv.BLThickness(y0.values, u0.values,
                                    rho0.values, opt='displacement')
-    theta[i] = fv.BLThickness(y0.values, u0.values, rho0.values, opt='momentum')
+    theta[i] = fv.BLThickness(
+        y0.values, u0.values, rho0.values, opt='momentum')
 
-stream = np.loadtxt(path4+'Streamline.dat', skiprows=1)   
+stream = np.loadtxt(path4 + 'Streamline.dat', skiprows=1)
 stream[:, -1] = stream[:, -1] + 3.0
 func = interp1d(stream[:, 0], stream[:, 1], bounds_error=False, fill_value=0.0)
 yd = func(xd)
 xmax = np.max(stream[:, 0])
+
+
 # fit curve
 def func(t, A, B, C, D):
-    return A * t ** 3 + B * t **2 + C * t + D
+    return A * t ** 3 + B * t ** 2 + C * t + D
+
+
 popt, pcov = DataPost.fit_func(func, xd, delta, guess=None)
 A, B, C, D = popt
-fitfunc = lambda t: A * t ** 3 + B * t **2 + C * t + D
+fitfunc = lambda t: A * t ** 3 + B * t ** 2 + C * t + D
 delta_fit = fitfunc(xd)
 
 popt, pcov = DataPost.fit_func(func, xd, yd, guess=None)
@@ -308,7 +313,7 @@ fig = plt.figure(figsize=(10, 4))
 matplotlib.rc("font", size=textsize)
 ax2 = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)
-ax2.plot(xd[:-1], delta_fit[:-1]/radius, "k", linewidth=1.5)
+ax2.plot(xd[:-1], delta_fit[:-1] / radius, "k", linewidth=1.5)
 ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\delta/R$", fontsize=textsize)
 ax2.set_xlim([0.0, 25.0])
@@ -317,8 +322,8 @@ ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
-#plt.savefig(path2 + "Cf.svg", bbox_inches="tight", pad_inches=0.1)
-#plt.show()
+# plt.savefig(path2 + "Cf.svg", bbox_inches="tight", pad_inches=0.1)
+# plt.show()
 
 # %% plot figure for Gortler number
 fig3, ax3 = plt.subplots(figsize=(5, 4))
@@ -359,6 +364,8 @@ ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
+ax2.annotate("(a)", xy=(-0.12, 1.04), xycoords='axes fraction',
+             fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.savefig(pathF+'Cf.svg',bbox_inches='tight', pad_inches=0.1)
 plt.show()
@@ -376,6 +383,8 @@ ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
+ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
+             fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 # plt.savefig(path2 + "Cp.svg", dpi=300)
@@ -482,7 +491,7 @@ plt.show()
 bubble = np.loadtxt(OutFolder + "BubbleArea.dat", skiprows=1)
 Xb = bubble[:, 1]
 
-#%% reattachment location with time 
+#%% reattachment location with time
 reatt = np.loadtxt(OutFolder+"Reattach.dat", skiprows=1)
 timezone = reatt[:, 0]
 Xr = reatt[:, 1]
@@ -518,7 +527,7 @@ plt.show()
 
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
-# %% gradient of Xr 
+# %% gradient of Xr
 fig, ax = plt.subplots(figsize=(10, 2))
 dxr = DataPost.SecOrdFDD(timezone, Xr)
 ax.plot(timezone, dxr, "k-")
@@ -699,7 +708,7 @@ delay = np.arange(-60.0, 60+0.5, 0.5)
 cor = np.zeros(np.size(delay))
 for i, dt in enumerate(delay):
     cor[i] = fv.DelayCorrelate(x1, x2, 0.5, dt)
-        
+
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.plot(delay, cor, "k-")
 ax.set_xlim([delay[0], delay[-1]])
@@ -710,7 +719,7 @@ plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathF + "Cor_XrXk.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
-    
+
 # %% Streamwise evolution of variable
 # Load Data for time-averaged results
 MeanFlow = DataPost()
@@ -794,7 +803,7 @@ fv.ReattachLoc(InFolder, pathI, timezone, opt=2)
 fv.ShockLoc(InFolder, pathI, timezone)
 # %%
 fv.ShockFoot(InFolder, pathI, timezone, -1.875, 0.82)
-# %% 
+# %%
 fv.BubbleArea(InFolder, pathI, timezone)
 
 

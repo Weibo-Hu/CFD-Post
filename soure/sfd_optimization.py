@@ -11,8 +11,7 @@ import pandas as pd
 import sys
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import gridspec
+
 
 # %% figures properties settings
 plt.close("All")
@@ -39,15 +38,16 @@ pathV = path + 'video/'
 pathD = path + 'DMD/'
 
 # %% load data and test if SFD is suitable
-u_inf = np.sqrt(1.4*287*190.1) * 1.7
+u_inf = np.sqrt(1.4 * 287 * 190.1) * 1.7
 delta_0 = 1e-3
 dt = 0.5  # * delta_0 / u_inf
-data = np.load(pathD + 'eigval.npy') 
-ind = np.where(np.abs(data) > 0.999)[0] # remove the modes not along the unit circle
+data = np.load(pathD + 'eigval.npy')
+# remove the modes not along the unit circle
+ind = np.where(np.abs(data) > 0.999)[0]
 eig_reduce = data[ind]
 lamb_reduce = np.log(eig_reduce) / dt
 name = ['mu_r', 'mu_i', 'r', 'i']
-val = np.vstack((eig_reduce.real, eig_reduce.imag, 
+val = np.vstack((eig_reduce.real, eig_reduce.imag,
                  lamb_reduce.real, lamb_reduce.imag))
 df = pd.DataFrame(data=val.T, columns=name)
 temp = df.query("r >= 0.0 & i > 0.0") # if lamb_r > 0 ???
@@ -104,7 +104,7 @@ for k in range(it):
         else:
             arr = np.array([val.real, val.imag, chi_temp, delta_temp, r_min])
         np.savetxt(f, arr.reshape(1, 5), fmt='%8e', delimiter='\t')
-        # f.write(str(arr))    
+        # f.write(str(arr))
         # plot the contour of chi and delta
         matplotlib.rc('font', size=textsize)
         fig, ax = plt.subplots(figsize=(6.4, 6))
@@ -114,10 +114,10 @@ for k in range(it):
         ax.tick_params(labelsize=numsize)
         cbar1 = plt.colorbar(cbar, orientation='vertical')
         plt.savefig(pathD + 'sfd' + str(k) + '.svg')
-        plt.show() 
+        plt.show()
         plt.close()
 
-f.close()       
+f.close()
 
 # %%
 matplotlib.rc('font', size=textsize)
@@ -129,7 +129,7 @@ ax.set_ylabel(r'$\Delta$', fontdict=font)
 ax.tick_params(labelsize=numsize)
 cbar1 = plt.colorbar(cbar, ticks=lev, orientation='vertical')
 plt.savefig(pathD + 'sfd.svg')
-plt.show() 
+plt.show()
 
 
 

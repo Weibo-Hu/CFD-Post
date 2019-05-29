@@ -8,21 +8,22 @@ Created on Thu Jun 14 19:04:17 2018
 
 import time
 
+
 class timer():
-    
+
     def __init__(self, message):
         self.message = message
-        
+
     def __enter__(self):
         self.start = time.time()
         return self
-    
+
     def __exit__(self, *args):
-        #self.end = time.time()
-        self.interval = time.time() -self.start
+        # self.end = time.time()
+        self.interval = time.time() - self.start
         print("%s took: %0.2fs" % (self.message, self.interval))
 
-  
-#if __name__ == "__main__":
-#    with timer("Test 1+1"):
-#        1+1
+
+# if __name__ == "__main__":
+#     with timer("Test 1+1"):
+#         1+1

@@ -79,27 +79,27 @@ class LineField(object):
     @property
     def mu(self):
         return self._data_field['mu'].values
-    
+
     @property
     def u_m(self):
         return self._data_field['u'].values.mean()
-    
+
     @property
     def v_m(self):
         return self._data_field['v'].values.mean()
-    
+
     @property
     def w_m(self):
         return self._data_field['w'].values.mean()
-    
+
     @property
     def rho_m(self):
         return self._data_field['rho'].values.mean()
-    
+
     @property
     def T_m(self):
         return self._data_field['T'].values.mean()
-    
+
     @property
     def p_m(self):
         return self._data_field['p'].values.mean()
@@ -118,14 +118,15 @@ class LineField(object):
 
     def probe_file(self, path, loc):
         infile = open(path + 'inca_probes.inp')
-        probe = np.loadtxt(infile, skiprows=6, usecols=(1,2,3,4))
+        probe = np.loadtxt(infile, skiprows=6, usecols=(1, 2, 3, 4))
         infile.close()
-        xarr = np.around(probe[:,1], 3)
-        yarr = np.around(probe[:,2], 3)
-        zarr = np.around(probe[:,3], 3)
-        probe_ind = np.where( (xarr[:]==np.around(loc[0], 3))
-                            & (yarr[:]==np.around(loc[1], 3))
-                            & (zarr[:]==np.around(loc[2], 3)) )
+        xarr = np.around(probe[:, 1], 3)
+        yarr = np.around(probe[:, 2], 3)
+        zarr = np.around(probe[:, 3], 3)
+        probe_ind = np.where(
+            (xarr[:] == np.around(loc[0], 3)) &
+            (yarr[:] == np.around(loc[1], 3)) &
+            (zarr[:] == np.around(loc[2], 3)))
         if len(probe_ind[0]) == 0:
             print("The probe you input is not found in the probe files!!!")
         probe_num = probe_ind[0][-1] + 1
@@ -133,7 +134,7 @@ class LineField(object):
         return(filename)
 
     def load_probe(self, path, loc, per=None, varname=None, uniq=None):
-        if varname == None:
+        if varname is None:
             varname = ['itstep', 'time', 'u', 'v', 'w',
                        'rho', 'E', 'p']
         filename = self.probe_file(path, loc)
@@ -144,18 +145,20 @@ class LineField(object):
         if per is not None:
             ind = data['time'].between(per[0], per[1], inclusive=True)
             data = data[ind]
-        if uniq == None:
+        if uniq is None:
             data = data.drop_duplicates(keep='last')
         data = data.sort_values(by=['time'])
         self._data_field = data
         return(data)
 
-    def extract_data(self, per):
-        ind = self._data_field['time'].between(per[0], per[1],
-                                                inclusive=True)
+    def extract_series(self, per):
+        ind = self._data_field['time'].between(
+            per[0], per[1], inclusive=True)
         data = self._data_field[ind]
         self._data_field = data
         return(data)
 
-
-
+    def extract_point(self, val):
+        ind = (self._data_field['time'] - val).abs().argsort()[:1]
+        df = self._data_field.iloc[ind]
+        return(df)

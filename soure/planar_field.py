@@ -13,6 +13,7 @@ import plt2pandas as p2p
 from glob import glob
 import numpy as np
 
+
 class PlanarField(LineField):
     def __init__(self):
         super().__init__()
@@ -82,7 +83,7 @@ class PlanarField(LineField):
             equ = '{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)'
             nfiles = np.size(os.listdir(path + 'TP_stat/'))
             with timer('load mean flow from tecplot data'):
-                if FileList == None:
+                if FileList is None:
                     df = p2p.ReadAllINCAResults(nfiles,
                                                 path + 'TP_stat/',
                                                 path + 'MeanFlow/',
@@ -110,11 +111,11 @@ class PlanarField(LineField):
                                             path + 'TP_stat/',
                                             path + 'MeanFlow/',
                                             FileName=FileList,
-                                            SpanAve = True,
+                                            SpanAve=True,
                                             Equ=equ,
                                             OutFile=dirs[i])
 
-                if i==0:
+                if i == 0:
                     flow = df
                 else:
                     flow = flow.append(df, ignore_index=True)
@@ -123,8 +124,6 @@ class PlanarField(LineField):
         flow = flow.drop_duplicates(keep='last')
         flow.to_hdf(path + 'MeanFlow/' + 'MeanFlow.h5', 'w', format='fixed')
         self._data_field = flow
-
-
 
     @classmethod
     def spanwise_average(cls, path, nfiles):
@@ -139,8 +138,6 @@ class PlanarField(LineField):
                                         Equ=equ,
                                         OutFile='MeanFlow' + str(i))
             return (df)
-
-
 
     def yprofile(self, var_name, var_val):
         df1 = self.PlanarData.loc[self.PlanarData[var_name] == var_val]

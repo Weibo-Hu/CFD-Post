@@ -28,7 +28,7 @@ import os
 
 
 # Obtain intermittency factor from an undisturbed and specific wall pressure
-def Intermittency(sigma, Pressure0, WallPre, TimeZone):
+def intermittency(sigma, Pressure0, WallPre, TimeZone):
     # AvePre    = np.mean(WallPre)
     AvePre = np.mean(Pressure0)
     # wall pressure standard deviation of undisturbed BL
@@ -47,7 +47,7 @@ def Intermittency(sigma, Pressure0, WallPre, TimeZone):
 
 
 # Obtain skewness coefficient corresponding to intermittency factor
-def Alpha3(WallPre):
+def alpha3(WallPre):
     AvePre = np.mean(WallPre)
     sigma = np.std(WallPre)
     n = np.size(WallPre)
@@ -57,7 +57,7 @@ def Alpha3(WallPre):
 
 
 # Obtain nondimensinal dynamic viscosity
-def Viscosity(Re_delta, T):
+def viscosity(Re_delta, T):
     # nondimensional T
     mu = 1.0 / Re_delta * np.power(T, 0.75)
     return mu
@@ -93,10 +93,10 @@ def BLThickness(y, u, rho=None, opt=None):
         var = a1 * a2
         theta = np.trapz(var, y1)
         return(theta, u_d, rho_d)
-    
+
 
 # Obtain radius of curvature
-def Radius(x, y):
+def radius(x, y):
     y1 = DataPost.SecOrdFDD(x, y)
     y2 = DataPost.SecOrdFDD(x, y1)
     a1 = 1+(y1)**2
@@ -106,14 +106,14 @@ def Radius(x, y):
 
 
 # Obtain G\"ortler number
-def Gortler(Re_inf, x, y, theta, scale=0.001):
+def gortler(Re_inf, x, y, theta, scale=0.001):
     Re_theta = Re_inf*theta*scale
     radi = Radius(x, y)
     gortler = Re_theta*np.sqrt(theta/radi)
     return gortler
 
 
-def GortlerTur(theta, delta_star, radi):
+def gortlerTur(theta, delta_star, radi):
     # radi = Radius(x, y)
     a1 = theta / 0.018 / delta_star
     a2 = np.sqrt(theta / np.abs(radi))
@@ -122,14 +122,14 @@ def GortlerTur(theta, delta_star, radi):
 
 
 # Obtain skin friction coefficency
-def SkinFriction(mu, du, dy):
+def skinfriction(mu, du, dy):
     # all variables are nondimensional
     Cf = 2 * mu * du / dy
     return Cf
 
 
 # obtain Power Spectral Density
-def PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
+def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
     TotalNo = np.size(VarZone)
     if np.size(dt) > 1:
         TotalNo = Freq_samp * (dt[-1] - dt[0])
@@ -176,41 +176,41 @@ def PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
 
 
 # Obtain Frequency-Weighted Power Spectral Density
-def FW_PSD(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
-    Freq, Var_PSD = PSD(VarZone, dt, Freq_samp,
+def fw_psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
+    Freq, Var_PSD = psd(VarZone, dt, Freq_samp,
                         opt=opt, seg=seg, overlap=overlap)
     FPSD = Var_PSD * Freq
     return (Freq, FPSD)
 
 
-def FW_PSD_Map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
+def fw_pad_map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
     frame1 = orig.loc[np.around(orig['x'], 5) == np.around(xyz[0], 5)]
     # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
     frame2 = frame1.loc[np.around(frame1['y'], 5) == np.around(xyz[1], 5)]
     orig = frame2.loc[frame2['z'] == xyz[2]]
     varzone = orig[var]
-    Freq, FPSD = FW_PSD(varzone, dt, Freq_samp,
+    Freq, FPSD = fw_psd(varzone, dt, Freq_samp,
                         opt=opt, seg=seg, overlap=overlap)
     return (Freq, FPSD)
 
 # Compute the RMS
-def RMS(dataseries):
+def rms(dataseries):
     meanval = np.mean(dataseries)
-    rms = np.sqrt(np.mean((dataseries - meanval) ** 2))
-    return (rms)
+    rmsval = np.sqrt(np.mean((dataseries - meanval) ** 2))
+    return (rmsval)
 
 
 # Compute the RMS
-def RMS_map(orig, xyz, var):
+def rms_map(orig, xyz, var):
     frame1 = orig.loc[orig['x'] == xyz[0]]
     frame2 = frame1.loc[frame1['y'] == xyz[1]]
     orig = frame2.loc[frame2['z'] == xyz[2]]
     varzone = orig[var]
-    rms = RMS(varzone)
-    return (rms)
+    rms_val = rms(varzone)
+    return (rms_val)
 
 # Obtain cross-power sepectral density
-def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
+def cro_psd(Var1, Var2, dt, Freq_samp, opt=1):
     TotalNo = np.size(Var1)
     if np.size(Var1) != np.size(Var2):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
@@ -250,7 +250,7 @@ def Cro_PSD(Var1, Var2, dt, Freq_samp, opt=1):
     return (Freq, Cpsd)
 
 
-def Coherence(Var1, Var2, dt, Freq_samp, opt=1):
+def coherence(Var1, Var2, dt, Freq_samp, opt=1):
     TotalNo = np.size(Var1)
     if np.size(Var1) != np.size(Var2):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
@@ -428,7 +428,7 @@ def direst_transform(frame, option='mean'):
     UPlusVan = np.column_stack((y_plus, u_plus_van))
     return (UPlusVan)
 
-def DirestWallLawRR(walldist, u_tau, uu, rho):
+def direst_wall_lawRR(walldist, u_tau, uu, rho):
     if (np.diff(walldist) < 0.0).any():
         sys.exit("the WallDist must be in ascending order!!!")
     if (walldist[0] != 0):
@@ -447,7 +447,7 @@ def DirestWallLawRR(walldist, u_tau, uu, rho):
     return uu_plus_van
 
 # Obtain reattachment location with time
-def ReattachLoc(InFolder, OutFolder, timezone, opt=2):
+def reattach_loc(InFolder, OutFolder, timezone, opt=2):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timezone))
     if opt == 1:
@@ -503,7 +503,7 @@ def ExtractPoint(InFolder, OutFolder, timezone, xy, col=None):
 
 
 # Obtain shock location inside the boudary layer with time
-def ShockFoot(InFolder, OutFolder, timepoints, yval, var):
+def shock_foot(InFolder, OutFolder, timepoints, yval, var):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timepoints))
     if np.size(timepoints) != np.size(dirs):
@@ -525,7 +525,7 @@ def ShockFoot(InFolder, OutFolder, timepoints, yval, var):
 
 
 # Obtain shock location outside boundary layer with time
-def ShockLoc(InFolder, OutFolder, timepoints):
+def shock_loc(InFolder, OutFolder, timepoints):
     dirs = sorted(os.listdir(InFolder))
     fig1, ax1 = plt.subplots(figsize=(10, 4))
     ax1.set_xlim([0.0, 30.0])
@@ -587,7 +587,7 @@ def ShockLoc(InFolder, OutFolder, timepoints):
 
 
 # Save shock isoline
-def ShockLine(dataframe, path):
+def shock_line(dataframe, path):
     x0 = np.unique(dataframe["x"])
     x1 = x0[x0 > 10.0]
     x1 = x1[x1 <= 30.0]
@@ -628,7 +628,7 @@ def ShockLine(dataframe, path):
     )
 
 
-def SonicLine(dataframe, path, option='Mach', Ma_inf=1.7):
+def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
     # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
     if 'u' not in dataframe.columns:
@@ -660,7 +660,7 @@ def SonicLine(dataframe, path, option='Mach', Ma_inf=1.7):
                delimiter='  ', header=header)
 
 
-def DividingLine(dataframe, path=None):
+def dividing_line(dataframe, path=None):
     NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
     if 'u' not in NewFrame.columns:
@@ -696,7 +696,7 @@ def DividingLine(dataframe, path=None):
     return xy
 
 
-def BoundaryEdge(dataframe, path):
+def boundary_edge(dataframe, path):
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
     if 'u' not in dataframe.columns:
@@ -727,7 +727,7 @@ def BoundaryEdge(dataframe, path):
     )
 
 
-def BubbleArea(InFolder, OutFolder, timezone):
+def bubble_area(InFolder, OutFolder, timezone):
     dirs = sorted(os.listdir(InFolder))
     area = np.zeros(np.size(dirs))
     for i in range(np.size(dirs)):
@@ -746,7 +746,7 @@ def BubbleArea(InFolder, OutFolder, timezone):
     return area
 
 
-def Correlate(x, y, method="Sample"):
+def correlate(x, y, method="Sample"):
     if np.size(x) != np.size(y):
         sys.exit("The size of two datasets do not match!!!")
     if method == "Population":
@@ -766,7 +766,7 @@ def Correlate(x, y, method="Sample"):
     return correlation
 
 
-def DelayCorrelate(x, y, dt, delay, method="Sample"):
+def delay_correlate(x, y, dt, delay, method="Sample"):
     if delay == 0.0:
         correlation = Correlate(x, y, method=method)
     elif delay < 0.0:
@@ -783,7 +783,7 @@ def DelayCorrelate(x, y, dt, delay, method="Sample"):
     return correlation
 
 
-def Perturbations(orig, mean):
+def perturbations(orig, mean):
     grouped = orig.groupby(['x', 'y', 'z'])
     frame1 = grouped.mean().reset_index()
     grouped = mean.groupby(['x', 'y', 'z'])
@@ -794,7 +794,7 @@ def Perturbations(orig, mean):
     return pert
 
 
-def PertAtLoc(orig, var, loc, val, mean=None):
+def pert_at_loc(orig, var, loc, val, mean=None):
     frame1 = orig.loc[orig[loc[0]] == val[0]]
     frame1 = frame1.loc[np.around(frame1[loc[1]], 5) == val[1]]
     grouped = frame1.groupby(['x', 'y', 'z'])
@@ -816,7 +816,7 @@ def PertAtLoc(orig, var, loc, val, mean=None):
     return frame
 
 
-def MaxPertAlongY(orig, var, val, mean=None):
+def max_pert_along_y(orig, var, val, mean=None):
     frame1 = orig.loc[orig['x'] == val[0]]
     frame1 = frame1.loc[np.around(frame1['z'], 5) == val[1]]
     grouped = frame1.groupby(['x', 'y', 'z'])
@@ -836,7 +836,7 @@ def MaxPertAlongY(orig, var, val, mean=None):
     return frame
 
 
-def Amplit(orig, xyz, var, mean=None):
+def amplit(orig, xyz, var, mean=None):
     frame1 = orig.loc[orig['x'] == xyz[0]]
     # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
     frame2 = frame1.loc[frame1['y'] == xyz[1]]
@@ -853,14 +853,14 @@ def Amplit(orig, xyz, var, mean=None):
     return amplit
 
 
-def GrowthRate(xarr, var):
+def growth_rate(xarr, var):
     dAmpli = SecOrdFDD(xarr, var)
     growthrate = dAmpli/var
     return growthrate
 
 
 #   Obtain finite differential derivatives of a variable (2nd order)
-def SecOrdFDD(xarr, var):
+def sec_ord_fdd(xarr, var):
     dvar = np.zeros(np.size(xarr))
     for jj in range (1,np.size(xarr)):
         if jj == 1:
@@ -877,7 +877,7 @@ def SecOrdFDD(xarr, var):
     return (dvar)
 # Vorticity: omega=delta*v
 # omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
-def Vorticity():
+def vorticity():
     return 0
 
 
