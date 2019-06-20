@@ -38,8 +38,8 @@ VarList = [
 #    '<u`v`>', '<u`w`>', '<v`v`>', '<v`w`>',
 #    '<w`w`>', '<Q-criterion>', '<lambda_2>', '|<gradp>|'
 #]
-# equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
-equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
+# equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
 FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/1/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
@@ -48,15 +48,16 @@ OutFolder3 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5C/"
 OutFolder4 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5D/"
 OutFolder5 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5E/"
 OutFolder6 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5F/"
-NoBlock = 240
+NoBlock = 606
 # dirs1 = os.listdir(FoldPath)
+
 dirs = os.scandir(FoldPath)
 for folder in dirs:
     path = FoldPath+folder.name+"/"
     with timer("Read " + folder.name + " data"):
         DataFrame, time = \
-        p2p.ReadAllINCAResults(NoBlock, path, VarList, SpanAve='Yes',
-                               SavePath=OutFolder, Equ=equ)
+        p2p.ReadAllINCAResults(5, path, # VarList, SpanAve='Yes',
+                               FoldPath2=FoldPath, Equ=equ)
         #df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
         #df2 = p2p.SaveSlice(DataFrame, time, 1.5, OutFolder1)
         #df3 = p2p.SaveSlice(DataFrame, time, 1.0, OutFolder1)

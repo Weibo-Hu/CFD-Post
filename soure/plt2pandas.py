@@ -57,23 +57,20 @@ def ReadPlt(FoldPath, VarList):
     return(df)
 
 
-def ReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
+def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None,
                     SpanAve=None, SavePath=None, Equ=None, skip=0):
     if FileName is None:
         files = sorted(os.listdir(FoldPath))
         FileName = [os.path.join(FoldPath, name) for name in files]
-        if (np.size(FileName) != BlockNO):
-            warnings.warn("You may be missing some blocks!!!")
     dataset = tp.data.load_tecplot(FileName, read_data_option=2)
     # dataset = tp.data.load_tecplot(FoldPath, read_data_option=2)
     if Equ is not None:
         tp.data.operate.execute_equation(Equ)
     SolTime = dataset.solution_times[0]
     skip = skip + 1
-    num_zones = dataset.num_zones
-    for j in range(num_zones):
-        # zone = dataset.zone
-        # zonename = zone(j).name
+    # num_zones = dataset.num_zones
+    df = pd.DataFrame(columns=VarList)
+    for zone in dataset.zones('*'):
         xvar = dataset.variable('x').values(j).as_numpy_array()
         yvar = dataset.variable('y').values(j).as_numpy_array()
         zvar = dataset.variable('z').values(j).as_numpy_array()
@@ -81,8 +78,7 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
         ny = int(np.size(np.unique(yvar)))
         nz = int(np.size(np.unique(zvar)))
         for i in range(np.size(VarList)):
-            var = dataset.variable(VarList[i])
-            varval = var.values(j).as_numpy_array()
+            varval = zone.values(VarList[i]).as_numpy_array()
             # this method does much repeated work,
             # try to find index to filter variables
             if skip != 1:
@@ -106,12 +102,9 @@ def ReadINCAResults(BlockNO, FoldPath, VarList, SubZone=None, FileName=None,
             else:  # other columns
                 Var_index = varval
                 VarCol = np.column_stack((VarCol, Var_index))
-        if j == 0:  # first row
-            ZoneRow = VarCol
-        else:  # other row
-            ZoneRow = np.row_stack((ZoneRow, VarCol))
-    del dataset, var
-    df = pd.DataFrame(data=ZoneRow, columns=VarList)
+            df1 = pd.DataFrame(data=VarCol, columns=VarList)
+            df = df.append(df1, ignore_index=True)
+    del dataset, varval
     # df = df.drop_duplicates(keep='last')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
@@ -244,48 +237,35 @@ def SaveSlice(df, SolTime, SpanAve, SavePath):
     return df
 
 
-def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2=None, Equ=None,
+def ReadAllINCAResults(FoldPath, FoldPath2=None, Equ=None,
                        FileName=None, SpanAve=None, OutFile=None):
     if FileName is None:
         # files = os.listdir(FoldPath)
         # FileName = [os.path.join(FoldPath, name) for name in files]
         FileName = glob(FoldPath+'*.plt')
         dataset = tp.data.load_tecplot(FileName, read_data_option=2)
-        if (np.size(FileName) != BlockNO):
-            sys.exit("You're missing some blocks!!!")
     else:
         dataset = tp.data.load_tecplot(FileName, read_data_option=2)
-        BlockNO = dataset.num_zones
     if Equ is not None:
         tp.data.operate.execute_equation(Equ)
     VarList = [v.name for v in dataset.variables()]
     df = pd.DataFrame(columns=VarList)
   
     for zone in dataset.zones('*'):
-    # zone = dataset.zone
-    # for j in range(BlockNO):
-        # zonename = zone(j).name
         for i in range(np.size(VarList)):
-            # var = dataset.variable(VarList[i])
             if i == 0:
                 VarCol = zone.values(VarList[i]).as_numpy_array()
-                # VarCol = var.values(zonename).as_numpy_array()
             else:
                 Var_index = zone.values(VarList[i]).as_numpy_array()
-                # Var_index = var.values(zonename).as_numpy_array()
                 VarCol = np.column_stack((VarCol, Var_index))
         df1 = pd.DataFrame(data=VarCol, columns=VarList)
         df = df.append(df1, ignore_index=True)
-        # if j == 0:
-        #     ZoneRow = VarCol
-        # else:
-        #     ZoneRow = np.row_stack((ZoneRow, VarCol))
-    del FileName, dataset, zone, # zonename, var
-    # df = pd.DataFrame(data=ZoneRow, columns=VarList)
+
+    del FileName, dataset, zone
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
-#        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
+        # df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if FoldPath2 is not None and OutFile is not None:
         df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
     return(df)
