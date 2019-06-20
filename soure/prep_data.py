@@ -11,9 +11,10 @@ import plt2pandas as p2p
 import numpy as np
 import pandas as pd
 import sys
+from glob import glob
 
 # %% Make spanwise-averaged snapshots
-"""
+
 VarList = [
     'x',
     'y',
@@ -37,9 +38,9 @@ VarList = [
 #    '<u`v`>', '<u`w`>', '<v`v`>', '<v`w`>',
 #    '<w`w`>', '<Q-criterion>', '<lambda_2>', '|<gradp>|'
 #]
-
+# equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data3/BFS_M1.7L_0505/10/"
+FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/1/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
 OutFolder2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5B/"
@@ -54,7 +55,7 @@ for folder in dirs:
     path = FoldPath+folder.name+"/"
     with timer("Read " + folder.name + " data"):
         DataFrame, time = \
-        p2p.NewReadINCAResults(NoBlock, path, VarList, SpanAve='Yes',
+        p2p.ReadAllINCAResults(NoBlock, path, VarList, SpanAve='Yes',
                                SavePath=OutFolder, Equ=equ)
         #df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
         #df2 = p2p.SaveSlice(DataFrame, time, 1.5, OutFolder1)
@@ -65,8 +66,8 @@ for folder in dirs:
 
 #DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False,
 #                 header=VarList, float_format='%.10e')
-"""
 # %% Extract Data for 3D DMD
+"""
 
 VarList = [
     'x',
@@ -94,17 +95,36 @@ FileId.to_csv(FoldPath+str(skip)+'ReadList.dat', index=False, sep='\t')
 FileId['name'].to_csv(FoldPath + 'ZoomZone.dat', index=False)
 
 # FileId = pd.read_csv(path2 + str(skip)+ "ReadList.dat", sep='\t')
-# 
+#
 # dirs = os.scandir(FoldPath)
 # for folder in dirs:
 #     path = FoldPath+folder.name+"/"
 #     with timer("Read " + folder.name + " data"):
 #         DataFrame, time = \
-#         p2p.NewReadINCAResults(NoBlock, path, VarList, 
+#         p2p.NewReadINCAResults(NoBlock, path, VarList,
 #                                FileName=FileId['name'].tolist(),
 #                                SavePath=OutFolder, Equ=equ,
 #                                skip=skip)
 
+"""
+# %% merge snapshots into a single file
+path = '/media/weibo/VID1/BFS_M1.7TS/'
+snap = 'TP_2D_Z_03'
+FoldPath = path + 'snap/range1/'
+OutPath = path + 'Slice/' + snap + '/'
+dirs = os.listdir(FoldPath)
+
+num = np.size(dirs)
+for i in range(0, num):
+    path = FoldPath + dirs[i] + "/"
+    file = glob(path + snap + '_*.plt')
+    with timer("merge " + str(i) + " file"):
+        dataset = tp.data.load_tecplot(file, read_data_option=2)
+        SolTime = dataset.solution_times[0]
+        tm = '_' + "%08.2f" % SolTime
+        tp.data.save_tecplot_plt(OutPath + snap + tm + '.plt', dataset=dataset)
+        # tp.data.save_tecplot_szl(path + snap + '.szplt', dataset=dataset)
+        
 
 # %% Save time-averaged flow field
 """
@@ -148,9 +168,9 @@ for folder in dirs:
     with timer('Read'+folder.name):
         frame = pd.read_hdf(FoldPath+folder.name)
         SumFrame = SumFrame.append(frame)
-    
+
 grouped = SumFrame.groupby(['x', 'y', 'z'])
-TimeAve = grouped.mean().reset_index()    
+TimeAve = grouped.mean().reset_index()
 TimeAve.to_hdf(OutFolder + "TimeAve.h5", 'w', format='fixed')
 
 grouped1 = TimeAve.groupby(['x', 'y'])
@@ -190,7 +210,7 @@ mean = newframe.mean().reset_index()
 frame = mean.loc[ mean['x']==-40.0 ]
 newfra = frame[['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'Mach', 'T']]
 newfra.to_hdf(FoldPath+'Profile1.h5', 'w', format='fixed')
-newfra.to_csv(FoldPath+'Profile.dat', header=newfra.columns, 
+newfra.to_csv(FoldPath+'Profile.dat', header=newfra.columns,
               index=False, sep='\t', mode='w')
 """
 #%%

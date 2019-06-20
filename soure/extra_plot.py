@@ -16,6 +16,7 @@ import pandas as pd
 import plt2pandas as p2p
 import variable_analysis as fv
 from planar_field import PlanarField as pf
+from triaxial_field import TriField as tf
 from data_post import DataPost
 from scipy.interpolate import griddata
 from numpy import NaN, Inf, arange, isscalar, asarray, array
@@ -27,7 +28,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/Data2/BFS_M1.7L/"
+path = "/media/weibo/Data2/BFS_M1.7SFD1/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -40,6 +41,23 @@ textsize = 18
 numsize = 14
 matplotlib.rc("font", size=textsize)
 
+# %% for LST
+pathB = "/media/weibo/Data2/BFS_M1.7SFD1/BaseFlow/"
+flow = tf()
+flow.load_3data(pathB)
+flow.spanwise_average()
+flow.PlanarData.to_hdf(pathB + "BaseFlow" + ".h5", 'w', format='fixed')
+base = flow.PlanarData
+# %%
+path = "/media/weibo/Data2/BFS_M1.7SFD1/"
+pathB = path + "BaseFlow/"
+base = pd.read_hdf(path + 'BaseFlow.h5')
+varlist = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'Mach', 'T']
+x_loc = np.arange(-40.0, 0.0 + 1.0, 1.0)
+for i in range(np.size(x_loc)):
+    df = base.loc[base['x']==x_loc[i], varlist]
+    df.to_csv(pathB + 'InputProfile_' + str(x_loc[i]) + '.dat',
+              index=False, float_format='%1.8e', sep=' ')
 # %% Plot schematic of the computational domain
 pd = p2p.ReadAllINCAResults(240, pathI, FileName='ZSliceSolTime1000.plt')
 x, y = np.meshgrid(np.unique(pd.x), np.unique(pd.y))

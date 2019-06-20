@@ -17,11 +17,17 @@ import numpy as np
 class PlanarField(LineField):
     def __init__(self):
         super().__init__()
-        # self.PlanarData = pd.DataFrame()
+        self._PlanarData = pd.DataFrame()
 
     @property
     def PlanarData(self):
-        return self._data_field
+        self._PlanarData = self._data_field
+        # return self._data_field
+        return self._PlanarData
+    
+    @PlanarData.setter
+    def PlanarData(self, df):
+        self._PlanarData = df
 
     @property
     def u_m(self):

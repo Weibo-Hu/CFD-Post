@@ -259,22 +259,29 @@ def ReadAllINCAResults(BlockNO, FoldPath, FoldPath2=None, Equ=None,
     if Equ is not None:
         tp.data.operate.execute_equation(Equ)
     VarList = [v.name for v in dataset.variables()]
-    zone = dataset.zone
-    for j in range(BlockNO):
-        zonename = zone(j).name
+    df = pd.DataFrame(columns=VarList)
+  
+    for zone in dataset.zones('*'):
+    # zone = dataset.zone
+    # for j in range(BlockNO):
+        # zonename = zone(j).name
         for i in range(np.size(VarList)):
-            var = dataset.variable(VarList[i])
+            # var = dataset.variable(VarList[i])
             if i == 0:
-                VarCol = var.values(zonename).as_numpy_array()
+                VarCol = zone.values(VarList[i]).as_numpy_array()
+                # VarCol = var.values(zonename).as_numpy_array()
             else:
-                Var_index = var.values(zonename).as_numpy_array()
+                Var_index = zone.values(VarList[i]).as_numpy_array()
+                # Var_index = var.values(zonename).as_numpy_array()
                 VarCol = np.column_stack((VarCol, Var_index))
-        if j == 0:
-            ZoneRow = VarCol
-        else:
-            ZoneRow = np.row_stack((ZoneRow, VarCol))
-    del FileName, dataset, zone, zonename, var
-    df = pd.DataFrame(data=ZoneRow, columns=VarList)
+        df1 = pd.DataFrame(data=VarCol, columns=VarList)
+        df = df.append(df1, ignore_index=True)
+        # if j == 0:
+        #     ZoneRow = VarCol
+        # else:
+        #     ZoneRow = np.row_stack((ZoneRow, VarCol))
+    del FileName, dataset, zone, # zonename, var
+    # df = pd.DataFrame(data=ZoneRow, columns=VarList)
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()

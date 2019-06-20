@@ -56,6 +56,32 @@ MeanFlow.merge_meanflow(path)
 MeanFlow = pf()
 MeanFlow.load_meanflow(path)
 
+# %% check mesh 
+temp = MeanFlow.PlanarData[['x', 'y']]
+df = temp.query("x>=-5.0 & x<=5.0 & y>=-3.0 & y<=1.0")
+ux = np.unique(df.x)
+uy = np.unique(df.y)
+fig, ax = plt.subplots(figsize=(6.4, 3.0))
+matplotlib.rc("font", size=textsize)
+for i in range(np.size(ux)):
+    if i % 2 == 0:
+        df_x = df.loc[df['x']==ux[i]]
+        ax.plot(df_x['x'], df_x['y'], 'k-', linewidth=0.4)
+for j in range(np.size(uy)):
+    if j % 4 == 0:
+        df_y = df.loc[df['y']==uy[j]]
+        ax.plot(df_y['x'], df_y['y'], 'k-', linewidth=0.4)
+plt.gca().set_aspect("equal", adjustable="box")
+ax.set_xlim(-5.0, 5.0)
+ax.set_ylim(-3.0, 1.0)
+ax.set_xticks(np.linspace(-5.0, 5.0, 5))
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+plt.savefig(pathF + "Grid.pdf", bbox_inches="tight")
+plt.show()
+    
+
 # %%
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
@@ -85,8 +111,8 @@ cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1)  # rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
 ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontdict=font)
-ax.set_ylabel(r"$y/\delta_0$", fontdict=font)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(0.33, 1.03, 3)
