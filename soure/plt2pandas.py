@@ -57,8 +57,8 @@ def ReadPlt(FoldPath, VarList):
     return(df)
 
 
-def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None,
-                    SpanAve=None, SavePath=None, Equ=None, skip=0):
+def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
+                    SpanAve=None, SavePath=None, OutFile=None, skip=0):
     if FileName is None:
         files = sorted(os.listdir(FoldPath))
         FileName = [os.path.join(FoldPath, name) for name in files]
@@ -71,9 +71,9 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None,
     # num_zones = dataset.num_zones
     df = pd.DataFrame(columns=VarList)
     for zone in dataset.zones('*'):
-        xvar = dataset.variable('x').values(j).as_numpy_array()
-        yvar = dataset.variable('y').values(j).as_numpy_array()
-        zvar = dataset.variable('z').values(j).as_numpy_array()
+        xvar = zone.values('x').as_numpy_array()
+        yvar = zone.values('y').as_numpy_array()
+        zvar = zone.values('z').as_numpy_array()
         nx = int(np.size(np.unique(xvar)))
         ny = int(np.size(np.unique(yvar)))
         nz = int(np.size(np.unique(zvar)))
@@ -102,10 +102,10 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None,
             else:  # other columns
                 Var_index = varval
                 VarCol = np.column_stack((VarCol, Var_index))
-            df1 = pd.DataFrame(data=VarCol, columns=VarList)
-            df = df.append(df1, ignore_index=True)
+        df1 = pd.DataFrame(data=VarCol, columns=VarList)
+        df = df.append(df1, ignore_index=True)
     del dataset, varval
-    # df = df.drop_duplicates(keep='last')
+    df = df.drop_duplicates(keep='last')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
@@ -119,8 +119,8 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None,
         df['z'] = df['z'].astype(float)
         df = df.query("x>={0} & x<={1} & y<={2}".format(
                        SubZone[0][0], SubZone[0][1], SubZone[1][1]))
-    if SavePath is not None:
-        df.to_hdf(SavePath+"SolTime"+"%0.2f"%SolTime+".h5",
+    if SavePath is not None and OutFile is not None:
+        df.to_hdf(SavePath + OutFile + ".h5",
                   'w', format='fixed')
     return (df, SolTime)
 
@@ -262,6 +262,7 @@ def ReadAllINCAResults(FoldPath, FoldPath2=None, Equ=None,
         df = df.append(df1, ignore_index=True)
 
     del FileName, dataset, zone
+    df = df.drop_duplicates(keep='last')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
@@ -478,6 +479,11 @@ def SpanAve(DataFrame, OutputFile = None):
         outfile  = open(OutputFile, 'x')
         DataFrame.to_csv(outfile, index=False, sep = '\t')
         outfile.close()
+        
+def TimeAve(DataFrame):
+    grouped = DataFrame.groupby(['x', 'y', 'z'])
+    DataFrame = grouped.mean().reset_index()
+    return (DataFrame)
 
 #VarList  = ['x', 'y', 'z', 'u', 'v', 'w', 'p', 'T']
 #FoldPath = "/media/weibo/Data1/BFS_M1.7L_0419/4/"
