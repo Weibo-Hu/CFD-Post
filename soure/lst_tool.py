@@ -18,6 +18,8 @@ from data_post import DataPost
 import variable_analysis as fv
 from timer import timer
 from scipy.interpolate import griddata
+import plt2pandas as p2p
+from glob import glob
 
 
 # %% data path settings
@@ -42,6 +44,20 @@ matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 15
 numsize = 12
+
+# %%
+path = "/media/weibo/VID2/BFS_M1.7TS/"
+pathB = path + "BaseFlow/"
+#file = glob(pathB + '*plt')
+#p2p.ReadAllINCAResults(pathB, FoldPath2=pathB, 
+#                       FileName=file, SpanAve='Y', OutFile="BaseFlow")
+base = pd.read_hdf(pathB + 'BaseFlow.h5')
+varlist = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'Mach', 'T']
+x_loc = np.arange(-40.0, 0.0 + 1.0, 1.0)
+for i in range(np.size(x_loc)):
+    df = base.loc[base['x']==x_loc[i], varlist]
+    df.to_csv(pathB + 'InputProfile_' + str(x_loc[i]) + '.dat',
+              index=False, float_format='%1.8e', sep=' ')
 
 # %% Contour of TS mode
 x_inlet = 0.382185449774020e3
@@ -301,7 +317,7 @@ ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "Re_omega.svg", bbox_inches="tight")
 plt.show()
 
-# %% TS-modes
+# %% TS-modes along streamwise
 xloc = np.arange(-40.0, -1.0 + 1.0, 1.0)
 x_inlet = 0.382185449774020e3
 blasius = 1.579375403141185e-04 # 1.669135812043661e-04
@@ -309,8 +325,8 @@ delta = 1e-3
 Re = 13718000
 val = 0.06202
 var = 'beta'
-lst_ts = np.zeros( (np.size(xloc) ,2) )
-Re_l = np.zeros(np.size(xloc))
+lst_ts = np.zeros( (np.size(xloc), 2) )
+Re_l = np.zeros( (np.size(xloc), 3) )
 for i in range(np.size(xloc)):
     xx = xloc[i]
     l_ref = blasius * np.sqrt((x_inlet + xx)/(x_inlet - 40.0))    
@@ -323,10 +339,12 @@ for i in range(np.size(xloc)):
     # ts_mode['phi'] = ts_mode['phi'] * delta / l_ref
     lst_ts[i, 0] = interp1d(ts_mode[var], ts_mode['alpha_r'])(val1)
     lst_ts[i, 1] = interp1d(ts_mode[var], ts_mode['alpha_i'])(val1)
-    Re_l[i] = Re * l_ref
+    Re_l[i, 0] = xx
+    Re_l[i, 1] = l_ref
+    Re_l[i, 2] = Re * l_ref
 
 varval = np.column_stack((Re_l, lst_ts))
-df = pd.DataFrame(data=varval, columns=['Re', 'alpha_r', 'alpha_i'])
+df = pd.DataFrame(data=varval, columns=['x', 'bl', 'Re', 'alpha_r', 'alpha_i'])
 df.to_csv(pathB + 'LST_TS.dat',
           index=False, float_format='%1.8e', sep=' ')
 
@@ -364,5 +382,5 @@ ax1.grid(b=True, which="both", linestyle=":")
 ax1.annotate("(b)", xy=(-0.21, 1.00), xycoords='axes fraction',
              fontsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.6, h_pad=1)
-plt.savefig(pathF + "Re_alpha.pdf")
+plt.savefig(pathF + "Re_alpha.svg")
 plt.show()
