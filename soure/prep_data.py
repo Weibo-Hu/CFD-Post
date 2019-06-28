@@ -23,6 +23,7 @@ VarList = [
     'v',
     'w',
     'p',
+    'rho',
     'vorticity_1',
     'vorticity_2',
     'vorticity_3',
@@ -40,8 +41,8 @@ VarList = [
 #]
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
 # equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/1/"
-OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
+FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/00/"
+OutFolder = "/media/weibo/VID2/BFS_M1.7TS/Slice/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
 OutFolder2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5B/"
 OutFolder3 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5C/"
@@ -50,14 +51,18 @@ OutFolder5 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5E/"
 OutFolder6 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5F/"
 NoBlock = 606
 # dirs1 = os.listdir(FoldPath)
-
+subzone = [(-40.0, 70.0), (-3.0, 10.0)]
 dirs = os.scandir(FoldPath)
 for folder in dirs:
-    path = FoldPath+folder.name+"/"
+    # path = FoldPath+folder.name+"/"
+    file = FoldPath + folder.name
+    outfile = os.path.splitext(folder.name)[0]
+    
     with timer("Read " + folder.name + " data"):
         DataFrame, time = \
-        p2p.ReadAllINCAResults(5, path, # VarList, SpanAve='Yes',
-                               FoldPath2=FoldPath, Equ=equ)
+        p2p.ReadINCAResults(FoldPath, VarList, FileName=file, SubZone=subzone,
+                            SavePath=OutFolder, OutFile=outfile, Equ=equ)
+        
         #df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
         #df2 = p2p.SaveSlice(DataFrame, time, 1.5, OutFolder1)
         #df3 = p2p.SaveSlice(DataFrame, time, 1.0, OutFolder1)
@@ -67,6 +72,7 @@ for folder in dirs:
 
 #DataFrame.to_csv(FoldPath + "MeanFlow.dat", sep="\t", index=False,
 #                 header=VarList, float_format='%.10e')
+
 # %% Extract Data for 3D DMD
 """
 
@@ -109,23 +115,24 @@ FileId['name'].to_csv(FoldPath + 'ZoomZone.dat', index=False)
 
 """
 # %% merge snapshots into a single file
+"""
 path = '/media/weibo/VID1/BFS_M1.7TS/'
-snap = 'TP_2D_Z_03'
-FoldPath = path + 'snap/range1/'
-OutPath = path + 'Slice/' + snap + '/'
+snap = 'TP_2D_S_10'
+FoldPath = path + 'snapshots/00/'
+OutPath = path + 'Slice/backup/'
 dirs = os.listdir(FoldPath)
 
 num = np.size(dirs)
 for i in range(0, num):
     path = FoldPath + dirs[i] + "/"
     file = glob(path + snap + '_*.plt')
-    with timer("merge " + str(i) + " file"):
+    with timer("merge " + dirs[i] + " file"):
         dataset = tp.data.load_tecplot(file, read_data_option=2)
         SolTime = dataset.solution_times[0]
         tm = '_' + "%08.2f" % SolTime
         tp.data.save_tecplot_plt(OutPath + snap + tm + '.plt', dataset=dataset)
         # tp.data.save_tecplot_szl(path + snap + '.szplt', dataset=dataset)
-        
+"""
 
 # %% Save time-averaged flow field
 """

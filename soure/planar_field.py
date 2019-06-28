@@ -90,15 +90,13 @@ class PlanarField(LineField):
             nfiles = np.size(os.listdir(path + 'TP_stat/'))
             with timer('load mean flow from tecplot data'):
                 if FileList is None:
-                    df = p2p.ReadAllINCAResults(nfiles,
-                                                path + 'TP_stat/',
+                    df = p2p.ReadAllINCAResults(path + 'TP_stat/',
                                                 path + 'MeanFlow/',
                                                 SpanAve=True,
                                                 Equ=equ,
                                                 OutFile='MeanFlow')
                 else:
-                    df = p2p.ReadAllINCAResults(nfiles,
-                                                path + 'TP_stat/',
+                    df = p2p.ReadAllINCAResults(path + 'TP_stat/',
                                                 path + 'MeanFlow/',
                                                 FileName=FileList,
                                                 SpanAve=True,
