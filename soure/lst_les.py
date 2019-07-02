@@ -450,24 +450,58 @@ for j in range(np.size(x0)):
 xloc = [-36.0, -24.0, -10.0]
 num_samp = np.size(stime)
 freq = np.linspace(0.0, freq_samp / 2, math.ceil(num_samp/2), endpoint=False)
+bf = pd.read_hdf(pathB + 'BaseFlow.h5')
 for j in range(np.size(xloc)):
-    filenm = pathP + 'timeline_' + str(x0[j]) + '.dat'
-    var = fm.loc[fm['x']==xloc[j], ['y', 'u', 'p']]
-    y_uni = np.unique(var['y'])
+    file = 'BL_Profile_' + str(xloc[j]) + '.h5'
+    fm = pd.read_hdf(pathP + file)
+    bf1 = bf.loc[bf['x']==xloc[j], ['y', varnm]]    
+    y_uni = np.unique(fm['y'])
     profile = np.zeros( (np.size(y_uni), 3) )
     for i in range(np.size(y_uni)):
-        var_per = var.loc[var['y']==y_uni[i], varnm]
-        var_per = var_per - np.mean(var_per) # make sure mean value is zero
+        var1 = var.loc[var['y']==y_uni[i], varnm]
+        base_var = bf1.loc[bf1['y']==y_uni[i], varnm]
+        var1 = var1 - base_var 
+        var_per = var1 - np.mean(var1)  # make sure mean value is zero
         var_fft = np.fft.rfft(var_per)  # remove value at 0 frequency    
         amplt = np.abs(var_fft)
         phase = np.angle(var_fft, deg=False)
         ind = np.argmax(amplt)
-        profile[i, 1] = freq[ind]
-        profile[i, 2] = amplt[ind]
-        profile[i, 3] = phase[ind]
+        profile[i, 0] = freq[ind]
+        profile[i, 1] = amplt[ind]
+        profile[i, 2] = phase[ind]
     df = pd.DataFrame(data=np.hstack((y_uni.reshape(-1, 1), profile)),
                       columns=['y', 'freq', 'amplit', 'phase'])
+    filenm = pathP + varnm + '_profile_ftt_' + str(xloc[j]) + '.dat'
     df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
+
+# %% plot BL profile of amplitude along streamwise
+filenm = pathP + varnm + '_profile_ftt_' + str(-36.0) + '.dat'
+amp_fft = pd.read_csv(filenm, sep=' ', skiprows=0,
+                      index_col=False, skipinitialspace=True)
+ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep=' ',
+                         index_col=False, skiprows=4,
+                         skipinitialspace=True)
+ts_profile['u'] = np.sqrt(ts_profile['u_r']**2+ts_profile['u_i']**2)
+ts_profile['p'] = np.sqrt(ts_profile['p_r']**2+ts_profile['p_i']**2)
+# normalized
+ts_profile['u'] = ts_profile['u'] / np.max(ts_profile['u'])
+ts_profile['p'] = ts_profile['p'] / np.max(ts_profile['p'])
+# plot lines
+fig, ax = plt.subplots(figsize=(3.2, 3.2))
+matplotlib.rc('font', size=numsize)
+amp_norm = amp_fft['amplit']/np.max(amp_fft['amplit'])
+ax.scatter(amp_norm, amp_fft['y'], s=12, marker='o',
+           facecolors='w', edgecolors='k', linewidths=0.8)
+ax.plot(ts_profile.u, ts_profile.y, 'k', linewidth=1.2)
+ax.set_ylim([0, 5])
+ax.set_xlabel(r'$|p^\prime|/|p^\prime|_{max}$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.show()
+plt.savefig(
+    pathF + "BLAmplit_" + varnm + ".svg", bbox_inches="tight", pad_inches=0.1
+)
 
 # %% plot BL profile along streamwise
 bf = pd.read_hdf(pathB + 'BaseFlow.h5')
