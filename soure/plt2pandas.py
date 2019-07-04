@@ -125,6 +125,63 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
     return (df, SolTime)
 
 
+# %% save zone information of every tecplot file
+def save_zone_info(path, filename=None):
+    init = os.scandir(path)
+    cols = ['x1', 'x2', 'y1', 'y2', 'z1',
+            'z2', 'nx', 'ny', 'nz']
+    name = np.empty(shape=[0, 1])
+    boundary = np.empty(shape=[0, 9])
+    for folder in init:
+        file = path + folder.name
+        dataset = tp.data.load_tecplot(file, read_data_option=2)
+        zone = dataset.zone
+        zonename = zone(0).name
+        var_x = dataset.variable('x').values(zonename).as_numpy_array()
+        var_y = dataset.variable('y').values(zonename).as_numpy_array()
+        var_z = dataset.variable('z').values(zonename).as_numpy_array()
+        nx = int(np.size(np.unique(var_x)))
+        ny = int(np.size(np.unique(var_y)))
+        nz = int(np.size(np.unique(var_z)))
+        nxyz = np.size(var_x)
+        if nxyz != nx * ny * nz:
+            sys.exit("The shape of data does not match!!!")
+        x1 = np.min(var_x)
+        x2 = np.max(var_x)
+        y1 = np.min(var_y)
+        y2 = np.max(var_y)
+        z1 = np.min(var_z)
+        z2 = np.max(var_z)
+
+        name = np.append(name, folder.name)
+        information = [x1, x2, y1, y2, z1, z2, nx, ny, nz]
+        boundary = np.vstack((boundary, information))
+    name = name.reshape(-1, 1)
+    df = pd.DataFrame(data=boundary, columns=cols)
+    df['name'] = name
+    if filename is not None:
+        df.to_csv(filename, index=False, sep=' ')
+    return (df)
+
+# %% save index information for convert .h5 to plt
+def save_tec_index(df_data, df_zone_info, filename=None):
+    dat = np.empty(shape=[0, 2])
+    for jj in range(np.shape(df_zone_info)[0]):
+        file = df_zone_info.iloc[jj]
+        # extract zone according to coordinates
+        df_id = df_data.query("x>={0} & x<={1} & y>={2} & y<={3}".format(
+                              file['x1'], file['x2'], file['y1'], file['y2']))
+        ind = df_id.index.values
+        file_id = np.ones(np.size(ind)) * (jj + 1)
+        temp = np.vstack((file_id, ind))
+        dat = np.vstack( (dat, temp.transpose()) )
+    df = pd.DataFrame(data=dat, columns=['file', 'ind'])
+    if filename is not None:
+        df.to_csv(filename, index=False, sep=' ')
+        # df.to_hdf(filename, 'w', format='fixed')
+    return (df)
+
+
 def ExtractZone(path, cube, NoBlock, skip=0, FileName=None):
     # cube = [(-5.0, 25.0), (-3.0, 5.0), (-2.5, 2.5)]
     if NoBlock != np.size(os.listdir(path)):
@@ -485,16 +542,6 @@ def TimeAve(DataFrame):
     DataFrame = grouped.mean().reset_index()
     return (DataFrame)
 
-#VarList  = ['x', 'y', 'z', 'u', 'v', 'w', 'p', 'T']
-#FoldPath = "/media/weibo/Data1/BFS_M1.7L_0419/4/"
-#OutFolder = "/media/weibo/Data1/BFS_M1.7L_0419/SpanAve/"
-#dirs = os.listdir(FoldPath)
-#num = np.size(dirs)
-#for ii in range(num):
-#    progress(ii, num, ' ')
-#    path  = FoldPath+dirs[ii]+"/"
-#    with timer("Read .plt data"):
-#        DataFrame = ReadINCAResults(214, path, VarList, OutFolder, SpanAve="Yes")
 
 #%% Read plt data from INCA
 #FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/TP_stat/"
