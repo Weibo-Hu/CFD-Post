@@ -412,28 +412,42 @@ def zone2tec(path, filename, df, zonename, num, time=None):
                   float_format='%9.8e')
 
 
-def mul_zone2tec(path, filename, FileId, df, time=None):
+def mul_zone2tec(path, filename, zoneinfo, df, zoneid=None, time=None):
     header = "VARIABLES = "
     for j in range(len(df.columns)):
         header = '{} "{}"'.format(header, df.columns[j])
+    df_zone = pd.read_csv(zoneinfo, sep=' ', skiprows=0,
+                          index_col=False, skipinitialspace=True)
     with timer("save data as tecplot .dat"):
         with open(path + filename + '.dat', 'w') as f:
-            f.write(header+'\n')
-            for i in range(np.shape(FileId)[0]):
-                zonename = 'B' + '{:010}'.format(i)
-                file = FileId.iloc[i]
-                ind1 = int(file['id1'])
-                ind2 = int(file['id2'])
+            f.write(header + '\n')
+            for i in range(np.shape(df_zone)[0]):
+                zonename = 'B' + '{:010}'.format(i+1)
+                file = df_zone.iloc[i]
                 zone = 'ZONE T = "{}" \n'.format(zonename)
                 f.write(zone)
                 if time is not None:
                     time = np.float64(time)
-                    f.write(' StrandID=1, SolutionTime = {}\n'.format(time))
+                    f.write(
+                        ' StrandID={0}, SolutionTime={1}\n'.format(i+1, time)
+                        )
                 else:
-                    f.write('\n')
+                    f.write('StrandID={}\n'.format(i + 1))
+
                 f.write('I = {}, J = {}, K = {}\n'.format(
                         file['nx'], file['ny'], file['nz']))
-                data = df.iloc[ind1: ind2 + 1]
+                if zoneid is None:
+                    data = df.query(
+                        "x>={0} & x<={1} & y>={2} & y<={3}".format(
+                            file['x1'], file['x2'], file['y1'], file['y2'])
+                        )
+                else:
+                    grouped = zoneid.groupby(['file'])
+                    # ng = grouped.ngroups
+                    ind = grouped.get_group(i + 1)['ind']
+                    ind = ind.astype('int')
+                    data = df.iloc[ind]
+                # data = df.iloc[ind1: ind2 + 1]
                 data = data.sort_values(by=['z', 'y', 'x'])
                 data.to_csv(f, sep='\t', index=False, header=False,
                             float_format='%.8f')
