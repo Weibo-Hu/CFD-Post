@@ -32,6 +32,8 @@ import plt2pandas as p2p
 from glob import glob
 from scipy import fftpack
 import warnings
+import sys
+import multiprocessing
 
 # %% data path settings
 path = "/media/weibo/VID2/BFS_M1.7TS/"
@@ -53,8 +55,8 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 14
-numsize = 11
+textsize = 12
+numsize = 10
 
 # %% load data
 path1 = pathS + 'TP_2D_Z_03/'
@@ -535,3 +537,122 @@ plt.show()
 plt.savefig(
     pathF + "BLPerturb.svg", bbox_inches="tight", pad_inches=0.1
 )
+
+# %% Extract spanwise-averaged flow, obtain fluctuations
+path = "/media/weibo/VID2/BFS_M1.7TS/"
+path1 = path + "TP_data_01386484/"
+VarList = [
+    'x',
+    'y',
+    'z',
+    'u',
+    'v',
+    'w',
+    'p',
+    'rho',
+    'vorticity_1',
+    'vorticity_2',
+    'vorticity_3',
+    'T',
+]
+equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+df, time = p2p.ReadINCAResults(path1, VarList)
+# df.to_hdf(path + "TP_data_" + str(time) + ".h5", 'w', format='fixed')
+# df = pd.read_hdf(path + "TP_data.h5")
+grouped = df.groupby(['x', 'y'], as_index=False)
+# df2 = grouped.mean().reset_index()
+fluc = lambda x: (x-x.mean())
+df1 = grouped.transform(fluc)
+df2 = df.sort_values(by=['x', 'y', 'z'])
+df1.insert(0, 'x', df2['x'])
+df1.insert(1, 'y', df2['y'])
+df1.to_hdf(path + 'ZFluctuation_' + str(time) + '.h5', 'w', format='fixed')
+
+# %% Extract base flow, obtain fluctuations
+path2 = path + "TP_data_baseflow/"
+orig = pd.read_hdf(path + "ZFluctuation_899.5.h5")[VarList]
+# base = p2p.ReadAllINCAResults(path2, path, SpanAve=False, OutFile='baseflow')
+base = pd.read_hdf(path + "baseflow.h5")[VarList]
+varname = [
+    'u',
+    'v',
+    'w',
+    'p',
+    'rho',
+    'vorticity_1',
+    'vorticity_2',
+    'vorticity_3',
+    'T',
+]
+
+# %%
+# df_zone = p2p.save_zone_info(path1, filename=path + "ZoneInfo.dat")
+df_zone = pd.read_csv(path + "ZoneInfo.dat", sep=' ', skiprows=0,
+                      index_col=False, skipinitialspace=True)
+for i in range(10): # (np.shape(df_zone)[0]):
+    file = df_zone.iloc[i]
+    cube = orig.query(
+        "x>={0} & x<={1} & y>={2} & y<={3}".format(
+            file['x1'],
+            file['x2'],
+            file['y1'],
+            file['y2']
+        )
+    )
+    
+    if (file['nz'] != len(np.unique(cube['z']))):
+        # remove dismatch grid point on the boundary of the block
+        zlist = np.linspace(file['z1'], file['z2'], int(file['nz']))
+        blk1 = cube[cube['z'].isin(zlist)].reset_index(drop=True)
+    else:
+        blk1 = cube
+
+    blk0 = base.query(
+        "x>={0} & x<={1} & y>={2} & y<={3}".format(
+            file['x1'],
+            file['x2'],
+            file['y1'],
+            file['y2']
+        )
+    )
+    new = blk0.loc[blk0.index.repeat(int(file['nz']))]
+    new = new.reset_index(drop=True)
+    flc = blk1
+    flc.update(flc[varname] - new[varname])
+    if (file['nx'] != len(np.unique(flc['x']))):
+        xlist = np.unique(flc['x'])[0::2]
+        flc = flc[flc['x'].isin(xlist)]
+    if (file['ny'] != len(np.unique(flc['y']))):
+        ylist = np.unique(flc['y'])[0::2]
+        flc = flc[flc['y'].isin(ylist)]
+    p2p.frame2tec3d(flc, path, 'fluc' + str(i), stime=899.5)
+    
+
+
+# %%
+grouped = orig.groupby(['x', 'y'])
+count = grouped.size().reset_index(name='count')
+base_exts = base['u'].repeat(count['count'].values)
+# %%
+fm = pd.DataFrame()
+for i in range(np.shape(base1)[0]):
+    slc = base1.iloc[i]
+    key = tuple(slc[['x', 'y']].values)
+    grp = grouped.get_group(key)
+    flc = grp[varname] - slc[varname]
+    flc.insert(0, 'x', grp['x'])
+    flc.insert(1, 'y', grp['y'])
+    flc.insert(2, 'z', grp['z'])
+    fm = fm.append(flc, ignore_index=True)    
+
+# %% convert h5 to plt
+df1 = pd.read_hdf(path + "ZFluctuation_899.5.h5")
+df_zone = p2p.save_zone_info(path1, filename=path + "ZoneInfo.dat")
+p2p.save_tec_index(df1, df_zone, filename=path + "ReadList.dat")
+df_zone = pd.read_csv(path + "ZoneInfo.dat", sep=' ', skiprows=0,
+                      index_col=False, skipinitialspace=True)
+fileid = pd.read_csv(path + 'ReadList.dat', sep=' ', skiprows=0,
+                     index_col=False, skipinitialspace=True)
+p2p.mul_zone2tec(path, "test", df_zone, df1, stime=899.5)
+
+
