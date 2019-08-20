@@ -81,13 +81,38 @@ class PlanarField(LineField):
     def R23(self):
         return self._data_field['<v`w`>'].values
 
+    def load_data(self, path, FileList=None, NameList=None):
+        nfiles = np.size(os.listdir(path))
+        if FileList is None:
+            infile = glob(path + '*.plt')
+        else:
+            infile = FileList
+
+        if NameList is None:
+            # ext_name = os.path.splitext(infile)
+            df = p2p.ReadAllINCAResults(nfiles,
+                                        path,
+                                        FileName=infile)
+        elif NameList == 'h5':
+            df = pd.read_hdf(infile)
+        else:
+            df = p2p.ReadINCAResults(nfiles,
+                                     path,
+                                     VarList=NameList,
+                                     FileName=infile)
+        df = df.drop_duplicates(keep='last')    
+        self._data_field = df
+
     def load_meanflow(self, path, FileList=None, OutFile=None):
         exists = os.path.isfile(path + 'MeanFlow/MeanFlow.h5')
         if exists:
-            self._data_field = pd.read_hdf(path + 'MeanFlow/MeanFlow.h5')
+            df = pd.read_hdf(path + 'MeanFlow/MeanFlow.h5')
+            df = df.drop_duplicates(keep='last')
+            grouped = df.groupby(['x', 'y', 'z'])
+            df = grouped.mean().reset_index()
         else:
             equ = '{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)'
-            nfiles = np.size(os.listdir(path + 'TP_stat/'))
+            # nfiles = np.size(os.listdir(path + 'TP_stat/'))
             with timer('load mean flow from tecplot data'):
                 if FileList is None:
                     df = p2p.ReadAllINCAResults(path + 'TP_stat/',
@@ -102,7 +127,7 @@ class PlanarField(LineField):
                                                 SpanAve=True,
                                                 Equ=equ,
                                                 OutFile='MeanFlow')
-            self._data_field = df
+        self._data_field = df
 
     def merge_meanflow(self, path):
         dirs = sorted(os.listdir(path + 'TP_stat/'))

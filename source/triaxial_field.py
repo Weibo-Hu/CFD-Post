@@ -25,10 +25,12 @@ class TriField(PlanarField):
     
     @property
     def PlanarData(self):
-        grouped = self._data_field.groupby(['x', 'y', 'z'])
-        df = grouped.mean().reset_index()
-        self._PlanarData = df
         return self._PlanarData
+    
+    @PlanarData.setter
+    def PlanarData(self, frame):
+        assert isinstance(frame, pd.DataFrame)
+        self._PlanarData = frame
 
     def load_3data(self, path, FileList=None, NameList=None):
         nfiles = np.size(os.listdir(path))
@@ -38,10 +40,11 @@ class TriField(PlanarField):
             infile = FileList
 
         if NameList is None:
-            df = p2p.ReadAllINCAResults(nfiles,
-                                        path,
+            df = p2p.ReadAllINCAResults(path,
                                         FileName=infile,
-                                        SpanAve=False)
+                                        SpanAve=None)
+        elif NameList == 'h5':
+            df = pd.read_hdf(infile)
         else:
             df = p2p.ReadINCAResults(nfiles,
                                      path,
@@ -51,6 +54,12 @@ class TriField(PlanarField):
 
         df = df.drop_duplicates(keep='last')    
         self._data_field = df
+        
+    def span_ave(self):
+        grouped = self._data_field.groupby(['x', 'y'])
+        df = grouped.mean().reset_index()
+        return(df)
+        
 
 
 
