@@ -41,7 +41,7 @@ VarList = [
 #]
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
 # equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/00/"
+FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/0/"
 OutFolder = "/media/weibo/VID2/BFS_M1.7TS/Slice/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
 OutFolder2 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5B/"
@@ -62,7 +62,8 @@ for folder in dirs:
         DataFrame, time = \
         p2p.ReadINCAResults(FoldPath, VarList, FileName=file, SubZone=subzone,
                             SavePath=OutFolder, OutFile=outfile, Equ=equ)
-        
+        #DataFrame.to_hdf(OutFolder + "SolTime" + "%0.2f"%time + '.h5',
+        #                 'w', format='fixed')
         #df1 = p2p.SaveSlice(DataFrame, time, 2.0, OutFolder1)
         #df2 = p2p.SaveSlice(DataFrame, time, 1.5, OutFolder1)
         #df3 = p2p.SaveSlice(DataFrame, time, 1.0, OutFolder1)
@@ -75,7 +76,6 @@ for folder in dirs:
 
 # %% Extract Data for 3D DMD
 """
-
 VarList = [
     'x',
     'y',
@@ -88,17 +88,17 @@ VarList = [
 ]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data2/BFS_M1.7L/TP_data_00895454/"
+FoldPath = "/media/weibo/Data2/BFS_M1.7L/TP_data_00966084/"
 path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 
 NoBlock = 606
 skip = 0
-cube = [(-10.0, 30.0), (-3.0, 1.0), (-8, 8)]
+cube = [(-10.0, 20.0), (-3.0, 1.0), (-8, 8)]
 dirs = os.listdir(FoldPath)
 # FileId = p2p.ExtractZone(FoldPath + dirs[0] + "/", cube, NoBlock, skip=skip)
 FileId = p2p.ExtractZone(FoldPath, cube, NoBlock, skip=skip)
-FileId.to_csv(FoldPath+str(skip)+'ReadList.dat', index=False, sep='\t')
+FileId.to_csv(FoldPath+str(skip)+'VortexList.dat', index=False, sep=' ')
 FileId['name'].to_csv(FoldPath + 'ZoomZone.dat', index=False)
 
 # FileId = pd.read_csv(path2 + str(skip)+ "ReadList.dat", sep='\t')
@@ -117,8 +117,8 @@ FileId['name'].to_csv(FoldPath + 'ZoomZone.dat', index=False)
 # %% merge snapshots into a single file
 """
 path = '/media/weibo/VID1/BFS_M1.7TS/'
-snap = 'TP_2D_S_10'
-FoldPath = path + 'snapshots/00/'
+snap = 'TP_2D_Z_03'
+FoldPath = path + 'snapshots/0/'
 OutPath = path + 'Slice/backup/'
 dirs = os.listdir(FoldPath)
 
@@ -133,7 +133,6 @@ for i in range(0, num):
         tp.data.save_tecplot_plt(OutPath + snap + tm + '.plt', dataset=dataset)
         # tp.data.save_tecplot_szl(path + snap + '.szplt', dataset=dataset)
 """
-
 # %% Save time-averaged flow field
 """
 VarList = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'div', 'vorticity_1',
@@ -293,3 +292,5 @@ for i, folder in enumerate(dirs):
                                       OutFile='MeanFlow1')
         Data.to_hdf(FoldPath1 + outfile + ".h5", 'w', format='fixed')
 """
+
+

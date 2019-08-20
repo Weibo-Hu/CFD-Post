@@ -14,6 +14,7 @@ import pandas as pd
 import plt2pandas as p2p
 import variable_analysis as fv
 from planar_field import PlanarField as pf
+from triaxial_field import TriField as tf
 from data_post import DataPost
 from glob import glob
 from scipy.interpolate import griddata
@@ -27,7 +28,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7L/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -36,8 +37,8 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 matplotlib.rcParams["xtick.direction"] = "out"
 matplotlib.rcParams["ytick.direction"] = "out"
-textsize = 15
-numsize = 12
+textsize = 12
+numsize = 10
 matplotlib.rc("font", size=textsize)
 
 # %% Load Data for time- spanwise-averaged results
@@ -59,26 +60,28 @@ MeanFlow.load_meanflow(path)
 # %% check mesh 
 temp = MeanFlow.PlanarData[['x', 'y']]
 df = temp.query("x>=-5.0 & x<=5.0 & y>=-3.0 & y<=1.0")
+# df = temp.query("x>=-5.0 & x<=10.0 & y>=-3.0 & y<=2.0")
 ux = np.unique(df.x)
 uy = np.unique(df.y)
-fig, ax = plt.subplots(figsize=(6.4, 3.0))
+fig, ax = plt.subplots(figsize=(6.4, 3.2))
 matplotlib.rc("font", size=textsize)
 for i in range(np.size(ux)):
-    if i % 2 == 0:
+    if i % 1 == 0: # 2
         df_x = df.loc[df['x']==ux[i]]
         ax.plot(df_x['x'], df_x['y'], 'k-', linewidth=0.4)
 for j in range(np.size(uy)):
-    if j % 4 == 0:
+    if j % 1 == 0: # 4
         df_y = df.loc[df['y']==uy[j]]
         ax.plot(df_y['x'], df_y['y'], 'k-', linewidth=0.4)
 plt.gca().set_aspect("equal", adjustable="box")
-ax.set_xlim(-5.0, 5.0)
-ax.set_ylim(-3.0, 1.0)
+ax.set_xlim(-5.0, 10.0)
+ax.set_ylim(-3.0, 2.0)
 ax.set_xticks(np.linspace(-5.0, 5.0, 5))
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
-plt.savefig(pathF + "Grid.pdf", bbox_inches="tight")
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
 plt.show()
     
 
@@ -87,13 +90,13 @@ x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
 
 # %% Mean flow isolines
-fv.DividingLine(MeanFlow.PlanarData, pathM)
+fv.dividing_line(MeanFlow.PlanarData, pathM)
 # %% Save sonic line
-fv.SonicLine(MeanFlow.PlanarData, pathM, option='velocity', Ma_inf=1.7)
+fv.sonic_line(MeanFlow.PlanarData, pathM, option='velocity', Ma_inf=1.7)
 # %% Save boundary layer
-fv.BoundaryEdge(MeanFlow.PlanarData, pathM)
+fv.boundary_edge(MeanFlow.PlanarData, pathM)
 # %% Save shock line
-fv.ShockLine(MeanFlow.PlanarData, pathM)
+fv.shock_line(MeanFlow.PlanarData, pathM)
 # %% 
 plt.close("All")
 # %% Plot rho contour of the mean flow field
@@ -167,40 +170,15 @@ plt.savefig(pathF + "MeanFlow.svg", bbox_inches="tight")
 plt.show()
 
 # %% Plot rms contour of the mean flow field
-MeanFlow = DataPost()
-VarName = [
-    "x",
-    "y",
-    "z",
-    "u",
-    "v",
-    "w",
-    "rho",
-    "p",
-    "T",
-    "uu",
-    "uv",
-    "uw",
-    "vv",
-    "vw",
-    "ww",
-    "Q-criterion",
-    "L2-criterion",
-    "gradp",
-]
-# MeanFlow.UserData(VarName, pathM + "MeanFlow.dat", 1, Sep="\t")
-TimeAve = pd.read_hdf(pathM + "TP_stat.h5")
-grouped = TimeAve.groupby(['x', 'y'])
-MeanFlow = grouped.mean().reset_index()
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
-var = "<v`v`>"
+var = "R22"
 uu = griddata((MeanFlow.x, MeanFlow.y), getattr(MeanFlow, var), (x, y))
 print("uu_max=", np.max(np.sqrt(np.abs(getattr(MeanFlow, var)))))
 print("uu_min=", np.min(np.sqrt(np.abs(getattr(MeanFlow, var)))))
 corner = (x < 0.0) & (y < 0.0)
 uu[corner] = np.nan
-fig, ax = plt.subplots(figsize=(10, 4))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(0.0, 0.20, 21)
 cbar = ax.contourf(
@@ -214,7 +192,7 @@ ax.set_ylabel(r"$y/\delta_0$", fontdict=font)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
 rg2 = np.linspace(0.0, 0.20, 3)
-cbbox = fig.add_axes([0.14, 0.53, 0.24, 0.27], alpha=0.9)
+cbbox = fig.add_axes([0.14, 0.52, 0.24, 0.32], alpha=0.9)
 [cbbox.spines[k].set_visible(False) for k in cbbox.spines]
 cbbox.tick_params(
     axis="both",
@@ -229,9 +207,7 @@ cbbox.tick_params(
 )
 cbbox.set_facecolor([1, 1, 1, 0.7])
 # Add colorbar
-cbaxes = fig.add_axes(
-    [0.17, 0.70, 0.18, 0.07], frameon=True
-)  # x, y, width, height
+cbaxes = fig.add_axes([0.17, 0.75, 0.18, 0.07])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar.set_label(
@@ -256,7 +232,7 @@ plt.savefig(pathF + "MeanFlowRMSVV.svg", bbox_inches="tight")
 plt.show()
 
 # %% Load Data for time-averaged results
-path4 = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/"
+path4 = "/media/weibo/Data1/BFS_M1.7L/Slice/"
 MeanFlow = DataPost()
 MeanFlow.UserDataBin(pathF + "SolTime995.00.h5")
 # %% Preprocess the data in the xy plane (z=0.0)
@@ -269,30 +245,34 @@ MeanFlowZ5 = MeanFlowZ4.loc[MeanFlowZ4["y"] > 3.0]
 MeanFlowZ0 = pd.concat((MeanFlowZ0, MeanFlowZ5), sort=False)
 MeanFlowZ0.to_hdf(pathF + "MeanFlowZ0.h5", "w", format="fixed")
 
-#%% Plot contour of the mean flow field in the xy plane
-# MeanFlowZ0 = DataPost()
-# MeanFlowZ0.UserDataBin(path+'MeanFlowZ0.h5')
-x, y = np.meshgrid(np.unique(MeanFlowZ0.x), np.unique(MeanFlowZ0.y))
-omegaz = griddata((MeanFlowZ0.x, MeanFlowZ0.y), MeanFlowZ0.vorticity_3, (x, y))
+#%% Load data
+fluc_flow = tf()
+fluc_flow.load_3data(
+        path, FileList=path+"/ZFluctuation_900.0.h5", NameList='h5'
+)
+# %% Plot contour of the fluctuation flow field in the xy plane
+zslice = fluc_flow.TriData.loc[fluc_flow.TriData['z']==0.0]
+x, y = np.meshgrid(np.unique(zslice.x), np.unique(zslice.y))
+omegaz = griddata((zslice.x, zslice.y), zslice.vorticity_3, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 omegaz[corner] = np.nan
-textsize = 18
-numsize = 15
-fig, ax = plt.subplots(figsize=(10, 4))
+fig, ax = plt.subplots(figsize=(6.4, 3.2))
 matplotlib.rc("font", size=textsize)
 plt.tick_params(labelsize=numsize)
-lev1 = np.linspace(-5.0, 1.0, 30)
-cbar = ax.contourf(x, y, omegaz, cmap="rainbow", levels=lev1, extend="both")
-ax.set_xlim(-10.0, 30.0)
-ax.set_ylim(-3.0, 10.0)
-cbar.cmap.set_under("b")
-cbar.cmap.set_over("r")
+val1 = -0.2
+val2 = 0.2
+lev1 = np.linspace(val1, val2, 21)
+cbar = ax.contourf(x, y, omegaz, cmap="RdBu_r", levels=lev1, extend="both")
+ax.set_xlim(-5.0, 10.0)
+ax.set_ylim(-3.0, 3.0)
+cbar.cmap.set_under("#053061")
+cbar.cmap.set_over("#67001f")
 ax.set_xlabel(r"$x/\delta_0$", fontdict=font)
 ax.set_ylabel(r"$y/\delta_0$", fontdict=font)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
-rg2 = np.linspace(-5.0, 1.0, 4)
-cbaxes = fig.add_axes([0.17, 0.70, 0.18, 0.07])  # x, y, width, height
+rg2 = np.linspace(val1, val2, 3)
+cbaxes = fig.add_axes([0.17, 0.72, 0.18, 0.05])  # x, y, width, height
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar.set_label(r"$\omega_z$", rotation=0, fontdict=font)
 
@@ -305,9 +285,9 @@ box = patches.Rectangle(
     edgecolor="k",
     facecolor="none",
 )
-ax.add_patch(box)
+# ax.add_patch(box)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF + "Vorticity3.svg", bbox_inches="tight")
+plt.savefig(pathF + "Vorticity3_z=0.svg", bbox_inches="tight")
 plt.show()
 
 # %% Zoom box for streamline
@@ -377,72 +357,58 @@ plt.gca().set_aspect("equal", adjustable="box")
 # ax.contour(x, z, L2, levels=-0.001, \
 #           linewidths=1.2, colors='k',linestyles='solid')
 plt.show()
-plt.savefig(path2 + "Vorticity1XZ.svg", bbox_inches="tight")
-
-# %% Preprocess the data in the xz plane (y=-0.5)
-# MeanFlow = DataPost()
-# MeanFlow.UserDataBin(path+'MeanFlow2.h5')
-# MeanFlowX3 = MeanFlow.DataTab.loc[MeanFlow.DataTab['x'] == 3.0].reset_index(
-#   drop=True
-# )
-# MeanFlowX3.to_hdf(path2 + "MeanFlowX3.h5", 'w', format='fixed')
+plt.savefig(pathF + "Vorticity1XZ.svg", bbox_inches="tight")
 
 # %% Plot contour of the mean flow field in the zy plane
-MeanFlowX = MeanFlow.DataTab.loc[MeanFlow.DataTab["x"] == 3.25].reset_index(
-    drop=True
-)
-MeanFlowX.to_hdf(path + "MeanFlowX3.h5", "w", format="fixed")
-MeanFlowX3 = DataPost()
-MeanFlowX3.UserDataBin(path + "MeanFlowX3.h5")
-
-# %% Plot contour of the mean flow field in the zy plane
-z, y = np.meshgrid(np.unique(MeanFlowX3.z), np.unique(MeanFlowX3.y))
-omegax = griddata((MeanFlowX3.z, MeanFlowX3.y), MeanFlowX3.vorticity_1, (z, y))
-textsize = 18
-numsize = 15
-fig, ax = plt.subplots(figsize=(5, 3))
+xslice = fluc_flow.TriData.loc[fluc_flow.TriData['x']==-0.5]
+z, y = np.meshgrid(np.unique(xslice.z), np.unique(xslice.y))
+omega1 = griddata((xslice.z, xslice.y), xslice.vorticity_3, (z, y))
+fig, ax = plt.subplots(figsize=(3.2, 2.2))
 matplotlib.rc("font", size=textsize)
 plt.tick_params(labelsize=numsize)
-lev1 = np.linspace(-0.1, 0.1, 30)
+val1 = -0.2
+val2 = 0.2
+lev1 = np.linspace(val1, val2, 21)
 cbar1 = ax.contourf(
-    z, y, omegax, cmap="rainbow", levels=lev1, extend="both"
-)  # rainbow_r
-ax.set_xlim(-2.5, 2.5)
-ax.set_ylim(-3.0, 0.0)
-cbar1.cmap.set_under("b")
-cbar1.cmap.set_over("r")
+    z, y, omega1, cmap="RdBu_r", levels=lev1, extend="both"
+)  # rainbow_r # RdYlBu
+ax.set_xlim(-8.0, 8.0)
+ax.set_xticks(np.linspace(-8.0, 8.0, 5))
+ax.set_ylim(0.0, 1.0)
+cbar1.cmap.set_under("#053061")
+cbar1.cmap.set_over("#67001f")
 ax.set_xlabel(r"$z/\delta_0$", fontdict=font)
 ax.set_ylabel(r"$y/\delta_0$", fontdict=font)
-plt.gca().set_aspect("equal", adjustable="box")
+# plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
-rg2 = np.linspace(-0.1, 0.1, 5)
+rg2 = np.linspace(val1, val2, 3)
 # cbaxes = fig.add_axes([0.16, 0.76, 0.18, 0.07])  # x, y, width, height
 ax1_divider = make_axes_locatable(ax)
 cax1 = ax1_divider.append_axes("top", size="7%", pad="13%")
 cbar = plt.colorbar(cbar1, cax=cax1, orientation="horizontal", ticks=rg2)
 plt.tick_params(labelsize=numsize)
 cax1.xaxis.set_ticks_position("top")
-cbar.set_label(r"$\omega_x$", rotation=0, fontsize=textsize)
+cbar.set_label(r"$\omega_z$", rotation=0, fontsize=textsize)
 # Add streamlines
-zz = np.linspace(-2.5, 2.5, 50)
-yy = np.linspace(-3.0, 0.0, 30)
-zbox, ybox = np.meshgrid(zz, yy)
-v = griddata((MeanFlowX3.z, MeanFlowX3.y), MeanFlowX3.v, (zbox, ybox))
-w = griddata((MeanFlowX3.z, MeanFlowX3.y), MeanFlowX3.w, (zbox, ybox))
-ax.set_xlim(-2.5, 2.5)
-ax.set_ylim(-3.0, 0.0)
-ax.streamplot(
-    zbox,
-    ybox,
-    w,
-    v,
-    density=[2.5, 1.5],
-    color="w",
-    linewidth=1.0,
-    integration_direction="both",
-)
+#zz = np.linspace(-8.0, 8.0, 20)
+#yy = np.linspace(0.0, 1.0, 10)
+#zbox, ybox = np.meshgrid(zz, yy)
+#v = griddata((xslice.z, xslice.y), xslice.v, (zbox, ybox))
+#w = griddata((xslice.z, xslice.y), xslice.w, (zbox, ybox))
+#ax.set_xlim(-8.0, 8.0)
+#ax.set_ylim(0.0, 1.0)
+#ax.streamplot(
+#    zbox,
+#    ybox,
+#    w,
+#    v,
+#    density=[2.5, 1.5],
+#    color="w",
+#    linewidth=1.0,
+#    integration_direction="both",
+#)
 plt.show()
-plt.savefig(pathF + "vorticity1.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "vorticity3_x=0.1.svg", bbox_inches="tight", pad_inches=0.1)
 
 # %% Plot contour and streamline of spanwise-averaged flow (Zoom in)
 path = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/7/"

@@ -21,6 +21,7 @@ import os
 from glob import glob
 import sys
 import plt2pandas as p2p
+from matplotlib import colors as mcolors
 
 
 # %% data path settings
@@ -43,11 +44,11 @@ font = {
 }
 
 matplotlib.rc('font', **font)
-textsize = 18
-numsize = 15
-
+textsize = 12
+numsize = 10
+colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # %% load data
-timepoints = np.arange(800, 1149.50 + 0.5, 0.5)
+timepoints = np.arange(800, 1200.0 + 0.5, 0.5)
 dirs = glob(pathS+'*.h5')
 dirs.sort( key=lambda f: int(''.join(filter(str.isdigit, f))) )
 if np.size(dirs) != np.size(timepoints):
@@ -56,7 +57,7 @@ if np.size(dirs) != np.size(timepoints):
 DataFrame = pd.read_hdf(dirs[0])
 DataFrame['walldist'] = DataFrame['y']
 DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
-NewFrame = DataFrame.query("x>=-5.0 & x<=45.0 & walldist>=0.0 & y<=5.0")
+NewFrame = DataFrame.query("x>=-5.0 & x<=30.0 & walldist>=0.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = DataFrame['x'][ind] # NewFrame['x']
 yval = DataFrame['y'][ind] # NewFrame['y']
@@ -90,7 +91,7 @@ if (m % o != 0):
     sys.exit("Dimensions of snapshots are wrong!!!")
 m = int(m/o)  # dimensions of every variable 
 AveFlow = DataFrame/np.size(dirs)
-meanflow = AveFlow.query("x>=-5.0 & x<=45.0 & y>=-3.0 & y<=5.0")
+meanflow = AveFlow.query("x>=-5.0 & x<=30.0 & y>=-3.0 & y<=5.0")
 
 # %% DMD 
 varset = { var0: [0, m],
@@ -115,13 +116,13 @@ np.save(pathD + 'amplitudes', bfs.amplitudes) # \alpha
 
 # %% SPDMD
 bfs1 = sparse.SparseDMD(Snapshots, bfs, dt=dt)
-gamma = [750, 780, 800]
+gamma = [750, 800, 900]
 with timer("SPDMD computing"):
     bfs1.compute_sparse(gamma)
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
 
 # %% 
-sp = 2
+sp = 0
 bfs1.sparse.Nz[sp]
 bfs1.sparse.gamma[sp] 
 r = np.size(eigval)
@@ -137,11 +138,12 @@ var = var0
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(4.5, 4.5))
+fig1, ax1 = plt.subplots(figsize=(2.8, 3.0))
 unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
                          label='unit circle', linewidth=7.0, alpha=0.5)
 ax1.add_artist(unit_circle)
-ax1.scatter(eigval.real, eigval.imag, marker='o',
+ind = np.where(np.abs(eigval) > 0.98)
+ax1.scatter(eigval.real[ind], eigval.imag[ind], marker='o',
             facecolor='none', edgecolors='k', s=18)
 sp_eigval = eigval[sp_ind]
 ax1.scatter(sp_eigval.real, sp_eigval.imag, marker='o',
@@ -154,27 +156,34 @@ ax1.set_xlabel(r'$\Re(\mu_i)$')
 ax1.set_ylabel(r'$\Im(\mu_i)$')
 ax1.grid(b=True, which='both', linestyle=':')
 plt.gca().set_aspect('equal', adjustable='box')
-plt.savefig(pathD+var+'DMDEigSpectrum.svg', bbox_inches='tight')
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathD+var+'DMDEigSpectrum.svg')
 plt.show()
 
 # %% discard the bad DMD modes
 # bfs2 = bfs
-bfs2 = bfs.reduce(0.998)
+bfs2 = bfs.reduce(0.9975)
 phi = bfs2.modes
 freq = bfs2.omega/2/np.pi
 beta = bfs2.beta
 coeff = bfs2.amplitudes
 
+# %% discard the bad DMD modes
+#rm = np.abs(bfs.amplitudes)
+#index = rm.argsort()[:-60]
+#freq = bfs.omega[index]/2/np.pi
+#coeff = bfs.amplitudes[index]
+
 # %% Mode frequency specturm
 matplotlib.rc('font', size=textsize)
-fig2, ax2 = plt.subplots(figsize=(7.5, 4.5))
+fig2, ax2 = plt.subplots(figsize=(4.0, 3.0))
 psi = np.abs(coeff)/np.max(np.abs(coeff))
 ind1 = freq > 0.0 
 freq1 = freq[ind1]
-psi1 = np.abs(coeff[ind1])/np.max(np.abs(coeff[ind1]))
+psi1 = np.abs(coeff[ind1]) / np.max(np.abs(coeff[ind1]))
 ax2.set_xscale("log")
 ax2.vlines(freq1, [0], psi1, color='k', linewidth=1.0)
-# ind2 = bfs1.sparse.nonzero[:, sp] & ind1
+# ind2 = bfs1.sparse.nonzero[:, sp][index]  # & index
 ind2 = bfs1.sparse.nonzero[bfs2.ind, sp]
 ind3 = ind2[ind1]
 ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
@@ -184,7 +193,8 @@ ax2.tick_params(labelsize=numsize, pad=6)
 ax2.set_xlabel(r'$f \delta_0/u_\infty$')
 ax2.set_ylabel(r'$|\psi_i|$')
 ax2.grid(b=True, which='both', linestyle=':')
-plt.savefig(pathD+var+'DMDFreqSpectrum.svg', bbox_inches='tight')
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathD+var+'DMDFreqSpectrum.svg')
 plt.show()
 
 # %% specific mode in real space
@@ -232,16 +242,16 @@ cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0,
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
 shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
-ax.plot(shock[:, 0], shock[:, 1], 'g', linewidth=1.0)
+ax.plot(shock[:, 0], shock[:, 1], color='#aaff32', linewidth=1.5)
 # Add sonic line
 sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
-ax.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.0)
+ax.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.5)
 # Add boundary layer
 boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
-ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
+ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
 # Add dividing line(separation line)
 dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
-ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
+ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
 # ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
 plt.savefig(pathD+var+'DMDMode'+name+'Real.svg', bbox_inches='tight')
 plt.show()

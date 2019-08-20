@@ -31,6 +31,7 @@ import tecplot as tp
 import plt2pandas as p2p
 from glob import glob
 from scipy import fftpack
+from scipy import signal
 import warnings
 import sys
 import multiprocessing
@@ -44,6 +45,7 @@ pathS = path + "Slice/"
 pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathB = path + "BaseFlow/"
+pathA = path + "Adjust/"
 
 # % figures properties settings
 plt.close("All")
@@ -55,12 +57,12 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 12
-numsize = 10
+textsize = 14
+numsize = 11
 
 # %% load data
 path1 = pathS + 'TP_2D_Z_03/'
-stime = np.arange(700.0, 899.75 + 0.25, 0.25) # n*61.5
+stime = np.arange(700.0, 1000 + 0.25, 0.25) # n*61.5
 x0 = np.arange(-40.0, 0.0 + 0.5, 0.5)
 newlist = ['x', 'y', 'z', 'u', 'p']
 dirs = sorted(os.listdir(path1))
@@ -75,6 +77,8 @@ for i in range(np.size(dirs)):
                       UserWarning)
     fm = fm.append(fm_temp.loc[:, newlist], ignore_index=True)
 # %% extract probe data with time
+# x = -0.1875, y = 0.03125; x = 0.203125, y = 0.0390625; x = 0.5, y = -0.078125 
+x0 = 0.59375
 y0 = 0.001953125 # 0.00390625 #   0.005859375 0.0078125 0.296875
 num_samp = np.size(stime)
 var = np.zeros((num_samp, 2))
@@ -85,7 +89,14 @@ for j in range(np.size(x0)):
                       columns=['time', 'u', 'p'])
     df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
 # del fm_temp, fm   
-    
+# %%
+x0 = 0.59375
+y0 = -0.171875
+filenm = pathP + 'timeline_' + str(x0) + '.dat'
+var = fm.loc[(fm['x']==x0) & (fm['y']==y0), ['u', 'p']].values
+df = pd.DataFrame(data=np.hstack((stime.reshape(-1, 1), var)), 
+                  columns=['time', 'u', 'p'])
+df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
 # %% make base flow 
 bf = pd.read_hdf(pathB + 'BaseFlow.h5')
 if y0 == 0.001953125:
@@ -105,36 +116,89 @@ base = pd.read_csv(pathB + 'baseline_' + file_b + '.dat', sep=' ', skiprows=0,
                    index_col=False, skipinitialspace=True) 
 
 # %% variables with time
-varnm = 'u'
+varnm = 'p'
 if varnm == 'u':
     ylab = r"$u^\prime / u_\infty$"
     ylab_sub = r"$_{u^\prime}$"
 else:
     ylab = r"$p^\prime/(\rho_\infty u_\infty ^2)$"
     ylab_sub = r"$_{p^\prime}$"
-xloc = [-36.0, -24.0, -10.0]
-curve= ['k-', 'k--', 'k:']
+# xloc = [-36.0, -24.0, -10.0]
+xloc = [-0.1875, 0.203125, 0.59375]
+curve= ['k-', 'b-', 'g-']
 fig3, ax3 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
 for i in range(3):
     filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'   
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
-    # val = var[varnm] - np.mean(var[varnm])
-    val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
-    ax3.plot(var['time'], val, curve[i], linewidth=1.5)
+    val = var[varnm] - np.mean(var[varnm])
+    # val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
+    ax3.plot(var['time'], val, curve[i], linewidth=1.2)
 
 ax3.set_ylabel(ylab, fontsize=textsize)
 ax3.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=textsize)
 # ax3.set_xlim([0.0, 25.0])
-ax3.set_ylim([-1.5e-4, 2.5e-4]) # ([-8.0e-4, 6.0e-4])
+# ax3.set_ylim([-1.5e-4, 2.5e-4]) # ([-8.0e-4, 6.0e-4])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
 ax3.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + varnm + "_time.svg", dpi=300)
+plt.savefig(pathF + varnm + "_time1.svg", dpi=300)
+plt.show()
+
+# %% low-pass filter
+n_ord = 4
+Wn = 0.05 / 2  # cutoff frequency / (0.5 * f_sample)
+fig2, ax2 = plt.subplots(figsize=(6.0, 2.8))
+matplotlib.rc("font", size=textsize)
+curve_f= ['k:', 'b:', 'g:']
+i = 2
+filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'   
+var = pd.read_csv(filenm, sep=' ', skiprows=0,
+                      index_col=False, skipinitialspace=True)
+val = var[varnm] - np.mean(var[varnm])
+b, a = signal.butter(n_ord, Wn, 'low')  # Wn = 
+filter_sig = signal.filtfilt(b, a, val)
+ax2.plot(var['time'], val, curve_f[i], linewidth=1.5)
+ax2.plot(var['time'], filter_sig, curve[i], linewidth=1.2)
+ax2.set_ylabel(ylab, fontsize=textsize)
+ax2.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=textsize)
+ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax2.grid(b=True, which="both", linestyle=":")
+ax2.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + varnm + "_time_filter.svg", dpi=300)
+plt.show()
+
+# %% FWPSD
+dt = 0.25
+fig4, ax4 = plt.subplots(figsize=(6.0, 2.8))
+matplotlib.rc("font", size=textsize)
+for i in range(3):
+    filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'   
+    var = pd.read_csv(filenm, sep=' ', skiprows=0,
+                      index_col=False, skipinitialspace=True)
+    val = var[varnm] - np.mean(var[varnm])
+    # val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
+    fre, fpsd = fv.fw_psd(var[varnm], dt, 1/dt, opt=2)
+    ax4.semilogx(fre, fpsd, curve[i], linewidth=1.2)
+    ax3.plot(var['time'], val, curve[i], linewidth=1.5)
+
+ax4.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
+ax4.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+# ax3.set_xlim([0.0, 25.0])
+# ax3.set_ylim([-1.5e-4, 2.5e-4]) # ([-8.0e-4, 6.0e-4])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+ax4.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax4.grid(b=True, which="both", linestyle=":")
+ax4.yaxis.offsetText.set_fontsize(numsize)
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + varnm + "_PSD1.svg", dpi=300)
 plt.show()
 
 # %% Amplitude and phase with freq
@@ -153,7 +217,7 @@ for i in range(3):
     filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
-    var_per = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
+    var_per = var[varnm] # - base.loc[base['x']==xloc[i], [varnm]].values[0]
     var_per = var_per - np.mean(var_per) # make sure mean value is zero
     var_fft = np.fft.rfft(var_per)  # remove value at 0 frequency    
     amplt = np.abs(var_fft)
@@ -327,7 +391,7 @@ plt.show()
 # %% Fourier transform of variables with spanwise distance
 x0 = np.arange(-40.0, -0.5 + 0.5, 0.5)
 num_samp = 257
-freq_samp = 1 / 0.0625
+freq_samp = (num_samp -1 ) / 16
 # freq = np.linspace(freq_samp / num_samp, freq_samp / 2, math.ceil(num_samp/2))
 freq = np.linspace(0.0, freq_samp / 2, math.ceil(num_samp/2), endpoint=False)
 freq_x = np.zeros((1, np.size(x0)))
@@ -448,6 +512,7 @@ for j in range(np.size(x0)):
     df = pd.DataFrame(data=np.hstack((time.reshape(-1,1), var)),
                       columns=['time', 'y', 'u', 'p'])
     df.to_hdf(filenm, 'w', format='fixed')   
+
 # %% Fourier tranform of BL profile
 xloc = [-36.0, -24.0, -10.0]
 num_samp = np.size(stime)
@@ -538,58 +603,15 @@ plt.savefig(
     pathF + "BLPerturb.svg", bbox_inches="tight", pad_inches=0.1
 )
 
-# %% Extract spanwise-averaged flow, obtain fluctuations
-path = "/media/weibo/VID2/BFS_M1.7TS/"
-path1 = path + "TP_data_01386484/"
-VarList = [
-    'x',
-    'y',
-    'z',
-    'u',
-    'v',
-    'w',
-    'p',
-    'rho',
-    'vorticity_1',
-    'vorticity_2',
-    'vorticity_3',
-    'T',
-]
-equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-df, time = p2p.ReadINCAResults(path1, VarList)
-# df.to_hdf(path + "TP_data_" + str(time) + ".h5", 'w', format='fixed')
-# df = pd.read_hdf(path + "TP_data.h5")
-grouped = df.groupby(['x', 'y'], as_index=False)
-# df2 = grouped.mean().reset_index()
-fluc = lambda x: (x-x.mean())
-df1 = grouped.transform(fluc)
-df2 = df.sort_values(by=['x', 'y', 'z'])
-df1.insert(0, 'x', df2['x'])
-df1.insert(1, 'y', df2['y'])
-df1.to_hdf(path + 'ZFluctuation_' + str(time) + '.h5', 'w', format='fixed')
-
-# %% Extract base flow, obtain fluctuations
+# %% Save flow extracted base flow
 path2 = path + "TP_data_baseflow/"
-orig = pd.read_hdf(path + "ZFluctuation_899.5.h5")[VarList]
 # base = p2p.ReadAllINCAResults(path2, path, SpanAve=False, OutFile='baseflow')
+orig = pd.read_hdf(path + "TP_data_899.5.h5")[VarList]
 base = pd.read_hdf(path + "baseflow.h5")[VarList]
-varname = [
-    'u',
-    'v',
-    'w',
-    'p',
-    'rho',
-    'vorticity_1',
-    'vorticity_2',
-    'vorticity_3',
-    'T',
-]
-
-# %%
 # df_zone = p2p.save_zone_info(path1, filename=path + "ZoneInfo.dat")
 df_zone = pd.read_csv(path + "ZoneInfo.dat", sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
-for i in range(10): # (np.shape(df_zone)[0]):
+for i in range(np.shape(df_zone)[0]):
     file = df_zone.iloc[i]
     cube = orig.query(
         "x>={0} & x<={1} & y>={2} & y<={3}".format(
@@ -601,7 +623,7 @@ for i in range(10): # (np.shape(df_zone)[0]):
     )
     
     if (file['nz'] != len(np.unique(cube['z']))):
-        # remove dismatch grid point on the boundary of the block
+        # remove dismatch grid point on the z boundary of the block (boundary grid may be finer)
         zlist = np.linspace(file['z1'], file['z2'], int(file['nz']))
         blk1 = cube[cube['z'].isin(zlist)].reset_index(drop=True)
     else:
@@ -617,42 +639,25 @@ for i in range(10): # (np.shape(df_zone)[0]):
     )
     new = blk0.loc[blk0.index.repeat(int(file['nz']))]
     new = new.reset_index(drop=True)
-    flc = blk1
-    flc.update(flc[varname] - new[varname])
+    new = new.sort_values(by=['x', 'y', 'z'])
+    flc = blk1.sort_values(by=['x', 'y', 'z']).reset_index(drop=True)
+    flc[varname] = flc[varname] - new[varname]
+    # flc.update(flc[varname] - new[varname])
     if (file['nx'] != len(np.unique(flc['x']))):
+        # remove dismatch grid point on the x boundary of the block 
         xlist = np.unique(flc['x'])[0::2]
         flc = flc[flc['x'].isin(xlist)]
     if (file['ny'] != len(np.unique(flc['y']))):
+        # remove dismatch grid point on the y boundary of the block 
         ylist = np.unique(flc['y'])[0::2]
         flc = flc[flc['y'].isin(ylist)]
-    p2p.frame2tec3d(flc, path, 'fluc' + str(i), stime=899.5)
-    
+    p2p.frame2tec3d(flc, pathA, 'fluc' + str(i), zname=i, stime=899.5)
 
 
 # %%
 grouped = orig.groupby(['x', 'y'])
 count = grouped.size().reset_index(name='count')
 base_exts = base['u'].repeat(count['count'].values)
-# %%
-fm = pd.DataFrame()
-for i in range(np.shape(base1)[0]):
-    slc = base1.iloc[i]
-    key = tuple(slc[['x', 'y']].values)
-    grp = grouped.get_group(key)
-    flc = grp[varname] - slc[varname]
-    flc.insert(0, 'x', grp['x'])
-    flc.insert(1, 'y', grp['y'])
-    flc.insert(2, 'z', grp['z'])
-    fm = fm.append(flc, ignore_index=True)    
 
-# %% convert h5 to plt
-df1 = pd.read_hdf(path + "ZFluctuation_899.5.h5")
-df_zone = p2p.save_zone_info(path1, filename=path + "ZoneInfo.dat")
-p2p.save_tec_index(df1, df_zone, filename=path + "ReadList.dat")
-df_zone = pd.read_csv(path + "ZoneInfo.dat", sep=' ', skiprows=0,
-                      index_col=False, skipinitialspace=True)
-fileid = pd.read_csv(path + 'ReadList.dat', sep=' ', skiprows=0,
-                     index_col=False, skipinitialspace=True)
-p2p.mul_zone2tec(path, "test", df_zone, df1, stime=899.5)
 
 
