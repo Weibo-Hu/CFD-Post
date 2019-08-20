@@ -64,12 +64,15 @@ def viscosity(Re_delta, T):
 
 
 # Obtain BL thickness, momentum thickness, displacement thickness
-def BLThickness(y, u, rho=None, opt=None):
+def bl_thickness(y, u, u_d=None, rho=None, opt=None):
     ind = np.argsort(y) # sort y from small to large
     bc = int(np.rint(np.size(y) * 0.9))
     y1 = y[ind][:bc] # remove the part near the farfield boundary conditions
     u1 = u[ind][:bc] # remove the part near the farfield boundary conditions
-    bl = np.where(u1[:] >= 0.99)[0][0]
+    if u_d is None:
+        bl = np.where(u1[:] >= 0.99)[0][0]
+    else:
+        bl = np.where(u1[:] >= 0.99 * u_d)[0][0]
     if np.size(bl) == 0:
         sys.exit('This is not a complete boundary layer profile!!!')
     delta = y1[bl]
@@ -164,14 +167,15 @@ def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
         Var_fft = np.fft.rfft(Var)[1:]  # remove value at 0 frequency
         Var_psd = np.abs(Var_fft) ** 2 / (Freq_samp * TotalNo)
         num = np.size(Var_fft)
+        # Freq = np.linspace(0.0, Freq_samp / 2, num, endpoint=False)
         Freq = np.linspace(Freq_samp / TotalNo, Freq_samp / 2, num)
     if opt == 1:
         ns = TotalNo // seg
         Freq, Var_psd = signal.welch(
             Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // overlap
         )
-        Freq = Freq[1:]
-        Var_psd = Var_psd[1:]
+        # Freq = Freq[1:]
+        # Var_psd = Var_psd[1:]
     return (Freq, Var_psd)
 
 
@@ -183,7 +187,7 @@ def fw_psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
     return (Freq, FPSD)
 
 
-def fw_pad_map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
+def fw_psd_map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
     frame1 = orig.loc[np.around(orig['x'], 5) == np.around(xyz[0], 5)]
     # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
     frame2 = frame1.loc[np.around(frame1['y'], 5) == np.around(xyz[1], 5)]
@@ -202,9 +206,9 @@ def rms(dataseries):
 
 # Compute the RMS
 def rms_map(orig, xyz, var):
-    frame1 = orig.loc[orig['x'] == xyz[0]]
-    frame2 = frame1.loc[frame1['y'] == xyz[1]]
-    orig = frame2.loc[frame2['z'] == xyz[2]]
+    frame1 = orig.loc[np.around(orig['x'], 6) == np.around(xyz[0], 6)]
+    frame2 = frame1.loc[np.around(frame1['y'], 6) == np.around(xyz[1], 6)]
+    orig = frame2.loc[np.around(frame2['z'], 6) == np.around(xyz[2], 6)]
     varzone = orig[var]
     rms_val = rms(varzone)
     return (rms_val)
@@ -447,26 +451,31 @@ def direst_wall_lawRR(walldist, u_tau, uu, rho):
     return uu_plus_van
 
 # Obtain reattachment location with time
-def reattach_loc(InFolder, OutFolder, timezone, opt=2):
+def reattach_loc(InFolder, OutFolder, timezone, skip=1, opt=2):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timezone))
+    j = 0
     if opt == 1:
         data = pd.read_hdf(InFolder + dirs[0])
         # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
         NewFrame = data.query("x>=8.0 & x<=13.0")
         TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
         ind = TemFrame.index.values
-        with timer("Computing reattaching point"):
-            for i in range(np.size(dirs)):
-                frame = pd.read_hdf(InFolder + dirs[i])
-                frame = frame.iloc[ind]
-                xarr[i] = frame.loc[frame["u"] >= 0.0, "x"].head(1)
-    else:
-            for i in range(np.size(dirs)):
-                with timer("Computing reattaching point " + str(i)):
+        for i in range(np.size(dirs)):
+            if i % skip == 0:
+                with timer("Computing reattaching point " + dirs[i]):
                     frame = pd.read_hdf(InFolder + dirs[i])
-                    xy = DividingLine(frame)
-                    xarr[i] = np.max(xy[:, 0])
+                    frame = frame.iloc[ind]
+                    xarr[j] = frame.loc[frame["u"] >= 0.0, "x"].head(1)
+                    j = j + 1
+    else:
+        for i in range(np.size(dirs)):
+            if i % skip == 0:
+                with timer("Computing reattaching point " + dirs[i]):
+                    frame = pd.read_hdf(InFolder + dirs[i])
+                    xy = dividing_line(frame)
+                    xarr[j] = np.max(xy[:, 0])
+                    j = j + 1
     reatt = np.vstack((timezone, xarr)).T
     np.savetxt(
         OutFolder + "Reattach.dat",
@@ -475,9 +484,10 @@ def reattach_loc(InFolder, OutFolder, timezone, opt=2):
         delimiter="  ",
         header="t, x",
     )
+    return (reatt)
 
 
-def ExtractPoint(InFolder, OutFolder, timezone, xy, col=None):
+def extract_point(InFolder, OutFolder, timezone, xy, skip=1, col=None):
     if col is None:
         col = ["u", "v", "w", "p", "vorticity_1", "vorticity_2", "vorticity_3"]
     dirs = sorted(os.listdir(InFolder))
@@ -486,11 +496,14 @@ def ExtractPoint(InFolder, OutFolder, timezone, xy, col=None):
     TemFrame = NewFrame.loc[NewFrame["y"] == xy[1]]
     ind = TemFrame.index.values[0]
     xarr = np.zeros((np.size(timezone), np.size(col)))
-    with timer("Extracting probes"):
-        for i in range(np.size(dirs)):
-            frame = pd.read_hdf(InFolder + dirs[i])
-            frame = frame.iloc[ind]
-            xarr[i, :] = frame[col].values
+    j = 0
+    for i in range(np.size(dirs)):
+        if i % skip == 0:
+            with timer("Extracting probes"):
+                frame = pd.read_hdf(InFolder + dirs[i])
+                frame = frame.iloc[ind]
+                xarr[j, :] = frame[col].values
+                j = j + 1
     probe = np.hstack((timezone.reshape(-1, 1), xarr))
     col.insert(0, "t")
     np.savetxt(
@@ -503,17 +516,20 @@ def ExtractPoint(InFolder, OutFolder, timezone, xy, col=None):
 
 
 # Obtain shock location inside the boudary layer with time
-def shock_foot(InFolder, OutFolder, timepoints, yval, var):
+def shock_foot(InFolder, OutFolder, timepoints, yval, var, skip=1):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timepoints))
-    if np.size(timepoints) != np.size(dirs):
-        sys.exit("The input snapshots does not match!!!")
-    with timer("Computing shock foot location"):
-        for i in range(np.size(dirs)):
-            frame = pd.read_hdf(InFolder + dirs[i])
-            NewFrame = frame.loc[frame["y"] == yval]
-            temp = NewFrame.loc[NewFrame["u"] >= var, "x"]
-            xarr[i] = temp.head(1)
+    j = 0
+    #if np.size(timepoints) != np.size(dirs):
+    #    sys.exit("The input snapshots does not match!!!")
+    for i in range(np.size(dirs)):
+        if i % skip == 0:
+            with timer("Computing shock foot location " + dirs[i]):
+                frame = pd.read_hdf(InFolder + dirs[i])
+                NewFrame = frame.loc[frame["y"] == yval]
+                temp = NewFrame.loc[NewFrame["u"] >= var, "x"]
+                xarr[j] = temp.head(1)
+                j = j + 1
     foot = np.vstack((timepoints, xarr)).T
     np.savetxt(
         OutFolder + "ShockFoot.dat",
@@ -525,7 +541,7 @@ def shock_foot(InFolder, OutFolder, timepoints, yval, var):
 
 
 # Obtain shock location outside boundary layer with time
-def shock_loc(InFolder, OutFolder, timepoints):
+def shock_loc(InFolder, OutFolder, timepoints, skip=1):
     dirs = sorted(os.listdir(InFolder))
     fig1, ax1 = plt.subplots(figsize=(10, 4))
     ax1.set_xlim([0.0, 30.0])
@@ -541,35 +557,49 @@ def shock_loc(InFolder, OutFolder, timepoints):
     corner = (xini < 0.0) & (yini < 0.0)
     shock1 = np.empty(shape=[0, 3])
     shock2 = np.empty(shape=[0, 3])
-    ys1 = 0.0
+    ys1 = 0.5
     ys2 = 5.0
-    if np.size(timepoints) != np.size(dirs):
-        sys.exit("The input snapshots does not match!!!")
+    j = 0
+    #if np.size(timepoints) != np.size(dirs):
+    #    sys.exit("The input snapshots does not match!!!")
     for i in range(np.size(dirs)):
-        with timer("Shock position at " + dirs[i]):
-            frame = pd.read_hdf(InFolder + dirs[i])
-            gradp = griddata(
-                (frame["x"], frame["y"]), frame["|gradp|"], (xini, yini)
-            )
-            gradp[corner] = np.nan
-            cs = ax1.contour(
-                xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
-            )
-            xycor = np.empty(shape=[0, 2])
-            for isoline in cs.collections[0].get_paths():
-                xy = isoline.vertices
-                xycor = np.append(xycor, xy, axis=0)
-                ax1.plot(xy[:, 0], xy[:, 1], "r:")
-            ind1 = np.where(np.around(xycor[:, 1], 8) == ys1)[0]
-            x1 = np.mean(xycor[ind1, 0])
-            shock1 = np.append(shock1, [[timepoints[i], x1, ys1]], axis=0)
-            ind2 = np.where(np.around(xycor[:, 1], 8) == ys2)[0]
-            x2 = np.mean(xycor[ind2, 0])
-            shock2 = np.append(shock2, [[timepoints[i], x2, ys2]], axis=0)
-            ax1.plot(x1, ys1, "g*")
-            ax1.axhline(y=ys1)
-            ax1.plot(x2, ys2, "b^")
-            ax1.axhline(y=ys2)
+        if i % skip == 0:
+            with timer("Shock position at " + dirs[i]):
+                frame = pd.read_hdf(InFolder + dirs[i])
+                gradp = griddata(
+                        (frame["x"], frame["y"]), frame["|gradp|"], (xini, yini)
+                        )
+                gradp[corner] = np.nan
+                cs = ax1.contour(xini, yini, gradp, levels=[0.06],
+                                 linewidths=1.2, colors="gray")
+                xycor = np.empty(shape=[0, 2])
+                x1 = np.empty(shape=[0, 1])
+                x2 = np.empty(shape=[0, 1])
+                for isoline in cs.collections[0].get_paths():
+                    xy = isoline.vertices
+                    xycor = np.append(xycor, xy, axis=0)
+                    ax1.plot(xy[:, 0], xy[:, 1], "r:")
+                    ind1 = np.where(np.around(xycor[:, 1], 8) == ys1)[0]
+                    x1 = np.append(x1, np.mean(xycor[ind1, 0]))
+                    ind2 = np.where(np.around(xycor[:, 1], 8) == ys2)[0]
+                    x2 = np.append(x2, np.mean(xycor[ind2, 0]))
+                x1 = x1[~np.isnan(x1)]
+                if np.size(x1) == 0:
+                    x1 = 0.0
+                else:
+                    x1 = x1[0]
+                x2 = x2[~np.isnan(x2)]
+                if np.size(x2) == 0:
+                    x2 = 0.0
+                else:
+                    x2 = x2[0]
+                ax1.plot(x1, ys1, "g*")
+                ax1.axhline(y=ys1)
+                ax1.plot(x2, ys2, "b^")
+                ax1.axhline(y=ys2)
+                shock1 = np.append(shock1, [[timepoints[j],x1,ys1]], axis=0)
+                shock2 = np.append(shock2, [[timepoints[j],x2,ys2]], axis=0)
+                j = j + 1
     np.savetxt(
         OutFolder + "ShockA.dat",
         shock1,
@@ -602,7 +632,7 @@ def shock_line(dataframe, path):
     cs = ax.contour(
          xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
     )
-    plt.close(fig=fig)
+    plt.close()
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     for isoline in cs.collections[0].get_paths():
@@ -670,7 +700,7 @@ def dividing_line(dataframe, path=None):
     cs1 = ax.contour(
         x, y, u, levels=[0.0], linewidths=1.5, linestyles="--", colors="k"
     )
-    plt.close(fig=fig)
+    plt.close()
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     xylist = []
@@ -683,7 +713,7 @@ def dividing_line(dataframe, path=None):
     xy = xylist[ind]
     fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     ax1.scatter(xy[:, 0], xy[:, 1])
-    plt.close(fig=fig1)
+    plt.close()
     if path is not None:
         np.savetxt(
             path + "DividingLine.dat", xycor, fmt="%.8e", delimiter="  ",
@@ -727,14 +757,17 @@ def boundary_edge(dataframe, path):
     )
 
 
-def bubble_area(InFolder, OutFolder, timezone):
+def bubble_area(InFolder, OutFolder, timezone, skip=1):
     dirs = sorted(os.listdir(InFolder))
-    area = np.zeros(np.size(dirs))
+    area = np.zeros(np.size(timezone))
+    j = 0
     for i in range(np.size(dirs)):
-        with timer("Bubble area at " + dirs[i]):
-            dataframe = pd.read_hdf(InFolder + dirs[i])
-            xy = DividingLine(dataframe)
-            area[i] = trapz(xy[:, 1] + 3.0, xy[:, 0])
+        if i % skip == 0:
+            with timer("Bubble area at " + dirs[i]):
+                dataframe = pd.read_hdf(InFolder + dirs[i])
+                xy = dividing_line(dataframe)
+                area[j] = trapz(xy[:, 1] + 3.0, xy[:, 0])
+            j = j + 1
     area_arr = np.vstack((timezone, area)).T
     np.savetxt(
         OutFolder + "BubbleArea.dat",
@@ -768,18 +801,18 @@ def correlate(x, y, method="Sample"):
 
 def delay_correlate(x, y, dt, delay, method="Sample"):
     if delay == 0.0:
-        correlation = Correlate(x, y, method=method)
+        correlation = correlate(x, y, method=method)
     elif delay < 0.0:
         delay = np.abs(delay)
         num = int(delay // dt)
         y1 = y[:-num]
         x1 = x[num:]
-        correlation = Correlate(x1, y1, method=method)
+        correlation = correlate(x1, y1, method=method)
     else:
         num = int(delay // dt)
         x1 = x[:-num]
         y1 = y[num:]
-        correlation = Correlate(x1, y1, method=method)
+        correlation = correlate(x1, y1, method=method)
     return correlation
 
 
@@ -795,8 +828,8 @@ def perturbations(orig, mean):
 
 
 def pert_at_loc(orig, var, loc, val, mean=None):
-    frame1 = orig.loc[orig[loc[0]] == val[0]]
-    frame1 = frame1.loc[np.around(frame1[loc[1]], 5) == val[1]]
+    frame1 = orig.loc[np.around(orig[loc[0]], 5) == np.around(val[0], 5)]
+    frame1 = frame1.loc[np.around(frame1[loc[1]], 5) == np.around(val[1], 5)]
     grouped = frame1.groupby(['x', 'y', 'z'])
     frame1 = grouped.mean().reset_index()
     print(np.shape(frame1)[0])
@@ -837,9 +870,9 @@ def max_pert_along_y(orig, var, val, mean=None):
 
 
 def amplit(orig, xyz, var, mean=None):
-    frame1 = orig.loc[orig['x'] == xyz[0]]
+    frame1 = orig.loc[np.around(orig['x'], 6) == np.around(xyz[0], 6)]
     # frame2 = frame1.loc[np.around(frame1['y'], 5) == xyz[1]]
-    frame2 = frame1.loc[frame1['y'] == xyz[1]]
+    frame2 = frame1.loc[np.around(frame1['y'], 6) == np.around(xyz[1], 6)]
     orig = frame2.loc[frame2['z'] == xyz[2]]
     if mean is None:
         grouped = orig.groupby(['x', 'y', 'z'])
@@ -882,6 +915,7 @@ def vorticity():
 
 
 if __name__ == "__main__":
+
     """
     InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
     OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
