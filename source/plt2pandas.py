@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 from scipy.interpolate import griddata
 from timer import timer
+from time import time
 import logging as log
 from glob import glob
 
@@ -182,10 +183,8 @@ def save_tec_index(df_data, df_zone_info, filename=None):
     return (df)
 
 
-def ExtractZone(path, cube, NoBlock, skip=0, FileName=None):
+def extract_zone(path, cube, skip=0, filename=None):
     # cube = [(-5.0, 25.0), (-3.0, 5.0), (-2.5, 2.5)]
-    if NoBlock != np.size(os.listdir(path)):
-        sys.exit("You're missing some blocks!!!")
     init = os.scandir(path)
     cols = ['x1', 'x2', 'y1', 'y2', 'z1',
             'z2', 'nx', 'ny', 'nz']
@@ -251,8 +250,8 @@ def ExtractZone(path, cube, NoBlock, skip=0, FileName=None):
         ind2 = np.append(ind2, id2)
     df['id1'] = ind1
     df['id2'] = ind2
-    if FileName is not None:
-        df.to_csv(FileName, index=False, sep='\t')
+    if filename is not None:
+        df.to_csv(filename, index=False, sep=' ')
     return (df)
 
 
@@ -392,6 +391,46 @@ def frame2tec(dataframe,
                         float_format=float_format)
 
 
+def frame2tec3d(dataframe,
+                SaveFolder,
+                FileName,
+                zname=None,
+                stime=None,
+                float_format='%.8f'):
+    if not os.path.exists(SaveFolder):
+        raise IOError('ERROR: directory does not exist: %s' % SaveFolder)
+    SavePath = os.path.join(SaveFolder, FileName)
+    x = dataframe.x.unique()
+    y = dataframe.y.unique()
+    z = dataframe.z.unique()
+    In = np.size(x)
+    Jn = np.size(y)
+    Kn = np.size(z)
+    dataframe = dataframe.sort_values(by=['z', 'y', 'x'])
+    header = "VARIABLES="
+    for i in range(len(dataframe.columns)):
+        header = '{} "{}"'.format(header, dataframe.columns[i])
+    with timer("save" + FileName + " tecplot .dat"):
+        with open(SavePath + '.dat', 'w') as f:
+            f.write(header)
+            if zname is not None:
+                zonename = 'B' + '{:010}'.format(zname)
+            else:
+                zonename = 'B' + '{:010}'.format(1)
+            zone = 'ZONE T= "{}" \n'.format(zonename)
+            if stime is not None:
+                stime = np.float64(stime)
+                timeid = 'StrandID={0}, SolutionTime={1}\n'.format(i+1, stime)
+            else:
+                timeid = 'StrandID={}\n'.format(i + 1)
+            xyz = 'I = {}, J = {}, K = {}\n'.format(In, Jn, Kn)
+            f.write(zone)
+            f.write(timeid)
+            f.write(xyz)
+            data = dataframe.sort_values(by=['z', 'y', 'x'])
+            data.to_csv(f, sep='\t', index=False, header=False,
+                        float_format=float_format)
+
 def zone2tec(path, filename, df, zonename, num, time=None):
     header = "VARIABLES = "
     zone = 'ZONE T = "{}" \n'.format(zonename)
@@ -412,45 +451,48 @@ def zone2tec(path, filename, df, zonename, num, time=None):
                   float_format='%9.8e')
 
 
-def mul_zone2tec(path, filename, zoneinfo, df, zoneid=None, time=None):
+def mul_zone2tec(path, filename, zoneinfo, df, zoneid=None, stime=None):
     header = "VARIABLES = "
     for j in range(len(df.columns)):
         header = '{} "{}"'.format(header, df.columns[j])
-    df_zone = pd.read_csv(zoneinfo, sep=' ', skiprows=0,
-                          index_col=False, skipinitialspace=True)
-    with timer("save data as tecplot .dat"):
-        with open(path + filename + '.dat', 'w') as f:
-            f.write(header + '\n')
-            for i in range(np.shape(df_zone)[0]):
-                zonename = 'B' + '{:010}'.format(i+1)
-                file = df_zone.iloc[i]
-                zone = 'ZONE T = "{}" \n'.format(zonename)
-                f.write(zone)
-                if time is not None:
-                    time = np.float64(time)
-                    f.write(
-                        ' StrandID={0}, SolutionTime={1}\n'.format(i+1, time)
-                        )
-                else:
-                    f.write('StrandID={}\n'.format(i + 1))
+    header = header + '\n'  # write header of the file
+    time1 = time()
+    for i in range(np.shape(zoneinfo)[0]):
+        with open(path + filename + str(i) + '.dat', 'w') as f:
+            f.write(header)
+            zonename = 'B' + '{:010}'.format(i+1)
+            file = zoneinfo.iloc[i]
+            zone = 'ZONE T = "{}" \n'.format(zonename)
+            if stime is not None:
+                stime = np.float64(stime)
+                timeid = 'StrandID={0}, SolutionTime={1}\n'.format(i+1, stime)
+            else:
+                timeid = 'StrandID={}\n'.format(i + 1)
+            xyz = 'I = {}, J = {}, K = {}\n'.format(file['nx'],
+                                                    file['ny'],
+                                                    file['nz'])
+            f.write(zone)
+            f.write(timeid)
+            f.write(xyz)
+            if zoneid is None:
+                data = df.query(
+                    "x>={0} & x<={1} & y>={2} & y<={3}".format(file['x1'],
+                                                               file['x2'],
+                                                               file['y1'],
+                                                               file['y2'])
+                )
+            else:
+                grouped = zoneid.groupby(['file'])
+                # ng = grouped.ngroups
+                ind = grouped.get_group(i + 1)['ind']
+                ind = ind.astype('int')
+                data = df.iloc[ind]
+            # data = df.iloc[ind1: ind2 + 1]
+            data = data.sort_values(by=['z', 'y', 'x'])
+            data.to_csv(f, sep='\t', index=False,
+                        header=False, float_format='%.8f')
+        print("save data " + zonename + " took", time()-time1, "s")
 
-                f.write('I = {}, J = {}, K = {}\n'.format(
-                        file['nx'], file['ny'], file['nz']))
-                if zoneid is None:
-                    data = df.query(
-                        "x>={0} & x<={1} & y>={2} & y<={3}".format(
-                            file['x1'], file['x2'], file['y1'], file['y2'])
-                        )
-                else:
-                    grouped = zoneid.groupby(['file'])
-                    # ng = grouped.ngroups
-                    ind = grouped.get_group(i + 1)['ind']
-                    ind = ind.astype('int')
-                    data = df.iloc[ind]
-                # data = df.iloc[ind1: ind2 + 1]
-                data = data.sort_values(by=['z', 'y', 'x'])
-                data.to_csv(f, sep='\t', index=False, header=False,
-                            float_format='%.8f')
 
 def mul_zone2tec_plt(path, filename, FileId, df, time=None, option=1):
     if option == 1:
