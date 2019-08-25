@@ -24,7 +24,7 @@ class PlanarField(LineField):
         self._PlanarData = self._data_field
         # return self._data_field
         return self._PlanarData
-    
+
     @PlanarData.setter
     def PlanarData(self, df):
         self._PlanarData = df
@@ -82,7 +82,7 @@ class PlanarField(LineField):
         return self._data_field['<v`w`>'].values
 
     def load_data(self, path, FileList=None, NameList=None):
-        nfiles = np.size(os.listdir(path))
+        # nfiles = np.size(os.listdir(path))
         if FileList is None:
             infile = glob(path + '*.plt')
         else:
@@ -90,17 +90,15 @@ class PlanarField(LineField):
 
         if NameList is None:
             # ext_name = os.path.splitext(infile)
-            df = p2p.ReadAllINCAResults(nfiles,
-                                        path,
+            df = p2p.ReadAllINCAResults(path,
                                         FileName=infile)
         elif NameList == 'h5':
             df = pd.read_hdf(infile)
         else:
-            df = p2p.ReadINCAResults(nfiles,
-                                     path,
+            df = p2p.ReadINCAResults(path,
                                      VarList=NameList,
                                      FileName=infile)
-        df = df.drop_duplicates(keep='last')    
+        df = df.drop_duplicates(keep='last')
         self._data_field = df
 
     def load_meanflow(self, path, FileList=None, OutFile=None):
@@ -136,8 +134,7 @@ class PlanarField(LineField):
         for i in np.arange(nfiles):
             FileList = os.path.join(path + 'TP_stat/', dirs[i])
             with timer(FileList):
-                df = p2p.ReadAllINCAResults(nfiles,
-                                            path + 'TP_stat/',
+                df = p2p.ReadAllINCAResults(path + 'TP_stat/',
                                             path + 'MeanFlow/',
                                             FileName=FileList,
                                             SpanAve=True,

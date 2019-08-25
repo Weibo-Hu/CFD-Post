@@ -44,8 +44,8 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 14
-numsize = 11
+textsize = 13
+numsize = 10
 
 # %% load data for clean flow
 path1 = "/media/weibo/VID2/BFS_M1.7L/"
@@ -325,19 +325,26 @@ plt.tick_params(labelsize=numsize)
 plt.savefig(pathF + "ZYVorStretch_L.svg", bbox_inches="tight")
 plt.show()
 
+# %%############################################################################
+"""
+    visualization of vortex merge/pair
+"""
 # %% Streamline plot for vortex merge (load data)
 flow3 = pf()
 filepath = '/media/weibo/VID2/BFS_M1.7TS/Slice/TP_2D_Z_03/'
 flow3.load_data(
     path, 
-    FileList='/media/weibo/VID1/BFS_M1.7TS/Slice/TP_2D_Z_03/'+ 'TP_2D_Z_03_00927.75.plt',
+    FileList=filepath + 'TP_2D_Z_03_00927.75.h5',
+    NameList='h5'
     #FileList=filepath + 'TP_2D_Z_03_00927.75.h5', NameList='h5'
 )
 flow4 = pf()
 flow4.load_data(
     path, 
-    FileList='/media/weibo/VID1/BFS_M1.7TS/Slice/TP_2D_S_10/'+ 'TP_2D_S_10_00927.75.plt',
+    FileList='/media/weibo/VID2/BFS_M1.7L/Slice/TP_2D_S_10/'+ 'TP_2D_S_10_00927.75.h5',
+    NameList='h5'
 )
+
 zslice = flow3.PlanarData.query(" x>0 & x<=4")
 zslice1 = flow4.PlanarData.query(" x>0 & x<=4")
 x1 = np.linspace(0.0, 4.0, 500)
@@ -350,8 +357,9 @@ plt.tick_params(labelsize=numsize)
 omega3 = griddata((zslice.x, zslice.y), zslice.vorticity_3, (xbox, ybox))
 u = griddata((zslice.x, zslice.y), zslice.u, (xbox, ybox))
 v = griddata((zslice.x, zslice.y), zslice.v, (xbox, ybox))
-cb1 = -0.5 # -4.0
-cb2 = 0.5 # 0.0
+print("values: ", np.min(zslice.vorticity_3), np.max(zslice.vorticity_3))
+cb1 = -5 # -4.0
+cb2 = 0.0 # 0.0
 lev1 = np.linspace(cb1, cb2, 21)
 cbar = ax.contourf(xbox, ybox, omega3, cmap="RdYlBu_r", extend='both', levels=lev1)
 # cbar.cmap.set_under('#ff0000')

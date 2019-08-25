@@ -31,7 +31,7 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/VID2/BFS_M1.7L/"
+path = "/media/weibo/VID2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -65,6 +65,10 @@ MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 stat = MeanFlow.PlanarData
 
+# %%############################################################################
+"""
+    save coordinates of bubble line & max fluctuations points 
+"""
 # %% save dividing line coordinates
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)[:-2, :]
 x2 = np.arange(dividing[-1, 0], 50.0+0.125, 0.125)
@@ -117,12 +121,14 @@ df = pd.DataFrame(data.T, columns=['x', 'y', varn])
 df.to_csv(pathM + "MaxRMS.dat", sep=' ',
           float_format='%1.8e', index=False)
 
-# draw maximum value curve
+# %% draw maximum value curve
 fig, ax = plt.subplots(figsize=(6.4, 3.0))
 matplotlib.rc('font', size=14)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
-ax.plot(xnew, ynew, 'k')
+ax.plot(xnew, ynew, 'k', label=r'$q^\prime_\mathrm{max}$')
+ax.plot(xx, yy, 'k--', label='bubble')
+legend = ax.legend(loc='upper right', shadow=False, fontsize=numsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
@@ -130,6 +136,10 @@ plt.savefig(
     pathF + "MaxPertLoc.svg", bbox_inches="tight", pad_inches=0.1
 )
 
+# %%############################################################################
+"""
+    RMS distribution along streamwise and wall-normal direction
+"""
 # %% Plot RMS of velocity on the wall along streamwise direction
 loc = ['z', 'y']
 val = [0.0, -2.99704]
@@ -164,6 +174,10 @@ plt.savefig(
     pathF + "PerturProfileY.svg", bbox_inches="tight", pad_inches=0.1
 )
 
+# %%############################################################################
+"""
+    RMS distribution along spanwise direction
+"""
 # %% Plot RMS of velocity along spanwise on the dividing line
 # load data method1
 #TimeAve = tf()
@@ -282,8 +296,8 @@ freq_samp = 2.0
 
 
 # %% compute amplitude of variable along a line
-xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
-# xynew = np.loadtxt(pathM + "MaxRMS.dat", skiprows=1)
+# xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
+xynew = np.loadtxt(pathM + "MaxRMS.dat", skiprows=1)
 xval = xynew[:, 0]
 yval = xynew[:, 1]
 amplit = np.zeros(np.size(xval))
@@ -304,7 +318,7 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    pathF + var + "_AmplitX.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + var + "_AmplitX_max.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% compute RMS along a line
@@ -340,7 +354,7 @@ ax2.axvline(x=12., linewidth=1.0, linestyle='--', color='gray')
 # ax2.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
-    pathF + var + "GrowRateX.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + var + "GrowRateX_max.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %%############################################################################
@@ -366,7 +380,7 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$\mathrm{RMS}(p^{\prime}/p_{\infty})$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.axvline(x=10.9, linewidth=1.0, linestyle='--', color='k')
-plt.savefig(pathF + var + "_RMSMap.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + var + "_RMSMap_max.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %%############################################################################
@@ -382,18 +396,20 @@ for i in range(np.size(xval)):
 freq = freq[1:]
 FPSD = FPSD[1:, :]
 # %% Plot frequency-weighted PSD map along a line
-SumFPSD = np.sum(FPSD, axis=0)
-FPSD1 = np.log(FPSD/SumFPSD)
+SumFPSD = np.max(FPSD, axis=0) # np.sum(FPSD, axis=0)
+FPSD1 = np.log(FPSD/SumFPSD) # np.log(FPSD) # 
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-fig, ax = plt.subplots(figsize=(8, 3.5))
+fig, ax = plt.subplots(figsize=(6.4, 3.2))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 print(np.max(FPSD1))
 print(np.min(FPSD1))
-lev = np.linspace(-10, -2, 41)
-cbar = ax.contourf(xval, freq, FPSD1, cmap='gray_r', levels=lev)
+cb1 = -10
+cb2 = 0
+lev = np.linspace(cb1, cb2, 41)
+cbar = ax.contourf(xval, freq, FPSD1, cmap='RdBu_r', levels=lev) # seismic # bwr
 # every stage of the transition
 ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
 ax.axvline(x=3.2, linewidth=1.0, linestyle='--', color='k')
@@ -402,16 +418,18 @@ ax.axvline(x=9.7, linewidth=1.0, linestyle='--', color='k')
 ax.axvline(x=12., linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
 ax.set_xlim([0.0, 30.0])
-rg = np.linspace(-10, -2, 5)
+rg = np.linspace(cb1, cb2, 5)
 cbar = plt.colorbar(cbar, ticks=rg)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.update_ticks()
-barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
+barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{max} ]$'
+# barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
 cbar.set_label(barlabel, rotation=90, fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathF + var + "_FWPSDMap.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + var + "_FWPSDMap_max.svg",
+            bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %%############################################################################
