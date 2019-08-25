@@ -16,12 +16,12 @@ import matplotlib.pyplot as plt
 import matplotlib
 import warnings
 import pandas as pd
-# from DataPost import DataPost
-from scipy.interpolate import interp1d, griddata
-from scipy.integrate import trapz, simps
-import scipy.optimize
+import variable_analysis as fv
+from scipy.interpolate import griddata  # interp1d
+from scipy.integrate import trapz, dblquad  # simps,
+# import scipy.optimize
 from scipy.interpolate import splprep, splev
-from numpy import NaN, Inf, arange, isscalar, asarray, array
+# from numpy import NaN, Inf, arange, isscalar, asarray, array
 import sys
 from timer import timer
 import os
@@ -65,10 +65,10 @@ def viscosity(Re_delta, T):
 
 # Obtain BL thickness, momentum thickness, displacement thickness
 def bl_thickness(y, u, u_d=None, rho=None, opt=None):
-    ind = np.argsort(y) # sort y from small to large
+    ind = np.argsort(y)  # sort y from small to large
     bc = int(np.rint(np.size(y) * 0.9))
-    y1 = y[ind][:bc] # remove the part near the farfield boundary conditions
-    u1 = u[ind][:bc] # remove the part near the farfield boundary conditions
+    y1 = y[ind][:bc]  # remove the part near the farfield boundary conditions
+    u1 = u[ind][:bc]  # remove the part near the farfield boundary conditions
     if u_d is None:
         bl = np.where(u1[:] >= 0.99)[0][0]
     else:
@@ -77,7 +77,7 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
         sys.exit('This is not a complete boundary layer profile!!!')
     delta = y1[bl]
     u_d = u1[bl]
-    if opt == None:
+    if opt is None:
         return(delta, u_d)
     elif opt == 'displacement':
         rho1 = rho[ind][:bc]
@@ -100,8 +100,8 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
 
 # Obtain radius of curvature
 def radius(x, y):
-    y1 = DataPost.SecOrdFDD(x, y)
-    y2 = DataPost.SecOrdFDD(x, y1)
+    y1 = fv.sec_ord_fdd(x, y)
+    y2 = fv.sec_ord_fdd(x, y1)
     a1 = 1+(y1)**2
     a2 = np.abs(y2)
     radi = np.power(a1, 1.5)/a2
@@ -111,7 +111,7 @@ def radius(x, y):
 # Obtain G\"ortler number
 def gortler(Re_inf, x, y, theta, scale=0.001):
     Re_theta = Re_inf*theta*scale
-    radi = Radius(x, y)
+    radi = radius(x, y)
     gortler = Re_theta*np.sqrt(theta/radi)
     return gortler
 
@@ -197,6 +197,7 @@ def fw_psd_map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
                         opt=opt, seg=seg, overlap=overlap)
     return (Freq, FPSD)
 
+
 # Compute the RMS
 def rms(dataseries):
     meanval = np.mean(dataseries)
@@ -212,6 +213,7 @@ def rms_map(orig, xyz, var):
     varzone = orig[var]
     rms_val = rms(varzone)
     return (rms_val)
+
 
 # Obtain cross-power sepectral density
 def cro_psd(Var1, Var2, dt, Freq_samp, opt=1):
@@ -279,7 +281,7 @@ def coherence(Var1, Var2, dt, Freq_samp, opt=1):
             TimeZone, TimeSpan, VarZone2
         )  # time space must be equal
     if opt == 1:
-        ns = TotalNo // 8 # 6-4 # 8-2
+        ns = TotalNo // 8  # 6-4 # 8-2
         Freq, gamma = signal.coherence(
             NVar1,
             NVar2,
@@ -291,9 +293,9 @@ def coherence(Var1, Var2, dt, Freq_samp, opt=1):
         Freq = Freq[1:]
         gamma = gamma[1:]
     if opt == 2:
-        Freq, cor = Cro_PSD(NVar1, NVar2, dt, Freq_samp)
-        psd1 = PSD(NVar1, dt, Freq_samp)[1]
-        psd2 = PSD(NVar2, dt, Freq_samp)[1]
+        Freq, cor = cro_psd(NVar1, NVar2, dt, Freq_samp)
+        psd1 = psd(NVar1, dt, Freq_samp)[1]
+        psd2 = psd(NVar2, dt, Freq_samp)[1]
         gamma = abs(cor) ** 2 / psd1 / psd2
     return (Freq, gamma)
 
@@ -358,9 +360,6 @@ def ref_wall_law(Re_theta):
     WrmsPlus = np.column_stack((y_plus, wrms_plus))
     return (UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
 
-def re_theta(frame, option):
-    re = frame.re * frame.theta
-    return (re_theat)
 
 def u_tau(frame, option='mean'):
     """
@@ -374,9 +373,9 @@ def u_tau(frame, option='mean'):
     if (frame['walldist'].values[0] != 0):
         sys.exit('Please reset wall distance/velocity from zero!!!')
     if option == 'mean':
-#       rho_wall = frame['rho_m'].values[0]
-#       mu_wall = frame['mu_m'].values[0]
-#       delta_u = frame['u_m'].values[1] - frame['u_m'].values[0]
+        # rho_wall = frame['rho_m'].values[0]
+        # mu_wall = frame['mu_m'].values[0]
+        # delta_u = frame['u_m'].values[1] - frame['u_m'].values[0]
         rho_wall = frame['<rho>'].values[0]
         mu_wall = frame['<mu>'].values[0]
         delta_u = frame['<u>'].values[1] - frame['<u>'].values[0]
@@ -432,6 +431,7 @@ def direst_transform(frame, option='mean'):
     UPlusVan = np.column_stack((y_plus, u_plus_van))
     return (UPlusVan)
 
+
 def direst_wall_lawRR(walldist, u_tau, uu, rho):
     if (np.diff(walldist) < 0.0).any():
         sys.exit("the WallDist must be in ascending order!!!")
@@ -449,6 +449,7 @@ def direst_wall_lawRR(walldist, u_tau, uu, rho):
     # u_plus_van[0] = 1
     # UPlusVan = np.column_stack((y_plus, u_plus_van))
     return uu_plus_van
+
 
 # Obtain reattachment location with time
 def reattach_loc(InFolder, OutFolder, timezone, skip=1, opt=2):
@@ -520,7 +521,7 @@ def shock_foot(InFolder, OutFolder, timepoints, yval, var, skip=1):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timepoints))
     j = 0
-    #if np.size(timepoints) != np.size(dirs):
+    # if np.size(timepoints) != np.size(dirs):
     #    sys.exit("The input snapshots does not match!!!")
     for i in range(np.size(dirs)):
         if i % skip == 0:
@@ -560,14 +561,16 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1):
     ys1 = 0.5
     ys2 = 5.0
     j = 0
-    #if np.size(timepoints) != np.size(dirs):
+    # if np.size(timepoints) != np.size(dirs):
     #    sys.exit("The input snapshots does not match!!!")
     for i in range(np.size(dirs)):
         if i % skip == 0:
             with timer("Shock position at " + dirs[i]):
                 frame = pd.read_hdf(InFolder + dirs[i])
                 gradp = griddata(
-                        (frame["x"], frame["y"]), frame["|gradp|"], (xini, yini)
+                        (frame["x"], frame["y"]),
+                        frame["|gradp|"],
+                        (xini, yini)
                         )
                 gradp[corner] = np.nan
                 cs = ax1.contour(xini, yini, gradp, levels=[0.06],
@@ -597,8 +600,8 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1):
                 ax1.axhline(y=ys1)
                 ax1.plot(x2, ys2, "b^")
                 ax1.axhline(y=ys2)
-                shock1 = np.append(shock1, [[timepoints[j],x1,ys1]], axis=0)
-                shock2 = np.append(shock2, [[timepoints[j],x2,ys2]], axis=0)
+                shock1 = np.append(shock1, [[timepoints[j], x1, ys1]], axis=0)
+                shock2 = np.append(shock2, [[timepoints[j], x2, ys2]], axis=0)
                 j = j + 1
     np.savetxt(
         OutFolder + "ShockA.dat",
@@ -730,7 +733,7 @@ def boundary_edge(dataframe, path):
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
     if 'u' not in dataframe.columns:
-        dataframe.loc[:,'u'] = dataframe['<u>']
+        dataframe.loc[:, 'u'] = dataframe['<u>']
         # dataframe['u'] = dataframe['<u>']
 
     u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
@@ -757,7 +760,7 @@ def boundary_edge(dataframe, path):
     )
 
 
-def bubble_area(InFolder, OutFolder, timezone, skip=1):
+def bubble_area(InFolder, OutFolder, timezone, step=3.0, skip=1):
     dirs = sorted(os.listdir(InFolder))
     area = np.zeros(np.size(timezone))
     j = 0
@@ -766,7 +769,7 @@ def bubble_area(InFolder, OutFolder, timezone, skip=1):
             with timer("Bubble area at " + dirs[i]):
                 dataframe = pd.read_hdf(InFolder + dirs[i])
                 xy = dividing_line(dataframe)
-                area[j] = trapz(xy[:, 1] + 3.0, xy[:, 0])
+                area[j] = trapz(xy[:, 1] + step, xy[:, 0])
             j = j + 1
     area_arr = np.vstack((timezone, area)).T
     np.savetxt(
@@ -842,7 +845,7 @@ def pert_at_loc(orig, var, loc, val, mean=None):
         print(np.shape(frame2)[0])
         if (np.shape(frame1)[0] != np.shape(frame2)[0]):
             sys.exit("The size of two datasets do not match!!!")
-        ### z value in frame1 & frame2 is equal or not ???
+        # z value in frame1 & frame2 is equal or not ???
         frame[var] = frame1[var] - frame2[var]
     else:
         frame[var] = frame1[var]
@@ -863,7 +866,7 @@ def max_pert_along_y(orig, var, val, mean=None):
         print(np.shape(frame2)[0])
         if (np.shape(frame1)[0] != np.shape(frame2)[0]):
             sys.exit("The size of two datasets do not match!!!")
-        ### z value in frame1 & frame2 is equal or not ???
+        # z value in frame1 & frame2 is equal or not ???
         frame1[var] = frame1[var] - frame2[var]
     frame = frame1.loc[frame1[var].idxmax()]
     return frame
@@ -887,7 +890,7 @@ def amplit(orig, xyz, var, mean=None):
 
 
 def growth_rate(xarr, var):
-    dAmpli = SecOrdFDD(xarr, var)
+    dAmpli = sec_ord_fdd(xarr, var)
     growthrate = dAmpli/var
     return growthrate
 
@@ -895,27 +898,89 @@ def growth_rate(xarr, var):
 #   Obtain finite differential derivatives of a variable (2nd order)
 def sec_ord_fdd(xarr, var):
     dvar = np.zeros(np.size(xarr))
-    for jj in range (1,np.size(xarr)):
+    for jj in range(1, np.size(xarr)):
         if jj == 1:
-            dvar[jj-1]=(var[jj]-var[jj-1])/(xarr[jj]-xarr[jj-1])
+            dvar[jj-1] = (var[jj] - var[jj-1]) / (xarr[jj] - xarr[jj-1])
         elif jj == np.size(xarr):
-            dvar[jj-1]=(var[jj-1]-var[jj-2])/(xarr[jj-1]-xarr[jj-2])
+            dvar[jj-1] = (var[jj-1] - var[jj-2]) / (xarr[jj-1] - xarr[jj-2])
         else:
-            dy12 = xarr[jj-1] - xarr[jj-2];
-            dy23 = xarr[jj] - xarr[jj-1];
-            dvar1 = -dy23/dy12/(dy23+dy12)*var[jj-2];
-            dvar2 = (dy23-dy12)/dy23/dy12*var[jj-1];
-            dvar3 = dy12/dy23/(dy23+dy12)*var[jj];
-            dvar[jj-1] = dvar1 + dvar2 + dvar3;
+            dy12 = xarr[jj-1] - xarr[jj-2]
+            dy23 = xarr[jj] - xarr[jj-1]
+            dvar1 = -dy23 / dy12 / (dy23 + dy12) * var[jj-2]
+            dvar2 = (dy23 - dy12) / dy23 / dy12 * var[jj-1]
+            dvar3 = dy12 / dy23 / (dy23 + dy12) * var[jj]
+            dvar[jj-1] = dvar1 + dvar2 + dvar3
     return (dvar)
 # Vorticity: omega=delta*v
 # omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
-def vorticity():
-    return 0
+
+
+def enstrophy(df, type='x', range1=None, range2=None, option=1):
+    if range1 is not None:
+        min1 = np.min(range1)
+        max1 = np.max(range1)
+    if range2 is not None:
+        min2 = np.min(range2)
+        max2 = np.max(range2)
+
+    if type == 'x':
+        x1 = df.y
+        x2 = df.z
+        if range1 is None:
+            min1 = np.min(df['y'])
+            max1 = np.max(df['y'])
+        if range2 is None:
+            min2 = np.min(df['z'])
+            max2 = np.max(df['z'])
+
+    if type == 'y':
+        x1 = df.x
+        x2 = df.z
+        if range1 is None:
+            min1 = np.min(df['x'])
+            max1 = np.max(df['x'])
+        if range2 is None:
+            min2 = np.min(df['z'])
+            max2 = np.max(df['z'])
+
+    if type == 'z':
+        x1 = df.x
+        x2 = df.y
+        if range1 is None:
+            min1 = np.min(df['x'])
+            max1 = np.max(df['x'])
+        if range2 is None:
+            min2 = np.min(df['y'])
+            max2 = np.max(df['y'])
+    if option == 1:
+        def vort(x, y):
+            vorticity = griddata((x1, x2), df['vorticity_abs'], (x, y))
+            return vorticity
+        ens = 0.5 * dblquad(vort, min1, max1, lambda x: min2, lambda y: max2)
+    if option == 2:
+        if range1 is not None:
+            val1 = range1
+            n1 = np.size(val1)
+        else:
+            n1 = np.size(np.unique(x1))
+            val1 = np.linspace(min1, max1, n1)
+        if range2 is not None:
+            val2 = range2
+            n2 = np.size(val2)
+        else:
+            n2 = np.size(np.unique(x2))
+            val2 = np.linspace(min2, max2, n2)
+        ms1, ms2 = np.meshgrid(val1, val2)
+        vorticity = griddata((x1, x2), df['vorticity_abs'], (ms1, ms2))
+        Iy = np.zeros(n2)
+        for i in range(n2):
+            Iy[i] = np.trapz(vorticity[i, :], val1)
+        print("integral over x-axis")
+        ens = 0.5 * np.trapz(Iy, val2)
+    return ens
 
 
 if __name__ == "__main__":
-
     """
     InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
     OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/DataPost/Data/"
@@ -995,30 +1060,3 @@ if __name__ == "__main__":
     plt.savefig(path2+'test.svg', bbox_inches='tight', pad_inches=0.1)
     plt.show()
     """
-
-    # InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/10/"
-    # OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/"
-    # dataframe = pd.read_hdf(InFolder+"SolTime618.00.h5")
-    # BubbleArea(InFolder, OutFolder)
-
-# Fs = 1000
-# t = np.arange(0.0, 1-1.0/Fs, 1/Fs)
-# var = np.cos(2*3.14159265*100*t)+np.random.uniform(-1, 1, np.size(t))
-# Var_fft = np.fft.fft(var)
-# Var_fftr = np.fft.rfft(var)
-# Var_psd = abs(Var_fft)**2
-# Var_psd1 = Var_psd[:int(np.size(t)/2)]
-# Var_psd2 = abs(Var_fftr)**2
-# fre1, Var_psd3 = PSD(var, t, Fs)
-# num = np.size(Var_psd1)
-# freq = np.linspace(Fs/2/num, Fs/2, num)
-# f, fpsd = FW_PSD(var, t, Fs)
-# #fre, psd = PSD(var, t, Fs)
-# #plt.plot(fre1, 10*np.log10(Var_psd3))
-# fig2, ax2 = plt.subplots()
-# ax2.plot(f, fpsd)
-# plt.show()
-
-# fig, ax = plt.subplots()
-# ax.psd(var, 500, Fs)
-# plt.show()

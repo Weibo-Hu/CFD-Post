@@ -13,6 +13,7 @@ import matplotlib
 import pandas as pd
 import plt2pandas as p2p
 import variable_analysis as fv
+from line_field import LineField as lf
 from planar_field import PlanarField as pf
 from triaxial_field import TriField as tf
 from data_post import DataPost
@@ -48,15 +49,15 @@ filelist = FileId['name'].to_list()
 pltlist = [os.path.join(path + 'TP_stat/', name) for name in filelist]
 MeanFlow = pf()
 MeanFlow.load_meanflow(path, FileList=pltlist)
-
-# %% convert every single mean flow block
-MeanFlow = pf()
-MeanFlow.merge_meanflow(path)
     
 # %% Load Data for time- spanwise-averaged results
 MeanFlow = pf()
 MeanFlow.load_meanflow(path)
 
+# %%############################################################################
+"""
+    Examination of the computational mesh
+"""
 # %% check mesh 
 temp = MeanFlow.PlanarData[['x', 'y']]
 df = temp.query("x>=-5.0 & x<=5.0 & y>=-3.0 & y<=1.0")
@@ -99,6 +100,11 @@ fv.boundary_edge(MeanFlow.PlanarData, pathM)
 fv.shock_line(MeanFlow.PlanarData, pathM)
 # %% 
 plt.close("All")
+
+# %%############################################################################
+"""
+    mean flow field contouring by density
+"""
 # %% Plot rho contour of the mean flow field
 # MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
 MeanFlow.copy_meanval()
@@ -169,6 +175,10 @@ ax.streamplot(
 plt.savefig(pathF + "MeanFlow.svg", bbox_inches="tight")
 plt.show()
 
+# %%############################################################################
+"""
+    Root Mean Square of velocity from the statistical flow
+"""
 # %% Plot rms contour of the mean flow field
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
@@ -180,7 +190,9 @@ corner = (x < 0.0) & (y < 0.0)
 uu[corner] = np.nan
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
-rg1 = np.linspace(0.0, 0.20, 21)
+cb1 = 0.0
+cb2 = 0.2
+rg1 = np.linspace(cb1, cb2, 21)
 cbar = ax.contourf(
     x, y, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1
 )  # rainbow_r
@@ -191,7 +203,7 @@ ax.set_xlabel(r"$x/\delta_0$", fontdict=font)
 ax.set_ylabel(r"$y/\delta_0$", fontdict=font)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
-rg2 = np.linspace(0.0, 0.20, 3)
+rg2 = np.linspace(cb1, cb2, 3)
 cbbox = fig.add_axes([0.14, 0.52, 0.24, 0.32], alpha=0.9)
 [cbbox.spines[k].set_visible(False) for k in cbbox.spines]
 cbbox.tick_params(
@@ -480,4 +492,14 @@ plt.savefig(
 plt.show()
 
 
-
+#%% Load data
+flow = tf()
+flow.load_3data(
+        path, FileList=path+"/TP_data_912.0.h5", NameList='h5'
+)
+flow.TriData['vorticity_abs'] = flow.vorticity_abs
+# %%
+xslice = flow.TriData.loc[flow.TriData['x']==35.0]
+y = np.linspace(-3.0, 0.0, 151)
+z = np.linspace(-8.0, 8.0, 161)
+fv.enstrophy(xslice, range1=y, range2=z, option=2)
