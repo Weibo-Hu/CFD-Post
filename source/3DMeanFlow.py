@@ -7,6 +7,7 @@ Created on Thu Jun 28 17:39:31 2018
 """
 # %%
 import numpy as np
+# import cupy as cp
 import matplotlib.pyplot as plt
 from scipy.interpolate import splprep, splev
 import matplotlib
@@ -38,7 +39,7 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 matplotlib.rcParams["xtick.direction"] = "out"
 matplotlib.rcParams["ytick.direction"] = "out"
-textsize = 12
+textsize = 13
 numsize = 10
 matplotlib.rc("font", size=textsize)
 
@@ -243,6 +244,10 @@ ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.5)
 plt.savefig(pathF + "MeanFlowRMSVV.svg", bbox_inches="tight")
 plt.show()
 
+# %%############################################################################
+"""
+    Vorticity contour
+"""
 # %% Load Data for time-averaged results
 path4 = "/media/weibo/Data1/BFS_M1.7L/Slice/"
 MeanFlow = DataPost()
@@ -422,6 +427,10 @@ cbar.set_label(r"$\omega_z$", rotation=0, fontsize=textsize)
 plt.show()
 plt.savefig(pathF + "vorticity3_x=0.1.svg", bbox_inches="tight", pad_inches=0.1)
 
+# %%############################################################################
+"""
+    velocity contour and streamlines
+"""
 # %% Plot contour and streamline of spanwise-averaged flow (Zoom in)
 path = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/7/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
@@ -491,15 +500,231 @@ plt.savefig(
 )
 plt.show()
 
-
+# %%############################################################################
+"""
+    vorticity enstrophy along streamwise
+"""
 #%% Load data
+files = glob(pathT + '*h5')  # path+"/TP_912.h5" # 
 flow = tf()
 flow.load_3data(
-        path, FileList=path+"/TP_data_912.0.h5", NameList='h5'
+        path, FileList=files, NameList='h5'
 )
-flow.TriData['vorticity_abs'] = flow.vorticity_abs
+flow.copy_meanval()
 # %%
-xslice = flow.TriData.loc[flow.TriData['x']==35.0]
+xloc = np.arange(0.0, 30.0 + 0.125, 0.125)
 y = np.linspace(-3.0, 0.0, 151)
 z = np.linspace(-8.0, 8.0, 161)
-fv.enstrophy(xslice, range1=y, range2=z, option=2)
+enstro, enstro1, enstro2, enstro3 = np.zeros((4, np.size(xloc)))
+for i in range(np.size(xloc)):
+    df = flow.TriData
+    xslc = df.loc[df['x']==xloc[i]]
+    enstro[i] = fv.enstrophy(xslc, type='x', mode=None, rg1=y, rg2=z, opt=2)
+    enstro1[i] = fv.enstrophy(xslc, type='x', mode='x', rg1=y, rg2=z, opt=2)
+    enstro2[i] = fv.enstrophy(xslc, type='x', mode='y', rg1=y, rg2=z, opt=2)
+    enstro3[i] = fv.enstrophy(xslc, type='x', mode='z', rg1=y, rg2=z, opt=2)
+res = np.vstack((xloc, enstro, enstro1, enstro2, enstro3))
+nms = ['x', 'enstrophy', 'enstrophy_x', 'enstrophy_y', 'enstrophy_z']
+enstrophy = pd.DataFrame(data=res.T, columns=nms)
+enstrophy.to_csv(pathI + 'Enstrophy.dat',
+                 index=False, float_format='%1.8e', sep=' ')
+# %% plot yplus along streamwise
+enstro = pd.read_csv(pathI + 'Enstrophy.dat', sep=' ',
+                     index_col=False, skipinitialspace=True)
+enstro = enstro.iloc[1:,:]
+me = np.max(enstro['enstrophy'])
+fig3, ax3 = plt.subplots(figsize=(6.4, 2.8))
+ax3.plot(enstro['x'], enstro['enstrophy']/me, "k", linewidth=1.5)
+ax3.plot(enstro['x'], enstro['enstrophy_x']/me, "r", linewidth=1.5)
+ax3.plot(enstro['x'], enstro['enstrophy_y']/me, "k:", linewidth=1.5)
+ax3.plot(enstro['x'], enstro['enstrophy_z']/me, "b", linewidth=1.5)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_ylabel(r"$\epsilon/\epsilon_{max}$", fontsize=textsize)
+ax3.set_xlim([0.0, 30.0])
+ax3.set_ylim([0.0, 1.2])
+ax3.axvline(x=5.7, color="gray", linestyle="--", linewidth=1.2)
+ax3.axvline(x=11.2, color="gray", linestyle="--", linewidth=1.2)
+lab = [r"$\epsilon$", r"$\epsilon_x$", r"$\epsilon_y$", r"$\epsilon_z$"]
+ax3.legend(lab, ncol=1, fontsize=numsize)  # loc="lower right", 
+ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax3.axhline(y=1.0, color="gray", linestyle="--", linewidth=1.5)
+ax3.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + "enstrophy.svg", dpi=300)
+plt.show()
+
+# %%############################################################################
+"""
+    vorticity transportation equation analysis
+"""
+# %% vortex dynamics
+# z-direction
+files = path+"/TP_912.h5" # glob(pathT + '*h5') 
+flow = tf()
+flow.load_3data(
+        path, FileList=files, NameList='h5'
+)
+xloc = np.arange(0.0, 30.0 + 0.125, 0.125)
+y = np.linspace(-3.0, 0.0, 151)
+z = np.linspace(-8.0, 8.0, 161)
+tilt1, tilt2, stretch, dilate, torque = np.zeros((5, np.size(xloc)))
+
+# %%
+for i in range(np.size(xloc)):
+    df = flow.TriData
+    xslc = df.loc[df['x']==xloc[i]]
+    xslc = fv.vortex_dyna(xslc, type='y', opt=2)
+    tilt1[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt1'],
+                              range1=y, range2=z)
+    tilt2[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt2'],
+                              range1=y, range2=z)
+    stretch[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['stretch'],
+                              range1=y, range2=z)
+    dilate[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['dilate'],
+                              range1=y, range2=z)
+    torque[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['bar_tor'],
+                              range1=y, range2=z)
+res = np.vstack((xloc, tilt1, tilt2, stretch, dilate, torque))
+nms = ['x', 'tilt1', 'tilt2', 'stretch', 'dilate', 'torque']
+ens_z = pd.DataFrame(data=res.T, columns=nms)
+ens_z.to_csv(pathI + 'vortex_y.dat',
+             index=False, float_format='%1.8e', sep=' ')
+# %% plot yplus along streamwise
+vortex3 = pd.read_csv(pathI + 'vortex_y.dat', sep=' ',
+                      index_col=False, skipinitialspace=True)
+vortex3 = vortex3.iloc[1:,:]
+fig3, ax3 = plt.subplots(figsize=(6.4, 2.8))
+sc = 1 # enstro['enstrophy_x']
+ax3.plot(vortex3['x'], vortex3['tilt1']/sc, "k", linewidth=1.5)
+ax3.plot(vortex3['x'], vortex3['tilt2']/sc, "b", linewidth=1.5)
+ax3.plot(vortex3['x'], vortex3['stretch']/sc, "r", linewidth=1.5)
+ax3.plot(vortex3['x'], vortex3['dilate']/sc, "g", linewidth=1.5)
+ax3.plot(vortex3['x'], vortex3['torque']/sc, "k:", linewidth=1.5)
+lab = [r"$T_x$", r"$T_z$", r"$S_y$", r"$D_y$", r"$B_y$"]
+ax3.legend(lab, ncol=2, loc="upper right", fontsize=numsize)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_ylabel("Term", fontsize=textsize)
+ax3.set_xlim([0.0, 30.0])
+# ax3.set_ylim([0.0, 1.2])
+# ax3.axvline(x=5.7, color="gray", linestyle="--", linewidth=1.2)
+# ax3.axvline(x=11.2, color="gray", linestyle="--", linewidth=1.2)
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax3.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + "vortex_dynamics_y.svg", dpi=300)
+plt.show()
+
+
+# %%############################################################################
+"""
+    Numerical schiliren (gradient of density)
+"""
+# %% Numerical schiliren in X-Y plane
+flow = pf()
+file = path + 'iso_z0.h5'
+flow.load_data(path, FileList=file, NameList='h5')
+df = flow.PlanarData.query("x<=30.0 & y<=10.0")
+x, y = np.meshgrid(np.unique(df.x), np.unique(df.y))
+corner = (x < 0.0) & (y < 0.0)
+var = 'schlieren'
+rho = griddata((df.x, df.y), df[var], (x, y))
+print("rho_max=", np.max(df[var]))
+print("rho_min=", np.min(df[var]))
+rho[corner] = np.nan
+# %%
+fig, ax = plt.subplots(figsize=(6.4, 2.0))
+matplotlib.rc("font", size=textsize)
+rg1 = np.linspace(0, 2.0, 21)
+cbar = ax.contourf(x, y, rho, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
+ax.set_xlim(-10.0, 30.0)
+ax.set_ylim(-3.0, 10.0)
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+plt.gca().set_aspect("equal", adjustable="box")
+# Add colorbar
+rg2 = np.linspace(0, 2.0, 3)
+cbbox = fig.add_axes([0.16, 0.56, 0.20, 0.30], alpha=0.9)
+[cbbox.spines[k].set_visible(False) for k in cbbox.spines]
+cbbox.tick_params(
+    axis="both",
+    left=False,
+    right=False,
+    top=False,
+    bottom=False,
+    labelleft=False,
+    labeltop=False,
+    labelright=False,
+    labelbottom=False,
+)
+cbbox.set_facecolor([1, 1, 1, 0.7])
+# Add colorbar
+cbaxes = fig.add_axes([0.17, 0.77, 0.18, 0.07])  # x, y, width, height
+cbaxes.tick_params(labelsize=numsize)
+cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
+                    extendrect='False', ticks=rg2)
+cbar.set_label(
+    r"$S_c$",
+    rotation=0,
+    fontsize=textsize-1,
+)
+plt.savefig(pathF + "SchlierenXY.svg", bbox_inches="tight")
+plt.show()
+# %% Numerical schiliren in X-Z plane
+flow = pf()
+file = path + 'iso_u0p1.h5'
+flow.load_data(path, FileList=file, NameList='h5')
+df = flow.PlanarData.query("x<=30.0")
+zz = np.linspace(-8.0, 8.0, 257)
+xx = np.linspace(-10.0, 30.0, 801)
+x, z = np.meshgrid(xx, zz)
+var = 'schlieren'
+rho = griddata((df.x, df.z), df[var], (x, z))
+print("rho_max=", np.max(df[var]))
+print("rho_min=", np.min(df[var]))
+# rho[corner] = np.nan
+# %%
+fig, ax = plt.subplots(figsize=(6.4, 2.4))
+matplotlib.rc("font", size=textsize)
+rg1 = np.linspace(0, 2.0, 21)
+cbar = ax.contourf(x, z, rho, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
+ax.set_xlim(-10.0, 30.0)
+ax.set_ylim(-8.0, 8.0)
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$z/\delta_0$", fontsize=textsize)
+ax.set_yticks(np.linspace(-8.0, 8.0, 5))
+plt.gca().set_aspect("equal", adjustable="box")
+# Add colorbar box
+rg2 = np.linspace(0, 2.0, 3)
+cbbox = fig.add_axes([0.16, 0.16, 0.07, 0.68], alpha=0.9)
+[cbbox.spines[k].set_visible(False) for k in cbbox.spines]
+cbbox.tick_params(
+    axis="both",
+    left=False,
+    right=False,
+    top=False,
+    bottom=False,
+    labelleft=False,
+    labeltop=False,
+    labelright=False,
+    labelbottom=False,
+)
+cbbox.set_facecolor([1, 1, 1, 0.7])
+# Add colorbar
+cbaxes = fig.add_axes([0.17, 0.18, 0.02, 0.55])  # x, y, width, height
+cbaxes.tick_params(labelsize=numsize)
+cbar = plt.colorbar(cbar, cax=cbaxes, orientation="vertical",
+                    extendrect='False', ticks=rg2)
+cbar.set_label(
+    r"$S_c$",
+    rotation=0,
+    fontsize=textsize-1,
+    labelpad=-16,
+    y=1.15
+)
+plt.savefig(pathF + "SchlierenXZ.svg", bbox_inches="tight")
+plt.show()
