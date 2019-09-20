@@ -7,7 +7,7 @@ Created on Thu Jun 28 17:39:31 2018
 """
 # %%
 import numpy as np
-# import cupy as cp
+import cupy as cp
 import matplotlib.pyplot as plt
 from scipy.interpolate import splprep, splev
 import matplotlib
@@ -30,13 +30,14 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/VID2/BFS_M1.7L/"
+path = "/media/weibo/VID2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
 pathS = path + "SpanAve/"
 pathT = path + "TimeAve/"
 pathI = path + "Instant/"
+pathV = path + "Vortex/"
 matplotlib.rcParams["xtick.direction"] = "out"
 matplotlib.rcParams["ytick.direction"] = "out"
 textsize = 13
@@ -504,34 +505,43 @@ plt.show()
 """
     vorticity enstrophy along streamwise
 """
-#%% Load data
-files = glob(pathT + '*h5')  # path+"/TP_912.h5" # 
-flow = tf()
-flow.load_3data(
-        path, FileList=files, NameList='h5'
-)
-flow.copy_meanval()
-# %%
-xloc = np.arange(0.0, 30.0 + 0.125, 0.125)
+#%% Load data and calculate enstrophy in every direction
+xloc = np.arange(0.125, 30.0 + 0.125, 0.125)
+tp_time = np.arange(900, 1000 + 5.0, 5.0)
 y = np.linspace(-3.0, 0.0, 151)
 z = np.linspace(-8.0, 8.0, 161)
-enstro, enstro1, enstro2, enstro3 = np.zeros((4, np.size(xloc)))
-for i in range(np.size(xloc)):
-    df = flow.TriData
-    xslc = df.loc[df['x']==xloc[i]]
-    enstro[i] = fv.enstrophy(xslc, type='x', mode=None, rg1=y, rg2=z, opt=2)
-    enstro1[i] = fv.enstrophy(xslc, type='x', mode='x', rg1=y, rg2=z, opt=2)
-    enstro2[i] = fv.enstrophy(xslc, type='x', mode='y', rg1=y, rg2=z, opt=2)
-    enstro3[i] = fv.enstrophy(xslc, type='x', mode='z', rg1=y, rg2=z, opt=2)
-res = np.vstack((xloc, enstro, enstro1, enstro2, enstro3))
+ens, ens1, ens2, ens3 = np.zeros((4, np.size(xloc)))
 nms = ['x', 'enstrophy', 'enstrophy_x', 'enstrophy_y', 'enstrophy_z']
-enstrophy = pd.DataFrame(data=res.T, columns=nms)
-enstrophy.to_csv(pathI + 'Enstrophy.dat',
-                 index=False, float_format='%1.8e', sep=' ')
-# %% plot yplus along streamwise
-enstro = pd.read_csv(pathI + 'Enstrophy.dat', sep=' ',
-                     index_col=False, skipinitialspace=True)
-enstro = enstro.iloc[1:,:]
+flow = tf()
+dirs = glob(pathV + '*.h5')
+for j in range(np.size(dirs)):
+    flow.load_3data(pathV, FileList=dirs[j], NameList='h5')
+    file = os.path.basename(dirs[j])
+    file = os.path.splitext(file)[0]
+    # flow.copy_meanval()
+    for i in range(np.size(xloc)):
+        df = flow.TriData
+        xslc = df.loc[df['x']==xloc[i]]
+        ens[i] = fv.enstrophy(xslc, type='x', mode=None, rg1=y, rg2=z, opt=2)
+        ens1[i] = fv.enstrophy(xslc, type='x', mode='x', rg1=y, rg2=z, opt=2)
+        ens2[i] = fv.enstrophy(xslc, type='x', mode='y', rg1=y, rg2=z, opt=2)
+        ens3[i] = fv.enstrophy(xslc, type='x', mode='z', rg1=y, rg2=z, opt=2)
+    print("finish " + dirs[j])
+    res = np.vstack((xloc, ens, ens1, ens2, ens3))
+    enstrophy = pd.DataFrame(data=res.T, columns=nms)
+    enstrophy.to_csv(pathV + 'Enstrophy_z' + file + '.dat',
+                         index=False, float_format='%1.8e', sep=' ') 
+
+# %% plot enstrophy along streamwise
+dirs = glob(pathV + 'Enstrophy_*dat')
+tab_new = pd.read_csv(dirs[0], sep=' ', index_col=False, skipinitialspace=True)
+for j in range(np.size(dirs)-1):
+    tab_dat = pd.read_csv(dirs[j+1], sep=' ',
+                          index_col=False, skipinitialspace=True)
+    tab_new = tab_new.add(tab_dat, fill_value=0)
+#%%
+enstro = tab_new/np.size(dirs)
+# enstro = enstro.iloc[1:,:]
 me = np.max(enstro['enstrophy'])
 fig3, ax3 = plt.subplots(figsize=(6.4, 2.8))
 ax3.plot(enstro['x'], enstro['enstrophy']/me, "k", linewidth=1.5)
@@ -542,12 +552,13 @@ ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\epsilon/\epsilon_{max}$", fontsize=textsize)
 ax3.set_xlim([0.0, 30.0])
 ax3.set_ylim([0.0, 1.2])
-ax3.axvline(x=5.7, color="gray", linestyle="--", linewidth=1.2)
-ax3.axvline(x=11.2, color="gray", linestyle="--", linewidth=1.2)
+ax3.axvline(x=2.5, color="gray", linestyle="--", linewidth=1.2)
+ax3.axvline(x=5.5, color="gray", linestyle="--", linewidth=1.2)
+ax3.axvline(x=8.25, color="gray", linestyle="--", linewidth=1.2)
+ax3.axvline(x=12.0, color="gray", linestyle="--", linewidth=1.2)
 lab = [r"$\epsilon$", r"$\epsilon_x$", r"$\epsilon_y$", r"$\epsilon_z$"]
-ax3.legend(lab, ncol=1, fontsize=numsize)  # loc="lower right", 
+ax3.legend(lab, ncol=2, fontsize=numsize)  # loc="lower right", 
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-# ax3.axhline(y=1.0, color="gray", linestyle="--", linewidth=1.5)
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
@@ -570,38 +581,67 @@ y = np.linspace(-3.0, 0.0, 151)
 z = np.linspace(-8.0, 8.0, 161)
 tilt1, tilt2, stretch, dilate, torque = np.zeros((5, np.size(xloc)))
 
+#%% Load data and calculate vorticity term in every direction
+xloc = np.arange(0.125, 30.0 + 0.125, 0.125)
+tp_time = np.arange(900, 1000 + 5.0, 5.0)
+y = np.linspace(-3.0, 0.0, 151)
+z = np.linspace(-8.0, 8.0, 161)
+tilt1, tilt2, stret, dilate, torque = np.zeros((5, np.size(xloc), 2))
+nms = ['x', 'tilt1_p', 'tilt1_n', 'tilt2_p', 'tilt2_n', 'stretch_p', \
+       'stretch_n', 'dilate_p', 'dilate_n', 'torque_p', 'torque_n']
+flow = tf()
+dirs = glob(pathV + '*.h5')
+for j in range(np.size(dirs)):
+    flow.load_3data(pathV, FileList=dirs[j], NameList='h5')
+    file = os.path.basename(dirs[j])
+    file = os.path.splitext(file)[0]
+    for i in range(np.size(xloc)):
+        df = flow.TriData
+        df1 = df.loc[df['y']==xloc[i]]
+        xslc = fv.vortex_dyna(df1, type='y', opt=2)
+        tilt1[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt1'],
+                                     range1=y, range2=z, opt=3)
+        tilt2[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt2'],
+                                     range1=y, range2=z, opt=3)
+        stret[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['stretch'],
+                                       range1=y, range2=z, opt=3)
+        dilate[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['dilate'],
+                                      range1=y, range2=z, opt=3)
+        torque[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['bar_tor'],
+                                      range1=y, range2=z, opt=3)
+    print("finish " + dirs[j])
+    res = np.hstack((xloc.reshape(-1, 1), tilt1, tilt2, stret, dilate, torque))
+    ens_z = pd.DataFrame(data=res, columns=nms)
+    ens_z.to_csv(pathV + 'vortex_y' + file + '.dat',
+                     index=False, float_format='%1.8e', sep=' ')
+# %% plot vortex dynamics components
+dirs = glob(pathV + 'vortex_x_*dat')
+tab_new = pd.read_csv(dirs[0], sep=' ', index_col=False, skipinitialspace=True)
+for j in range(np.size(dirs)-1):
+    tab_dat = pd.read_csv(dirs[j+1], sep=' ',
+                          index_col=False, skipinitialspace=True)
+    tab_new = tab_new.add(tab_dat, fill_value=0)
 # %%
-for i in range(np.size(xloc)):
-    df = flow.TriData
-    xslc = df.loc[df['x']==xloc[i]]
-    xslc = fv.vortex_dyna(xslc, type='y', opt=2)
-    tilt1[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt1'],
-                              range1=y, range2=z)
-    tilt2[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt2'],
-                              range1=y, range2=z)
-    stretch[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['stretch'],
-                              range1=y, range2=z)
-    dilate[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['dilate'],
-                              range1=y, range2=z)
-    torque[i] = fv.integral_db(xslc['y'], xslc['z'], xslc['bar_tor'],
-                              range1=y, range2=z)
-res = np.vstack((xloc, tilt1, tilt2, stretch, dilate, torque))
-nms = ['x', 'tilt1', 'tilt2', 'stretch', 'dilate', 'torque']
-ens_z = pd.DataFrame(data=res.T, columns=nms)
-ens_z.to_csv(pathI + 'vortex_y.dat',
-             index=False, float_format='%1.8e', sep=' ')
-# %% plot yplus along streamwise
-vortex3 = pd.read_csv(pathI + 'vortex_y.dat', sep=' ',
-                      index_col=False, skipinitialspace=True)
-vortex3 = vortex3.iloc[1:,:]
+vortex3 = tab_new/np.size(dirs)
+# vortex3 = vortex3.iloc[1:,:]
 fig3, ax3 = plt.subplots(figsize=(6.4, 2.8))
-sc = 1 # enstro['enstrophy_x']
-ax3.plot(vortex3['x'], vortex3['tilt1']/sc, "k", linewidth=1.5)
-ax3.plot(vortex3['x'], vortex3['tilt2']/sc, "b", linewidth=1.5)
-ax3.plot(vortex3['x'], vortex3['stretch']/sc, "r", linewidth=1.5)
-ax3.plot(vortex3['x'], vortex3['dilate']/sc, "g", linewidth=1.5)
-ax3.plot(vortex3['x'], vortex3['torque']/sc, "k:", linewidth=1.5)
-lab = [r"$T_x$", r"$T_z$", r"$S_y$", r"$D_y$", r"$B_y$"]
+tilt1 = vortex3['tilt1_p']+vortex3['tilt1_n']
+tilt2 = vortex3['tilt2_p']+vortex3['tilt1_n']
+stret = vortex3['stretch_p']+vortex3['stretch_n']
+dilat = vortex3['dilate_p']+vortex3['dilate_n']
+torqu = vortex3['torque_p']+vortex3['torque_n']
+sc = np.max([tilt1, tilt2, stret, dilat, torqu])  # 1
+ax3.plot(vortex3['x'], tilt1/sc, "k", linewidth=1.5)
+ax3.plot(vortex3['x'], tilt2/sc, "b", linewidth=1.5)
+ax3.plot(vortex3['x'], stret/sc, "r", linewidth=1.5)
+ax3.plot(vortex3['x'], dilat/sc, "g", linewidth=1.5)
+ax3.plot(vortex3['x'], torqu/sc, "C7:", linewidth=1.5)
+#ax3.plot(vortex3['x'], vortex3['tilt1_n']/sc, "k:", linewidth=1.5)
+#ax3.plot(vortex3['x'], vortex3['tilt2_n']/sc, "b:", linewidth=1.5)
+#ax3.plot(vortex3['x'], vortex3['stretch_n']/sc, "r:", linewidth=1.5)
+#ax3.plot(vortex3['x'], vortex3['dilate_n']/sc, "g:", linewidth=1.5)
+#ax3.plot(vortex3['x'], vortex3['torque_n']/sc, "C7:", linewidth=1.5)
+lab = [r"$T_y$", r"$T_z$", r"$S$", r"$D$", r"$B$"]
 ax3.legend(lab, ncol=2, loc="upper right", fontsize=numsize)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel("Term", fontsize=textsize)
@@ -614,9 +654,50 @@ ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + "vortex_dynamics_y.svg", dpi=300)
+plt.savefig(pathF + "vortex_dynamics_x.svg", dpi=300)
 plt.show()
 
+# %% Control volume analysis
+xmin = 8.25
+xmax = 12.0
+xloc = np.arange(xmin, xmax + 0.125, 0.125)
+vortex3 = pd.read_csv(pathV + 'vortex_z_0950.0.dat', sep=' ',
+                      index_col=False, skipinitialspace=True)
+cvol = vortex3.loc[(vortex3['x'] <= xmax) & (vortex3['x'] >= xmin)]
+print('x range: ', np.min(cvol['x']), np.max(cvol['x']))
+barloc = np.arange(5)
+barhet1 = np.zeros(5)
+barhet2 = np.zeros(5)
+barhet1[0] = np.trapz(cvol['tilt1_p'], cvol['x'])
+barhet1[1] = np.trapz(cvol['tilt2_p'], cvol['x'])
+barhet1[2] = np.trapz(cvol['stretch_p'], cvol['x'])
+barhet1[3] = np.trapz(cvol['dilate_p'], cvol['x'])
+barhet1[4] = np.trapz(cvol['torque_p'], cvol['x'])
+barhet2[0] = np.trapz(cvol['tilt1_n'], cvol['x'])
+barhet2[1] = np.trapz(cvol['tilt2_n'], cvol['x'])
+barhet2[2] = np.trapz(cvol['stretch_n'], cvol['x'])
+barhet2[3] = np.trapz(cvol['dilate_n'], cvol['x'])
+barhet2[4] = np.trapz(cvol['torque_n'], cvol['x'])
+# barsum = np.sum(np.abs(barhet1)) + np.sum(np.abs(barhet2))
+# barhet1 = barhet1/barsum * 100
+barsum = np.sum(np.abs(barhet1 + barhet2))
+barhet1 = (barhet1+barhet2)/barsum * 100
+barhet2 = barhet2/barsum * 100
+# plot figure of vorticity contribution percent
+vlab = [r'$T_y$', r'$T_z$', r'$S$', r'$D$', r'$B$']
+fig, ax = plt.subplots(figsize=(3.2, 2.8))
+matplotlib.rc("font", size=textsize)
+width = 0.4
+ax.bar(barloc, barhet1, width, color='C0', alpha=1.0)
+# ax.bar(barloc, barhet2, width, color='C2', alpha=1.0)
+ax.set_xticks(barloc)
+ax.set_xticklabels(vlab, fontsize=textsize)
+ax.set_ylabel(r'$\mathcal{E}_t(\%)$')
+ax.grid(b=True, which="both", linestyle=":", linewidth=0.6)
+ax.axhline(y=0.0, color="k", linestyle="-", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathF + "vortex_term_zt4_0950.svg", bbox_inches="tight")
+plt.show()
 
 # %%############################################################################
 """
