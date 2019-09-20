@@ -63,10 +63,16 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
     if FileName is None:
         files = sorted(os.listdir(FoldPath))
         FileName = [os.path.join(FoldPath, name) for name in files]
-    dataset = tp.data.load_tecplot(FileName, read_data_option=2)
-    # dataset = tp.data.load_tecplot(FoldPath, read_data_option=2)
+    file_ex = os.path.splitext(FileName[0])[1]
+    if( file_ex == '.szplt'):
+        dataset = tp.data.load_tecplot_szl(FileName, read_data_option=2)
+    elif( file_ex == '.plt'):
+        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+    else:
+        raise IOError('ERROR: files do not exist!!!')
     if Equ is not None:
-        tp.data.operate.execute_equation(Equ)
+        for i in range(np.size(Equ)):
+            tp.data.operate.execute_equation(Equ[i])
     SolTime = dataset.solution_times[0]
     skip = skip + 1
     # num_zones = dataset.num_zones
@@ -121,8 +127,7 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         df = df.query("x>={0} & x<={1} & y<={2}".format(
                        SubZone[0][0], SubZone[0][1], SubZone[1][1]))
     if SavePath is not None and OutFile is not None:
-        df.to_hdf(SavePath + OutFile + ".h5",
-                  'w', format='fixed')
+        df.to_hdf(SavePath+OutFile+str(SolTime)+".h5", 'w', format='fixed')
     return (df, SolTime)
 
 
@@ -293,20 +298,25 @@ def SaveSlice(df, SolTime, SpanAve, SavePath):
     return df
 
 
-def ReadAllINCAResults(FoldPath, FoldPath2=None, Equ=None,
+def ReadAllINCAResults(FoldPath, SavePath=None, Equ=None,
                        FileName=None, SpanAve=None, OutFile=None):
     if FileName is None:
         # files = os.listdir(FoldPath)
         # FileName = [os.path.join(FoldPath, name) for name in files]
-        FileName = glob(FoldPath+'*.plt')
+        FileName = glob(FoldPath+'*plt')
+    file_ex = os.path.splitext(FileName[0])[1]
+    if( file_ex == '.szplt'):
+        dataset = tp.data.load_tecplot_szl(FileName, read_data_option=2)
+    elif( file_ex == '.plt'):
         dataset = tp.data.load_tecplot(FileName, read_data_option=2)
     else:
-        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+        raise IOError('ERROR: files do not exist!!!')
     if Equ is not None:
-        tp.data.operate.execute_equation(Equ)
+        for i in range(np.size(Equ)):
+            tp.data.operate.execute_equation(Equ[i])
     VarList = [v.name for v in dataset.variables()]
     df = pd.DataFrame(columns=VarList)
-  
+    SolTime = dataset.solution_times[0]
     for zone in dataset.zones('*'):
         for i in range(np.size(VarList)):
             if i == 0:
@@ -323,8 +333,8 @@ def ReadAllINCAResults(FoldPath, FoldPath2=None, Equ=None,
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
         # df = df.loc[df['z'] == 0.0].reset_index(drop=True)
-    if FoldPath2 is not None and OutFile is not None:
-        df.to_hdf(FoldPath2 + OutFile + ".h5", 'w', format='fixed')
+    if SavePath is not None and OutFile is not None:
+        df.to_hdf(SavePath+OutFile+str(SolTime)+".h5", 'w', format='fixed')
     return(df)
 
 

@@ -13,7 +13,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.ticker as ticker
-from scipy.interpolate import interp1d, splev, splrep, spline
+from scipy.interpolate import interp1d, splev, splrep
 from data_post import DataPost
 import variable_analysis as fv
 from timer import timer
@@ -23,14 +23,14 @@ from glob import glob
 
 
 # %% data path settings
-path = "/media/weibo/Data2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
 pathS = path + "SpanAve/"
 pathT = path + "TimeAve/"
 pathI = path + "Instant/"
-pathB = path + "BaseFlow/"
+pathL = path + "LST/"
 
 # %% figures properties settings
 plt.close("All")
@@ -42,21 +42,29 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 15
-numsize = 12
+textsize = 13
+numsize = 10
 
 # %%
-path = "/media/weibo/VID2/BFS_M1.7TS/"
-pathB = path + "BaseFlow/"
-#file = glob(pathB + '*plt')
-#p2p.ReadAllINCAResults(pathB, FoldPath2=pathB, 
-#                       FileName=file, SpanAve='Y', OutFile="BaseFlow")
-base = pd.read_hdf(pathB + 'BaseFlow.h5')
+# path = "/media/weibo/VID2/BFS_M1.7SFD/"
+# pathB = path + 'TP_data_15709808/'
+# file = glob(pathB + '*plt')
+# p2p.ReadAllINCAResults(pathB, FoldPath2=pathB, 
+#                        FileName=file, SpanAve='Y', OutFile="BaseFlow")
+# base = pd.read_hdf(pathL + 'BaseFlow.h5')
+base = pd.read_hdf(pathM + 'MeanFlow.h5')
 varlist = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'Mach', 'T']
+base['u'] = base['<u>']
+base['v'] = base['<v>']
+base['w'] = base['<w>']
+base['rho'] = base['<rho>']
+base['p'] = base['<p>']
+base['Mach'] = base['u']/np.sqrt(1.4*287*base['<T>'])
+base['T'] = base['<T>']
 x_loc = np.arange(-40.0, 0.0 + 1.0, 1.0)
 for i in range(np.size(x_loc)):
-    df = base.loc[base['x']==x_loc[i], varlist]
-    df.to_csv(pathB + 'InputProfile_' + str(x_loc[i]) + '.dat',
+    df = base.loc[(base['x']==x_loc[i]) & (base['z']==0.0), varlist]
+    df.to_csv(pathL + 'InputProfile_' + str(x_loc[i]) + '.dat',
               index=False, float_format='%1.8e', sep=' ')
 
 # %% Contour of TS mode
@@ -106,7 +114,7 @@ ax.axhline(y=0.101, xmin=0, xmax=0.32,
            color="gray", linestyle="--", linewidth=1.0)
 # Add colorbar
 rg2 = np.linspace(-0.0028, 0.0013, 3)
-cbaxes = fig.add_axes([0.56, 0.80, 0.3, 0.06])  # x, y, width, height
+cbaxes = fig.add_axes([0.65, 0.80, 0.22, 0.06])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar.formatter.set_powerlimits((-2, 2))
@@ -173,7 +181,7 @@ ax.set_xlabel(r'$|\tilde{q}|/|\tilde{q}|_{max}$', fontsize=textsize)
 ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
-plt.legend( (r'$q=u$', r'$q=v$', r'$q=w$', r'$q=p$', r'$q=T$'),
+plt.legend( (r'$u$', r'$v$', r'$w$', r'$p$', r'$T$'),
             fontsize=numsize, framealpha=0.5 )
 plt.savefig(pathF + "TS_mode_profile.svg", bbox_inches="tight")
 plt.show()
@@ -184,14 +192,14 @@ x_inlet = 0.382185449774020e3
 blasius = 1.579375403141185e-04 # 1.669135812043661e-04
 delta = 1e-3
 Re = 13718000
-val = -0.0014
+val = -0.0016
 var = 'beta'
 lst_var = np.zeros( (np.size(xloc), 3) )
 Re_l = np.zeros(np.size(xloc))
 for i in range(np.size(xloc)):
     xx = xloc[i]
     l_ref = blasius * np.sqrt((x_inlet + xx)/(x_inlet - 40.0))    
-    ts_mode = pd.read_csv(pathB + 'TSMode_' + str(xx) + '_' + var + '.dat',
+    ts_mode = pd.read_csv(pathL + 'TSMode_' + str(xx) + '_' + var + '.dat',
                           sep=' ', index_col=False, skipinitialspace=True)
     # rescaled by Blasius length
     ts_mode = ts_mode.sort_values(var).reset_index()
@@ -207,22 +215,22 @@ for i in range(np.size(xloc)):
     # lower branch
     ts_mode2 = ts_mode.iloc[ind:]
     lst_var[i, 1] = interp1d(ts_mode2['alpha_i'], ts_mode2[var])(val)
-    lst_var[i, 2] = ts_mode[var][ind]
+    lst_var[i, 2] = ts_mode[var][ind]  # maximum alpha_i
     # ind2 = (ts_mode2['alpha_i']-val).abs().argsort()[:1]
     # lst_var[i, 1] = ts_mode[var][ind2.values].values
     Re_l[i] = Re * l_ref
 
 varval = np.column_stack((Re_l, lst_var))
 df = pd.DataFrame(data=varval, columns=['Re', var+'1', var+'2', var+'3'])
-df.to_csv(pathB + 'LST_' + var + str(val) + '.dat',
+df.to_csv(pathL + 'LST_' + var + str(val) + '.dat',
           index=False, float_format='%1.8e', sep=' ')
 
 # %% plot Rel-beta
-beta1 = pd.read_csv(pathB + 'LST_beta-0.0014.dat', sep=' ',
+beta1 = pd.read_csv(pathL + 'LST_beta-0.0014.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
-beta2 = pd.read_csv(pathB + 'LST_beta-0.0015.dat', sep=' ',
+beta2 = pd.read_csv(pathL + 'LST_beta-0.0015.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
-beta3 = pd.read_csv(pathB + 'LST_beta-0.0016.dat', sep=' ',
+beta3 = pd.read_csv(pathL + 'LST_beta-0.0016.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
 Re1 = np.hstack((beta1['Re'], beta1['Re'][::-1]))
 ReBeta1 = np.hstack((beta1['beta1'], beta1['beta2'][::-1]))
@@ -242,9 +250,9 @@ x_s3 = spline(ReBeta3[1:-1], Re3[1:-1], y_s3)
 ax.plot(x_s1, y_s1, 'k-', linewidth=1.2)
 ax.plot(x_s2, y_s2, 'k--', linewidth=1.2)
 ax.plot(x_s3, y_s3, 'k:', linewidth=1.2)
-xm_s = np.linspace(beta2['Re'][1:].min(), beta2['Re'][1:].max(), 100)
-ym_s = spline(beta2['Re'][1:], beta2['beta3'][1:], xm_s, order=4)
-ax.plot(beta2['Re'][1:], beta2['beta3'][1:], 'k-.', linewidth=1.2)
+xm_s = np.linspace(beta3['Re'][1:].min(), beta3['Re'][1:].max(), 100)
+ym_s = spline(beta3['Re'][1:], beta3['beta3'][1:], xm_s, order=4)
+ax.plot(beta3['Re'][1:], beta3['beta3'][1:], 'k-.', linewidth=1.2)
 #ax.plot(beta1['Re'], beta1['beta1'], 'r-',
 #        beta1['Re'], beta1['beta2'], 'r-', linewidth=1.2)
 #ax.plot(beta2['Re'], beta2['beta1'], 'r--',
@@ -265,11 +273,11 @@ plt.savefig(pathF + "Re_beta.svg", bbox_inches="tight")
 plt.show()
 
 # %% plot Rel-omega
-beta1 = pd.read_csv(pathB + 'LST_omega-0.0014.dat', sep=' ',
+beta1 = pd.read_csv(pathL + 'LST_omega-0.0014.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
-beta2 = pd.read_csv(pathB + 'LST_omega-0.0015.dat', sep=' ',
+beta2 = pd.read_csv(pathL + 'LST_omega-0.0015.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
-beta3 = pd.read_csv(pathB + 'LST_omega-0.0016.dat', sep=' ',
+beta3 = pd.read_csv(pathL + 'LST_omega-0.0016.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
 Re1 = np.hstack((beta1['Re'], beta1['Re'][::-1]))
 ReBeta1 = np.hstack((beta1['omega1'], beta1['omega2'][::-1]))
@@ -327,10 +335,11 @@ val = 0.06202
 var = 'beta'
 lst_ts = np.zeros( (np.size(xloc), 2) )
 Re_l = np.zeros( (np.size(xloc), 3) )
+pathL1 = pathL + 'from_baseflow/'
 for i in range(np.size(xloc)):
     xx = xloc[i]
     l_ref = blasius * np.sqrt((x_inlet + xx)/(x_inlet - 40.0))    
-    ts_mode = pd.read_csv(pathB + 'TSMode_' + str(xx) + '_' + var + '.dat',
+    ts_mode = pd.read_csv(pathL1 + 'TSMode_' + var + '_' + str(xx) + '.dat',
                           sep=' ', index_col=False, skipinitialspace=True)
     # rescaled by Blasius length
     ts_mode = ts_mode.sort_values(var).reset_index()
@@ -345,12 +354,12 @@ for i in range(np.size(xloc)):
 
 varval = np.column_stack((Re_l, lst_ts))
 df = pd.DataFrame(data=varval, columns=['x', 'bl', 'Re', 'alpha_r', 'alpha_i'])
-df.to_csv(pathB + 'LST_TS.dat',
+df.to_csv(pathL1 + 'LST_TS.dat',
           index=False, float_format='%1.8e', sep=' ')
 
 # %% plot alpha
 xloc = np.arange(-40.0, -1.0 + 1.0, 1.0)
-beta1 = pd.read_csv(pathB + 'LST_TS.dat', sep=' ',
+beta1 = pd.read_csv(pathL + 'LST_TS.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
 fig = plt.figure(figsize=(6.4, 3.2))
 matplotlib.rc("font", size=textsize)

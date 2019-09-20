@@ -25,7 +25,7 @@ from scipy.interpolate import griddata
 
 
 # %% data path settings
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7L/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -34,7 +34,7 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathL = path + "Linear/"
 
-# %% figures properties settings
+# figures properties settings
 plt.close("All")
 plt.rc("text", usetex=True)
 font = {
@@ -331,21 +331,21 @@ plt.show()
 """
 # %% Streamline plot for vortex merge (load data)
 flow3 = pf()
-filepath = '/media/weibo/VID2/BFS_M1.7TS/Slice/TP_2D_Z_03/'
+filepath = '/media/weibo/VID2/BFS_M1.7L/'
 flow3.load_data(
     path, 
-    FileList=filepath + 'TP_2D_Z_03_00927.75.h5',
+    FileList=filepath + 'ZFluctuation_912.0.h5',
     NameList='h5'
     #FileList=filepath + 'TP_2D_Z_03_00927.75.h5', NameList='h5'
 )
-flow4 = pf()
-flow4.load_data(
-    path, 
-    FileList='/media/weibo/VID2/BFS_M1.7L/Slice/TP_2D_S_10/'+ 'TP_2D_S_10_00927.75.h5',
-    NameList='h5'
-)
+#flow4 = pf()
+#flow4.load_data(
+#    path, 
+#    FileList='/media/weibo/VID2/BFS_M1.7L/Slice/TP_2D_S_10/'+ 'TP_2D_S_10_00927.75.h5',
+#    NameList='h5'
+#)
 
-zslice = flow3.PlanarData.query(" x>0 & x<=4")
+zslice = flow3.PlanarData.query(" x>0 & x<=2.5 & y>-0.5")
 zslice1 = flow4.PlanarData.query(" x>0 & x<=4")
 x1 = np.linspace(0.0, 4.0, 500)
 y1 = np.linspace(-1.5, 0.0, 500)
@@ -387,6 +387,7 @@ ax.streamplot(
     arrowstyle='->',
     integration_direction="both"
 )
+ax.set_aspect('equal', 'box')
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF + "VortexPairTS3.svg", bbox_inches="tight")
+plt.savefig(pathF + "RollUp.svg", bbox_inches="tight")
 plt.show()

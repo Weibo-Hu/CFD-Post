@@ -75,7 +75,7 @@ for folder in dirs:
 #                 header=VarList, float_format='%.10e')
 
 # %% Extract Data for 3D DMD
-"""
+
 VarList = [
     'x',
     'y',
@@ -88,18 +88,18 @@ VarList = [
 ]
 
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
-FoldPath = "/media/weibo/Data2/BFS_M1.7L/TP_data_00966084/"
+FoldPath = "/media/weibo/VID1/BFS_M1.7L/TP_data_01402108/"
 path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
 
 NoBlock = 606
 skip = 0
-cube = [(-10.0, 20.0), (-3.0, 1.0), (-8, 8)]
+cube = [(-10.0, 30.0), (-3.0, 1.0), (-8, 8)]
 dirs = os.listdir(FoldPath)
 # FileId = p2p.ExtractZone(FoldPath + dirs[0] + "/", cube, NoBlock, skip=skip)
-FileId = p2p.ExtractZone(FoldPath, cube, NoBlock, skip=skip)
-FileId.to_csv(FoldPath+str(skip)+'VortexList.dat', index=False, sep=' ')
-FileId['name'].to_csv(FoldPath + 'ZoomZone.dat', index=False)
+FileId = p2p.extract_zone(FoldPath, cube, skip=skip)
+FileId.to_csv(FoldPath+str(skip)+'VortexList1.dat', index=False, sep=' ')
+FileId['name'].to_csv(FoldPath + 'ZoomZone1.dat', index=False)
 
 # FileId = pd.read_csv(path2 + str(skip)+ "ReadList.dat", sep='\t')
 #
@@ -113,7 +113,7 @@ FileId['name'].to_csv(FoldPath + 'ZoomZone.dat', index=False)
 #                                SavePath=OutFolder, Equ=equ,
 #                                skip=skip)
 
-"""
+
 # %% merge snapshots into a single file
 """
 path = '/media/weibo/VID1/BFS_M1.7TS/'

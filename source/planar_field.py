@@ -58,6 +58,18 @@ class PlanarField(LineField):
         return self._data_field['<mu>'].values
 
     @property
+    def vorticity_1_m(self):
+        return self._data_field['<vorticity_1>'].values
+
+    @property
+    def vorticity_2_m(self):
+        return self._data_field['<vorticity_2>'].values
+
+    @property
+    def vorticity_3_m(self):
+        return self._data_field['<vorticity_3>'].values
+
+    @property
     def R11(self):
         return self._data_field['<u`u`>'].values
 
@@ -184,3 +196,6 @@ class PlanarField(LineField):
         self._data_field['p'] = self.p_m
         self._data_field['T'] = self.T_m
         self._data_field['mu'] = self.mu_m
+        self._data_field['vorticity_1'] = self.vorticity_1_m
+        self._data_field['vorticity_2'] = self.vorticity_2_m
+        self._data_field['vorticity_3'] = self.vorticity_3_m

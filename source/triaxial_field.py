@@ -9,6 +9,7 @@ import pandas as pd
 from planar_field import PlanarField
 import plt2pandas as p2p
 from glob import glob
+import numpy as np
 
 
 class TriField(PlanarField):
@@ -18,6 +19,11 @@ class TriField(PlanarField):
     @property
     def TriData(self):
         return self._data_field
+
+    @TriData.setter
+    def TriData(self, frame):
+        assert isinstance(frame, pd.DataFrame)
+        self._TriData = frame
 
     @property
     def PlanarData(self):
@@ -40,14 +46,19 @@ class TriField(PlanarField):
                                         FileName=infile,
                                         SpanAve=None)
         elif NameList == 'h5':
-            df = pd.read_hdf(infile)
+            if np.size(FileList) == 1:
+                df = pd.read_hdf(infile)
+            else:
+                num = np.size(FileList)
+                df = pd.concat([pd.read_hdf(FileList[i]) for i in range(num)])
+                df.reset_index()
         else:
             df = p2p.ReadINCAResults(path,
                                      VarList=NameList,
                                      FileName=infile,
                                      SpanAve=False)
 
-        df = df.drop_duplicates(keep='last')
+        # df = df.drop_duplicates(keep='last')
         self._data_field = df
 
     def span_ave(self):

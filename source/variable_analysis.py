@@ -915,69 +915,129 @@ def sec_ord_fdd(xarr, var):
 # omega1 = dw/dy-dv/dz; omega2 = du/dz-dw/dx, omega3 = dv/dx-du/dy
 
 
-def enstrophy(df, type='x', range1=None, range2=None, option=1):
-    if range1 is not None:
+# double integral
+def integral_db(x, y, val, range1=None, range2=None, opt=2):
+    if range1 is None:
+        min1 = np.min(x)
+        max1 = np.max(x)
+        n1 = np.size(np.unique(x))
+        range1 = np.linspace(min1, max1, n1)
+    else:
+        n1 = np.size(range1)
         min1 = np.min(range1)
         max1 = np.max(range1)
-    if range2 is not None:
+    if range2 is None:
+        min2 = np.min(y)
+        max2 = np.max(y)
+        n2 = np.size(np.unique(y))
+        range2 = np.linspace(min2, max2, n2)
+    else:
+        n2 = np.size(range2)
         min2 = np.min(range2)
         max2 = np.max(range2)
+    if opt == 1:
+        def func(var1, var2):
+            vorticity = griddata((x, y), val, (var1, var2))
+            return vorticity
+        results = dblquad(func, min1, max1, lambda x: min2, lambda y: max2)
+    elif opt == 2:
+        ms1, ms2 = np.meshgrid(range1, range2)
+        val_intp = griddata((x, y), val, (ms1, ms2))
+        Iy = np.zeros(n2)
+        for i in range(n2):
+            Iy[i] = np.trapz(val_intp[i, :], range1)
+        # print("finish integral over x-axis")
+        results = np.trapz(Iy, range2)
+    elif opt == 3:
+        ms1, ms2 = np.meshgrid(range1, range2)
+        val_intp = griddata((x, y), val, (ms1, ms2))
+        # ind_p1, ind_p2 = np.where(val_intp[:, :] > 0.0)  # posivive values
+        # ind_n1, ind_n2 = np.where(val_intp[:, :] < 0.0)  # negative values
+        # val_intp_p, val_intp_n = np.zeros((2, n1, n2))
+        # val_intp_p[ind_p1, ind_p2] = val_intp[ind_p1, ind_p2]
+        # val_intp_n[ind_n1, ind_n2] = val_intp[ind_n1, ind_n2]
+        val_intp_p = np.where(val_intp > 0.0, val_intp, 0.0)
+        val_intp_n = np.where(val_intp < 0.0, val_intp, 0.0)
+        Iy = np.zeros((n2, 2))
+        for i in range(n2):
+            Iy[i, 0] = np.trapz(val_intp_p[i, :], range1)
+            Iy[i, 1] = np.trapz(val_intp_n[i, :], range1)
+        # print("finish integral over x-axis")
+        res1 = np.trapz(Iy[:, 0], range2)
+        res2 = np.trapz(Iy[:, 1], range2)
+        results = (res1, res2)          
+    else:
+        pass
+    return results
 
+
+def vorticity_abs(df, mode=None):
+    if mode is None:
+        vorticity = df['vorticity_1'].values**2 \
+            + df['vorticity_2'].values**2 \
+            + df['vorticity_3'].values**2
+    elif mode == 'x':
+        vorticity = df['vorticity_1'].values**2
+    elif mode == 'y':
+        vorticity = df['vorticity_2'].values**2
+    elif mode == 'z':
+        vorticity = df['vorticity_3'].values**2
+    rst = vorticity * 0.5
+    return rst
+
+
+def enstrophy(df, type='x', mode=None, rg1=None, rg2=None, opt=2):
     if type == 'x':
         x1 = df.y
         x2 = df.z
-        if range1 is None:
-            min1 = np.min(df['y'])
-            max1 = np.max(df['y'])
-        if range2 is None:
-            min2 = np.min(df['z'])
-            max2 = np.max(df['z'])
-
     if type == 'y':
         x1 = df.x
         x2 = df.z
-        if range1 is None:
-            min1 = np.min(df['x'])
-            max1 = np.max(df['x'])
-        if range2 is None:
-            min2 = np.min(df['z'])
-            max2 = np.max(df['z'])
-
     if type == 'z':
         x1 = df.x
         x2 = df.y
-        if range1 is None:
-            min1 = np.min(df['x'])
-            max1 = np.max(df['x'])
-        if range2 is None:
-            min2 = np.min(df['y'])
-            max2 = np.max(df['y'])
-    if option == 1:
-        def vort(x, y):
-            vorticity = griddata((x1, x2), df['vorticity_abs'], (x, y))
-            return vorticity
-        ens = 0.5 * dblquad(vort, min1, max1, lambda x: min2, lambda y: max2)
-    if option == 2:
-        if range1 is not None:
-            val1 = range1
-            n1 = np.size(val1)
-        else:
-            n1 = np.size(np.unique(x1))
-            val1 = np.linspace(min1, max1, n1)
-        if range2 is not None:
-            val2 = range2
-            n2 = np.size(val2)
-        else:
-            n2 = np.size(np.unique(x2))
-            val2 = np.linspace(min2, max2, n2)
-        ms1, ms2 = np.meshgrid(val1, val2)
-        vorticity = griddata((x1, x2), df['vorticity_abs'], (ms1, ms2))
-        Iy = np.zeros(n2)
-        for i in range(n2):
-            Iy[i] = np.trapz(vorticity[i, :], val1)
-        print("integral over x-axis")
-        ens = 0.5 * np.trapz(Iy, val2)
+    vorticity = vorticity_abs(df, mode=mode)
+    ens = integral_db(x1, x2, vorticity, range1=rg1,
+                      range2=rg2, opt=opt)
     return ens
+
+
+def vortex_dyna(df, type='z', opt=1):
+    delta_u = df['ux'] + df['vy'] + df['wz']
+    rho_inv = 1 / df['rho'] ** 2
+    if type == 'z':
+        vorticity = df['vorticity_3']
+        tilting1 = df['vorticity_1'] * df['wx']
+        tilting2 = df['vorticity_2'] * df['wy']
+        stretching = vorticity * df['wz']
+        dilatation = -vorticity * delta_u
+        torque = rho_inv * (df['rhox'] * df['py'] - df['rhoy'] * df['px'])
+    if type == 'x':
+        vorticity = df['vorticity_1']
+        stretching = vorticity * df['ux']
+        tilting1 = df['vorticity_2'] * df['uy']
+        tilting2 = df['vorticity_3'] * df['uz']
+        dilatation = -df['vorticity_1'] * delta_u
+        torque = rho_inv * (df['rhoy'] * df['pz'] - df['rhoz'] * df['py'])
+    if type == 'y':
+        vorticity = df['vorticity_2']
+        tilting1 = df['vorticity_1'] * df['vx']
+        stretching = vorticity * df['vy']
+        tilting2 = df['vorticity_3'] * df['vz']
+        dilatation = -vorticity * delta_u
+        torque = rho_inv * (df['rhoz'] * df['px'] - df['rhox'] * df['pz'])
+    if opt == 2:
+        tilting1 = tilting1 * vorticity
+        tilting2 = tilting2 * vorticity
+        stretching = stretching * vorticity
+        dilatation = -dilatation * vorticity
+        torque = torque * vorticity
+    df = df.assign(tilt1=tilting1)
+    df = df.assign(tilt2=tilting2)
+    df = df.assign(stretch=stretching)
+    df = df.assign(dilate=dilatation)
+    df = df.assign(bar_tor=torque)
+    return df
 
 
 if __name__ == "__main__":

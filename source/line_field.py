@@ -92,12 +92,13 @@ class LineField(object):
     def vorticity_3(self):
         return self._data_field['vorticity_3'].values
 
-    @property
-    def vorticity_abs(self):
-        magnitude = self._data_field['vorticity_1'].values**2
-        + self._data_field['vorticity_2'].values**2
-        + self._data_field['vorticity_3'].values**2
-        return (magnitude)
+#   not working , why
+#    @property
+#    def vorticity_abs(self):
+#        magnitude = self._data_field['vorticity_1'].values**2
+#        + self._data_field['vorticity_2'].values**2
+#        + self._data_field['vorticity_3'].values**2
+#        return magnitude
 
     @property
     def u_m(self):

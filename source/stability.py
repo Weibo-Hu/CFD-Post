@@ -31,18 +31,19 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7L/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
 pathS = path + "SpanAve/"
 pathT = path + "TimeAve/"
 pathI = path + "Instant/"
+pathSL = path + 'Slice/'
 
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 15
-numsize = 12
+textsize = 12
+numsize = 10
 matplotlib.rc("font", size=textsize)
 
 VarName = [
@@ -60,6 +61,8 @@ VarName = [
 ]
 
 StepHeight = 3.0
+
+# %%
 MeanFlow = pf()
 MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
@@ -393,14 +396,23 @@ FPSD = np.zeros((samples, np.size(xval)))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i], 0.0]
     freq, FPSD[:, i] = fv.fw_psd_map(Snapshots, xyz, var, dt, freq_samp, opt=1)
+np.savetxt(pathSL + 'FWPSD_freq.dat', freq, delimiter=' ')
+np.savetxt(pathSL + 'FWPSD_x.dat', xval, delimiter=' ')
+np.savetxt(pathSL + 'FWPSD_psd.dat', FPSD, delimiter=' ')
+
+freq = np.loadtxt(pathSL + 'FWPSD_freq.dat', delimiter=' ')
+FPSD = np.loadtxt(pathSL + 'FWPSD_psd.dat', delimiter=' ')
 freq = freq[1:]
 FPSD = FPSD[1:, :]
+
 # %% Plot frequency-weighted PSD map along a line
 SumFPSD = np.max(FPSD, axis=0) # np.sum(FPSD, axis=0)
 FPSD1 = np.log(FPSD/SumFPSD) # np.log(FPSD) # 
+max_id = np.argmax(FPSD1, axis=0)
+max_freq = [freq[i] for i in max_id]
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-fig, ax = plt.subplots(figsize=(6.4, 3.2))
+fig, ax = plt.subplots(figsize=(6.4, 3.0))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
@@ -410,6 +422,7 @@ cb1 = -10
 cb2 = 0
 lev = np.linspace(cb1, cb2, 41)
 cbar = ax.contourf(xval, freq, FPSD1, cmap='RdBu_r', levels=lev) # seismic # bwr
+ax.plot(xval, max_freq, 'C7-', linewidth=1.2)
 # every stage of the transition
 ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
 ax.axvline(x=3.2, linewidth=1.0, linestyle='--', color='k')

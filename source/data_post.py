@@ -13,7 +13,6 @@ Created on Sun Dec 10 22:24:50 2017
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
-from scipy.interpolate import spline
 import scipy.optimize
 from numpy import NaN, Inf, arange, isscalar, asarray, array
 import time

@@ -43,6 +43,10 @@ matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 13
 numsize = 10
 
+# %%############################################################################
+"""
+    Examination of the computational mesh
+"""
 # %% PSD analysis
 xloc = -10.0
 yloc = 0.0
@@ -123,7 +127,10 @@ plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathF + "TSFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
-
+# %%############################################################################
+"""
+    Examination of the computational mesh
+"""
 # %% Maximum shear line
 filenm = pathM + 'ShearLine.dat'
 xcoord = np.unique(TimeAve['x'])

@@ -23,8 +23,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.ticker as ticker
-from scipy.interpolate import interp1d, splev, splrep, spline
-import variable_analysis as fv
+import variable_analysis as va
+from scipy.interpolate import interp1d, splev, splrep
 from timer import timer
 import os
 import tecplot as tp
@@ -46,6 +46,9 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathB = path + "BaseFlow/"
 pathA = path + "Adjust/"
+pathL = path + "LST/"
+pathL1 = pathL + 'from_baseflow/'
+pathL2 = pathL + 'from_meanflow/'
 
 # % figures properties settings
 plt.close("All")
@@ -57,15 +60,19 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 14
-numsize = 11
+textsize = 12
+numsize = 10
 
-# %% load data
+# %%############################################################################
+"""
+    Development of variables with time
+"""
+# %% load sequential slices
 path1 = pathS + 'TP_2D_Z_03/'
 stime = np.arange(700.0, 1000 + 0.25, 0.25) # n*61.5
-x0 = np.arange(-40.0, 0.0 + 0.5, 0.5)
+xrg = np.arange(-40.0, 0.0 + 0.5, 0.5)
 newlist = ['x', 'y', 'z', 'u', 'p']
-dirs = sorted(os.listdir(path1))
+dirs = sorted(os.listdir(path1))[0::2]
 # fm_temp = (pd.read_hdf(path1 + f) for f in dirs)
 # fm = pd.concat(fm_temp.loc[:, newlist], ignore_index=True)
 df_shape = np.shape(pd.read_hdf(path1 + dirs[0]))
@@ -78,18 +85,18 @@ for i in range(np.size(dirs)):
     fm = fm.append(fm_temp.loc[:, newlist], ignore_index=True)
 # %% extract probe data with time
 # x = -0.1875, y = 0.03125; x = 0.203125, y = 0.0390625; x = 0.5, y = -0.078125 
-x0 = 0.59375
+# x0 = 0.59375
 y0 = 0.001953125 # 0.00390625 #   0.005859375 0.0078125 0.296875
 num_samp = np.size(stime)
 var = np.zeros((num_samp, 2))
 for j in range(np.size(x0)):
-    filenm = pathP + 'timeline_' + str(x0[j]) + '.dat'
-    var = fm.loc[(fm['x']==x0[j]) & (fm['y']==y0), ['u', 'p']].values
+    filenm = pathL1 + 'timeline_' + str(x0[j]) + '.dat'
+    var = fm.loc[(fm['x']==xrg[j]) & (fm['y']==y0), ['u', 'p']].values
     df = pd.DataFrame(data=np.hstack((stime.reshape(-1, 1), var)), 
                       columns=['time', 'u', 'p'])
     df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
 # del fm_temp, fm   
-# %%
+# %% save sequential data
 x0 = 0.59375
 y0 = -0.171875
 filenm = pathP + 'timeline_' + str(x0) + '.dat'
@@ -110,9 +117,9 @@ for j in range(np.size(x0)):
 
 base = pd.DataFrame(data=np.hstack((x0.reshape(-1, 1), baseline)),
                     columns=['x', 'u', 'p'])
-base.to_csv(pathB + 'baseline_' + file_b + '.dat', sep=' ',
+base.to_csv(pathL1 + 'baseline_' + file_b + '.dat', sep=' ',
             index=False, float_format='%1.8e')
-base = pd.read_csv(pathB + 'baseline_' + file_b + '.dat', sep=' ', skiprows=0,
+base = pd.read_csv(pathL1 + 'baseline_' + file_b + '.dat', sep=' ', skiprows=0,
                    index_col=False, skipinitialspace=True) 
 
 # %% variables with time
@@ -129,7 +136,7 @@ curve= ['k-', 'b-', 'g-']
 fig3, ax3 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
 for i in range(3):
-    filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'   
+    filenm = pathL1 + 'timeline_' + str(xloc[i]) + '.dat'   
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
     val = var[varnm] - np.mean(var[varnm])
@@ -149,7 +156,7 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_time1.svg", dpi=300)
 plt.show()
 
-# %% low-pass filter
+# %% low-pass filter for time sequential data
 n_ord = 4
 Wn = 0.05 / 2  # cutoff frequency / (0.5 * f_sample)
 fig2, ax2 = plt.subplots(figsize=(6.0, 2.8))
@@ -174,7 +181,7 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_time_filter.svg", dpi=300)
 plt.show()
 
-# %% FWPSD
+# %% FWPSD for time-sequential data
 dt = 0.25
 fig4, ax4 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
@@ -201,6 +208,10 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_PSD1.svg", dpi=300)
 plt.show()
 
+# %%############################################################################
+"""
+    Streamwise wavenumber and growth rate by time-sequential data
+"""
 # %% Amplitude and phase with freq
 if varnm == 'u':
     ylab_sub = r"$_{u^\prime}$"
@@ -214,7 +225,7 @@ matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(121)
 ax1 = fig.add_subplot(122)
 for i in range(3):
-    filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'
+    filenm = pathL1 + 'timeline_' + str(xrg[i]) + '.dat'
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
     var_per = var[varnm] # - base.loc[base['x']==xloc[i], [varnm]].values[0]
@@ -254,7 +265,7 @@ freq_x = np.zeros((1, np.size(x0)))
 amplt_x = np.zeros((1, np.size(x0)))
 phase_x = np.zeros((1, np.size(x0)))
 for i in range(np.size(x0)):
-    var = pd.read_csv(pathP + 'timeline_' + str(x0[i]) + '.dat', sep=' ', 
+    var = pd.read_csv(pathL1 + 'timeline_' + str(x0[i]) + '.dat', sep=' ', 
                       skiprows=0, index_col=False, skipinitialspace=True)
     var_per = var[varnm] - base.loc[base['x']==x0[i], [varnm]].values[0]
     var_per = var_per - np.mean(var_per) # make sure mean value is zero
@@ -269,24 +280,24 @@ for i in range(np.size(x0)):
 res_fft = np.concatenate((x0.reshape(1,-1), freq_x, amplt_x, phase_x))
 varlist = ['x', 'freq', 'amplt', 'phase']
 df = pd.DataFrame(data=res_fft.T, columns=varlist)
-df.to_csv(pathP + varnm + '_freq.dat', sep=' ',
+df.to_csv(pathL1 + varnm + '_freq.dat', sep=' ',
           index=False, float_format='%1.8e')
 
 # %% alpha with x by time sequential data
 delta = 1e-3
-lst = pd.read_csv(pathB + 'LST_TS.dat', sep=' ',
+lst = pd.read_csv(pathL + 'LST_TS.dat', sep=' ',
                   index_col=False, skipinitialspace=True)
 var = pd.read_csv(pathP + varnm + '_freq.dat', sep=' ', 
                   skiprows=0, index_col=False, skipinitialspace=True)
-alpha_i = fv.sec_ord_fdd(var['x'], var['amplt'])
-alpha_r = -fv.sec_ord_fdd(var['x'], var['phase'])
+alpha_i = va.sec_ord_fdd(var['x'], var['amplt'])
+alpha_r = -va.sec_ord_fdd(var['x'], var['phase'])
 alpha_i = alpha_i / var['amplt']
 fig = plt.figure(figsize=(6.4, 3.2))
 #fig, ax = plt.subplots(figsize=(3.2, 3.2))
 matplotlib.rc("font", size=textsize)
 ax1 = fig.add_subplot(121)
 ax1.plot(var['x'], alpha_r*2*np.pi, 'k-', linewidth=1.2)
-ax1.plot(lst['x'], lst['alpha_r']/lst['bl'] * delta, 'k:', linewidth=1.2)
+#ax1.plot(lst['x'], lst['alpha_r']/lst['bl'] * delta, 'k:', linewidth=1.2)
 ax1.set_xlim([-40.0, -6.0])
 ax1.set_ylim([0.0, 4.0])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
@@ -302,7 +313,7 @@ ax1.annotate(r"$(a)$", xy=(-0.18, 1.00), xycoords='axes fraction',
 matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(122)
 ax.plot(var['x'], alpha_i*2*np.pi, 'k-', linewidth=1.2)
-ax.plot(lst['x'], -lst['alpha_i']/lst['bl'] * delta, 'k:', linewidth=1.2)
+#ax.plot(lst['x'], -lst['alpha_i']/lst['bl'] * delta, 'k:', linewidth=1.2)
 ax.set_xlim([-40.0, -6.0])
 ax.set_ylim([-0.5, 0.5])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
@@ -445,7 +456,7 @@ plt.show()
 
 # %% alpha with x by spanwise profiles
 delta = 1e-3
-lst = pd.read_csv(pathB + 'LST_TS.dat', sep=' ',
+lst = pd.read_csv(pathL + 'LST_TS.dat', sep=' ',
                   index_col=False, skipinitialspace=True)
 var = pd.read_csv(pathSW + 'u_beta.dat', sep=' ', 
                   skiprows=0, index_col=False, skipinitialspace=True)

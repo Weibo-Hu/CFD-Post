@@ -511,7 +511,7 @@ plt.show()
 """
 # %% POD convergence
 fig, ax = plt.subplots(figsize=(5, 3))
-data = np.loadtxt(path2 + "POD/PODConvergence.dat", skiprows=1)
+data = np.loadtxt(pathF + "POD/PODConvergence.dat", skiprows=1)
 ax.semilogy(data[0, :], data[1, :] / 100, marker="o", color="k", linewidth=1.0)
 ax.semilogy(data[0, :], data[2, :] / 100, marker="^", color="k", linewidth=1.0)
 ax.semilogy(data[0, :], data[3, :] / 100, marker="*", color="k", linewidth=1.0)
@@ -526,7 +526,7 @@ ax.set_ylabel(r"$\lambda_i/\sum_{k=1}^N \lambda_k$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.savefig(
-    path2 + "POD/PODConvergence.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "POD/PODConvergence.svg", bbox_inches="tight", pad_inches=0.1
 )
 plt.show()
 
@@ -537,14 +537,14 @@ plt.show()
 # %% Vortex Wavelength along streamwise direction
 time = "779.50"
 wave = pd.read_csv(
-    path3 + "L" + time + ".txt",
+    pathF + "L" + time + ".txt",
     sep="\t",
     index_col=False,
     skipinitialspace=True,
     keep_default_na=False,
 )
 meanwave = pd.read_csv(
-    path3 + "LMean.txt",
+    pathF + "LMean.txt",
     sep="\t",
     index_col=False,
     skipinitialspace=True,
@@ -563,7 +563,7 @@ ax.set_ylabel(r"$u^\prime/u_\infty$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.savefig(
-    path2 + "Wavelen" + time + ".svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "Wavelen" + time + ".svg", bbox_inches="tight", pad_inches=0.1
 )
 plt.show()
 
