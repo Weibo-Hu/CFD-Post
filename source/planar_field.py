@@ -121,7 +121,7 @@ class PlanarField(LineField):
             grouped = df.groupby(['x', 'y', 'z'])
             df = grouped.mean().reset_index()
         else:
-            equ = '{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)'
+            equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
             # nfiles = np.size(os.listdir(path + 'TP_stat/'))
             with timer('load mean flow from tecplot data'):
                 if FileList is None:
@@ -142,7 +142,7 @@ class PlanarField(LineField):
     def merge_meanflow(self, path):
         dirs = sorted(os.listdir(path + 'TP_stat/'))
         nfiles = np.size(dirs)
-        equ = '{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)'
+        equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
         for i in np.arange(nfiles):
             FileList = os.path.join(path + 'TP_stat/', dirs[i])
             with timer(FileList):
@@ -166,7 +166,7 @@ class PlanarField(LineField):
     @classmethod
     def spanwise_average(cls, path, nfiles):
         dirs = glob(path + 'TP_stat' + '*.plt')
-        equ = '{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)'
+        equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
         for i in np.range(np.size(dirs)):
             df = p2p.ReadAllINCAResults(nfiles,
                                         path + 'TP_stat/',

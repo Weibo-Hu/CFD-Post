@@ -22,7 +22,7 @@ pathTP = path + 'TP_stat/'
 pathM = path + 'MeanFlow/'
 pathT = path + 'TimeAve/'
 dirs = glob(pathTP + '*.plt')
-equ = '{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)'
+equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
 
 num = np.size(dirs)
 a1 = int(num / 4)

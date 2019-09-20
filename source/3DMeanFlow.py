@@ -30,7 +30,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7TS1/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"

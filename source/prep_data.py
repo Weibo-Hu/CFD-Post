@@ -39,8 +39,8 @@ VarList = [
 #    '<u`v`>', '<u`w`>', '<v`v`>', '<v`w`>',
 #    '<w`w`>', '<Q-criterion>', '<lambda_2>', '|<gradp>|'
 #]
-equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
-# equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)']
+# equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)']
 FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/0/"
 OutFolder = "/media/weibo/VID2/BFS_M1.7TS/Slice/"
 OutFolder1 = "/media/weibo/Data1/BFS_M1.7L_0505/Slice/5/"
@@ -87,7 +87,7 @@ VarList = [
     '|gradp|'
 ]
 
-equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)']
 FoldPath = "/media/weibo/VID1/BFS_M1.7L/TP_data_01402108/"
 path2 = "/media/weibo/Data3/BFS_M1.7L_0505/3DSnapshots/"
 OutFolder = "/media/weibo/Data3/BFS_M1.7L_0505/SpanAve/"
@@ -143,7 +143,7 @@ FoldPath = "/media/weibo/Data2/BFS_M1.7C_TS1/snapshots/"
 OutFolder = "/media/weibo/Data2/BFS_M1.7C_TS1/DataPost/"
 dirs = os.scandir(FoldPath)
 num = np.size(os.listdir(FoldPath))
-# equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+# equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)']
 equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
 for i, folder in enumerate(dirs):
     path = FoldPath+folder.name+"/"
@@ -233,7 +233,7 @@ VarList = [
     '<u`v`>', '<u`w`>', '<v`v`>', '<v`w`>',
     '<w`w`>', '<Q-criterion>', '<lambda_2>'
 ]
-equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)']
 FoldPath = "/media/weibo/Data1/BFS_M1.7L_0505/TP_stat/"
 OutFolder = "/media/weibo/Data1/BFS_M1.7L_0505/TimeAve/"
 with timer("Read data"):

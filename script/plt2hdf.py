@@ -53,7 +53,7 @@ VarList = [
     'py',
     'pz'
 ]
-equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)'
+equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)']
 FoldPath = "/media/weibo/VID1/BFS_M1.7L/"  # TS/Slice/TP_2D_S_10/"
 OutFolder = "/media/weibo/VID1/BFS_M1.7L/"  # TS/Slice/TP_2D_S_10/"
 # subzone = [(-40.0, 70.0), (-3.0, 10.0)]

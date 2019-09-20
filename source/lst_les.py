@@ -349,7 +349,7 @@ VarList = [
 ]
 
 path1 = path + "TP_data_01386484/"
-equ = '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)'
+equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)']
 p2p.ReadINCAResults(path1, VarList, SavePath=path,
                     OutFile="SpanwiseFlow", Equ=equ)
 # %% extract probe data along spanwise
