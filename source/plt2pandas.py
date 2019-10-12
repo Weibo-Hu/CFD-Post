@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat Jun 9 10:24:50 2018
-    This code for reading binary data from tecplot (.plt) and 
+    This code for reading binary data from tecplot (.plt) and
     Convert data to pandas dataframe
 @author: Weibo Hu
 """
@@ -63,13 +63,14 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
     if FileName is None:
         files = sorted(os.listdir(FoldPath))
         FileName = [os.path.join(FoldPath, name) for name in files]
-    file_ex = os.path.splitext(FileName[0])[1]
-    if( file_ex == '.szplt'):
-        dataset = tp.data.load_tecplot_szl(FileName, read_data_option=2)
-    elif( file_ex == '.plt'):
-        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+    if(isinstance(FileName, list)):
+        szplt = FileName[0].find('szplt')
     else:
-        raise IOError('ERROR: files do not exist!!!')
+        szplt = FileName.find('szplt')
+    if(szplt != -1):
+        dataset = tp.data.load_tecplot_szl(FileName, read_data_option=2)
+    else:
+        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
     if Equ is not None:
         for i in range(np.size(Equ)):
             tp.data.operate.execute_equation(Equ[i])
@@ -112,7 +113,7 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         df1 = pd.DataFrame(data=VarCol, columns=VarList)
         df = df.append(df1, ignore_index=True)
     del dataset, varval
-    df = df.drop_duplicates(keep='last')
+    # df = df.drop_duplicates(keep='last')  # if on,spanwise-average may wrong
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
@@ -127,7 +128,8 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         df = df.query("x>={0} & x<={1} & y<={2}".format(
                        SubZone[0][0], SubZone[0][1], SubZone[1][1]))
     if SavePath is not None and OutFile is not None:
-        df.to_hdf(SavePath+OutFile+str(SolTime)+".h5", 'w', format='fixed')
+        st = str(np.round(SolTime, 2))
+        df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
     return (df, SolTime)
 
 
@@ -303,14 +305,15 @@ def ReadAllINCAResults(FoldPath, SavePath=None, Equ=None,
     if FileName is None:
         # files = os.listdir(FoldPath)
         # FileName = [os.path.join(FoldPath, name) for name in files]
-        FileName = glob(FoldPath+'*plt')
-    file_ex = os.path.splitext(FileName[0])[1]
-    if( file_ex == '.szplt'):
-        dataset = tp.data.load_tecplot_szl(FileName, read_data_option=2)
-    elif( file_ex == '.plt'):
-        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
+        FileName = glob(FoldPath + '*plt')
+    if(isinstance(FileName, list)):
+        szplt = FileName[0].find('szplt')
     else:
-        raise IOError('ERROR: files do not exist!!!')
+        szplt = FileName.find('szplt')
+    if(szplt != -1):
+        dataset = tp.data.load_tecplot_szl(FileName, read_data_option=2)
+    else:
+        dataset = tp.data.load_tecplot(FileName, read_data_option=2)
     if Equ is not None:
         for i in range(np.size(Equ)):
             tp.data.operate.execute_equation(Equ[i])
@@ -328,13 +331,14 @@ def ReadAllINCAResults(FoldPath, SavePath=None, Equ=None,
         df = df.append(df1, ignore_index=True)
 
     del FileName, dataset, zone
-    df = df.drop_duplicates(keep='last')
+    # df = df.drop_duplicates(keep='last')
     if SpanAve is not None:
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
         # df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if SavePath is not None and OutFile is not None:
-        df.to_hdf(SavePath+OutFile+str(SolTime)+".h5", 'w', format='fixed')
+        st = str(np.round(SolTime, 2))
+        df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
     return(df)
 
 
@@ -557,7 +561,7 @@ def tec2npy(Folder, InFile, OutFile):
         zone_name = infile.readline()
         time = infile.readline()
         i, j, k = infile.readline()
-       
+
 
 
 def tec2plt(Folder, InFile, OutFile):
@@ -602,11 +606,38 @@ def SpanAve(DataFrame, OutputFile = None):
         outfile  = open(OutputFile, 'x')
         DataFrame.to_csv(outfile, index=False, sep = '\t')
         outfile.close()
-        
+
 def TimeAve(DataFrame):
     grouped = DataFrame.groupby(['x', 'y', 'z'])
     DataFrame = grouped.mean().reset_index()
     return (DataFrame)
+
+def create_folder(path):
+    exists = os.path.exists(path + 'Figures')
+    if not exists:
+        os.mkdir(path + 'Figures')
+    exists = os.path.exists(path + 'Instant')
+    if not exists:
+        os.mkdir(path + 'Instant')
+    exists = os.path.exists(path + 'MeanFlow')
+    if not exists:
+        os.mkdir(path + 'MeanFlow')
+    exists = os.path.exists(path + 'probes')
+    if not exists:
+        os.mkdir(path + 'probes')
+    exists = os.path.exists(path + 'SpanAve')
+    if not exists:
+        os.mkdir(path + 'SpanAve')
+    exists = os.path.exists(path + 'TimeAve')
+    if not exists:
+        os.mkdir(path + 'TimeAve')
+    exists = os.path.exists(path + 'Vortex')
+    if not exists:
+        os.mkdir(path + 'Vortex')
+    exists = os.path.exists(path + 'snapshots')
+    if not exists:
+        os.mkdir(path + 'snapshots')
+
 
 
 #%% Read plt data from INCA
