@@ -47,8 +47,9 @@ pathI = path + "Instant/"
 pathB = path + "BaseFlow/"
 pathA = path + "Adjust/"
 pathL = path + "LST/"
-pathL1 = pathL + 'from_baseflow/'
-pathL2 = pathL + 'from_meanflow/'
+pathLB = pathL + 'from_baseflow/'
+pathLM = pathL + 'from_meanflow/'
+pathSW = path + 'Spanwise/'
 
 # % figures properties settings
 plt.close("All")
@@ -65,63 +66,60 @@ numsize = 10
 
 # %%############################################################################
 """
-    Development of variables with time
+    Extra time-sequential data
 """
 # %% load sequential slices
 path1 = pathS + 'TP_2D_Z_03/'
 stime = np.arange(700.0, 1000 + 0.25, 0.25) # n*61.5
 xrg = np.arange(-40.0, 0.0 + 0.5, 0.5)
 newlist = ['x', 'y', 'z', 'u', 'p']
-dirs = sorted(os.listdir(path1))[0::2]
+dirs = sorted(os.listdir(path1))
 # fm_temp = (pd.read_hdf(path1 + f) for f in dirs)
 # fm = pd.concat(fm_temp.loc[:, newlist], ignore_index=True)
 df_shape = np.shape(pd.read_hdf(path1 + dirs[0]))
-fm = pd.DataFrame()
+sp = pd.DataFrame()
 for i in range(np.size(dirs)):
     fm_temp = pd.read_hdf(path1 + dirs[i])
     if df_shape[0] != np.shape(fm_temp)[0]:
         warnings.warn("Shape of" + dirs[i] + " does not match!!!",
                       UserWarning)
-    fm = fm.append(fm_temp.loc[:, newlist], ignore_index=True)
+    sp = sp.append(fm_temp.loc[:, newlist], ignore_index=True)
 # %% extract probe data with time
 # x = -0.1875, y = 0.03125; x = 0.203125, y = 0.0390625; x = 0.5, y = -0.078125 
 # x0 = 0.59375
-y0 = 0.001953125 # 0.00390625 #   0.005859375 0.0078125 0.296875
+x0 = xrg
+y0 = 0.00390625 # 0.001953125  0.005859375 0.0078125 0.296875
+if y0 == 0.001953125:
+    yloc = 'wall'
+else:
+    yloc = 'wall2'
 num_samp = np.size(stime)
 var = np.zeros((num_samp, 2))
 for j in range(np.size(x0)):
-    filenm = pathL1 + 'timeline_' + str(x0[j]) + '.dat'
-    var = fm.loc[(fm['x']==xrg[j]) & (fm['y']==y0), ['u', 'p']].values
+    filenm = pathLB + 'timeline_' + str(x0[j]) + yloc + '.dat'
+    var = sp.loc[(sp['x']==x0[j]) & (sp['y']==y0), ['u', 'p']].values
     df = pd.DataFrame(data=np.hstack((stime.reshape(-1, 1), var)), 
                       columns=['time', 'u', 'p'])
     df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
 # del fm_temp, fm   
-# %% save sequential data
-x0 = 0.59375
-y0 = -0.171875
-filenm = pathP + 'timeline_' + str(x0) + '.dat'
-var = fm.loc[(fm['x']==x0) & (fm['y']==y0), ['u', 'p']].values
-df = pd.DataFrame(data=np.hstack((stime.reshape(-1, 1), var)), 
-                  columns=['time', 'u', 'p'])
-df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
+
 # %% make base flow 
 bf = pd.read_hdf(pathB + 'BaseFlow.h5')
-if y0 == 0.001953125:
-    file_b = 'wall'
-else:
-    file_b = str(y0)
-baseline = np.zeros((np.size(x0), 2))
-for j in range(np.size(x0)):
-    basevar = bf.loc[(bf['x']==x0[j]) & (bf['y']==y0), ['u', 'p']].values
+baseline = np.zeros((np.size(xrg), 2))
+for j in range(np.size(xrg)):
+    basevar = bf.loc[(bf['x']==xrg[j]) & (bf['y']==y0), ['u', 'p']].values
     baseline[j, :] = basevar
 
-base = pd.DataFrame(data=np.hstack((x0.reshape(-1, 1), baseline)),
+base = pd.DataFrame(data=np.hstack((xrg.reshape(-1, 1), baseline)),
                     columns=['x', 'u', 'p'])
-base.to_csv(pathL1 + 'baseline_' + file_b + '.dat', sep=' ',
+base.to_csv(pathL + 'baseline_' + yloc + '.dat', sep=' ',
             index=False, float_format='%1.8e')
-base = pd.read_csv(pathL1 + 'baseline_' + file_b + '.dat', sep=' ', skiprows=0,
+base = pd.read_csv(pathL + 'baseline_' + yloc + '.dat', sep=' ', skiprows=0,
                    index_col=False, skipinitialspace=True) 
-
+# %%############################################################################
+"""
+    Development of variables with time
+"""
 # %% variables with time
 varnm = 'p'
 if varnm == 'u':
@@ -136,7 +134,7 @@ curve= ['k-', 'b-', 'g-']
 fig3, ax3 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
 for i in range(3):
-    filenm = pathL1 + 'timeline_' + str(xloc[i]) + '.dat'   
+    filenm = pathLB + 'timeline_' + str(xloc[i]) + yloc + '.dat'  
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
     val = var[varnm] - np.mean(var[varnm])
@@ -153,7 +151,7 @@ ax3.grid(b=True, which="both", linestyle=":")
 ax3.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + varnm + "_time1.svg", dpi=300)
+plt.savefig(pathF + varnm + "_time.svg", dpi=300)
 plt.show()
 
 # %% low-pass filter for time sequential data
@@ -163,9 +161,9 @@ fig2, ax2 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
 curve_f= ['k:', 'b:', 'g:']
 i = 2
-filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'   
+filenm = pathP + 'timeline_' + str(xloc[i]) + yloc + '.dat'  
 var = pd.read_csv(filenm, sep=' ', skiprows=0,
-                      index_col=False, skipinitialspace=True)
+                  index_col=False, skipinitialspace=True)
 val = var[varnm] - np.mean(var[varnm])
 b, a = signal.butter(n_ord, Wn, 'low')  # Wn = 
 filter_sig = signal.filtfilt(b, a, val)
@@ -186,12 +184,12 @@ dt = 0.25
 fig4, ax4 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
 for i in range(3):
-    filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'   
+    filenm = pathP + 'timeline_' + str(xloc[i]) + yloc + '.dat'  
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
     val = var[varnm] - np.mean(var[varnm])
     # val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
-    fre, fpsd = fv.fw_psd(var[varnm], dt, 1/dt, opt=2)
+    fre, fpsd = va.fw_psd(var[varnm], dt, 1/dt, opt=2)
     ax4.semilogx(fre, fpsd, curve[i], linewidth=1.2)
     ax3.plot(var['time'], val, curve[i], linewidth=1.5)
 
@@ -213,6 +211,7 @@ plt.show()
     Streamwise wavenumber and growth rate by time-sequential data
 """
 # %% Amplitude and phase with freq
+xrg = [-30.0, -24.0, -10.0]
 if varnm == 'u':
     ylab_sub = r"$_{u^\prime}$"
 else:
@@ -225,14 +224,17 @@ matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(121)
 ax1 = fig.add_subplot(122)
 for i in range(3):
-    filenm = pathL1 + 'timeline_' + str(xrg[i]) + '.dat'
+    filenm = pathLB + 'timeline_' + str(xrg[i]) + yloc + '.dat'
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
     var_per = var[varnm] # - base.loc[base['x']==xloc[i], [varnm]].values[0]
     var_per = var_per - np.mean(var_per) # make sure mean value is zero
     var_fft = np.fft.rfft(var_per)  # remove value at 0 frequency    
     amplt = np.abs(var_fft)
-    phase = np.angle(var_fft, deg=False)
+    phase = np.arctan(var_fft.imag/var_fft.real)
+    # phase = np.angle(var_fft, deg=False)
+    #phase = np.where( phase > 0.5 * np.pi, phase-np.pi, phase)
+    #phase = np.where( phase < -0.5 * np.pi, phase+np.pi, phase)
     ax.plot(freq, amplt, curve[i], linewidth=1.2)
     ax1.plot(freq, phase, curve[i], linewidth=1.2)
 
@@ -265,7 +267,7 @@ freq_x = np.zeros((1, np.size(x0)))
 amplt_x = np.zeros((1, np.size(x0)))
 phase_x = np.zeros((1, np.size(x0)))
 for i in range(np.size(x0)):
-    var = pd.read_csv(pathL1 + 'timeline_' + str(x0[i]) + '.dat', sep=' ', 
+    var = pd.read_csv(pathLB+'timeline_'+str(x0[i])+yloc+'.dat', sep=' ',
                       skiprows=0, index_col=False, skipinitialspace=True)
     var_per = var[varnm] - base.loc[base['x']==x0[i], [varnm]].values[0]
     var_per = var_per - np.mean(var_per) # make sure mean value is zero
@@ -277,18 +279,25 @@ for i in range(np.size(x0)):
     freq_x[0, i] = freq[ind]
     amplt_x[0, i] = amplt[ind]
     phase_x[0, i] = phase[ind]
+dtheta = np.diff(phase_x[0, :])
+ind = np.where(dtheta[:] > 1.8*np.pi)[0]
+phase_x[0, :ind[0]+1] = phase_x[0, :ind[0]+1] + 2*np.pi
+# phase_x[0, ind[1]+1:] = phase_x[0, ind[1]+1:] - 2*np.pi
 res_fft = np.concatenate((x0.reshape(1,-1), freq_x, amplt_x, phase_x))
 varlist = ['x', 'freq', 'amplt', 'phase']
 df = pd.DataFrame(data=res_fft.T, columns=varlist)
-df.to_csv(pathL1 + varnm + '_freq.dat', sep=' ',
+df.to_csv(pathLB + varnm + '_freq_by_t_' + yloc + '.dat', sep=' ',
           index=False, float_format='%1.8e')
 
 # %% alpha with x by time sequential data
+# alpha_i
 delta = 1e-3
-lst = pd.read_csv(pathL + 'LST_TS.dat', sep=' ',
+lst = pd.read_csv(pathLB + 'LST_TS.dat', sep=' ',
                   index_col=False, skipinitialspace=True)
-var = pd.read_csv(pathP + varnm + '_freq.dat', sep=' ', 
+var = pd.read_csv(pathLB + varnm + '_freq_by_t_' + yloc + '.dat', sep=' ', 
                   skiprows=0, index_col=False, skipinitialspace=True)
+var = var.iloc[2:].reset_index()
+lst = lst.iloc[1:].reset_index()
 alpha_i = va.sec_ord_fdd(var['x'], var['amplt'])
 alpha_r = -va.sec_ord_fdd(var['x'], var['phase'])
 alpha_i = alpha_i / var['amplt']
@@ -297,9 +306,10 @@ fig = plt.figure(figsize=(6.4, 3.2))
 matplotlib.rc("font", size=textsize)
 ax1 = fig.add_subplot(121)
 ax1.plot(var['x'], alpha_r*2*np.pi, 'k-', linewidth=1.2)
-#ax1.plot(lst['x'], lst['alpha_r']/lst['bl'] * delta, 'k:', linewidth=1.2)
+ax1.scatter(lst['x'], lst['alpha_r']/lst['bl'] * delta, s=12, marker='o',
+            facecolors='w', edgecolors='k', linewidths=0.8)
 ax1.set_xlim([-40.0, -6.0])
-ax1.set_ylim([0.0, 4.0])
+ax1.set_ylim([0.0, 3.5])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax1.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
 ax1.yaxis.offsetText.set_fontsize(numsize)
@@ -309,11 +319,12 @@ ax1.tick_params(labelsize=numsize)
 ax1.grid(b=True, which="both", linestyle=":")
 ax1.annotate(r"$(a)$", xy=(-0.18, 1.00), xycoords='axes fraction',
              fontsize=numsize)
-
+# alpha_i
 matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(122)
 ax.plot(var['x'], alpha_i*2*np.pi, 'k-', linewidth=1.2)
-#ax.plot(lst['x'], -lst['alpha_i']/lst['bl'] * delta, 'k:', linewidth=1.2)
+ax.scatter(lst['x'], -lst['alpha_i']/lst['bl'] * delta, s=12, marker='o',
+            facecolors='w', edgecolors='k', linewidths=0.8)
 ax.set_xlim([-40.0, -6.0])
 ax.set_ylim([-0.5, 0.5])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
@@ -325,10 +336,14 @@ ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.annotate(r"$(b)$", xy=(-0.18, 1.00), xycoords='axes fraction',
              fontsize=numsize)
-plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + varnm + "_alpha_x" + ".svg", dpi=300)
+plt.tight_layout(pad=0.5, w_pad=0.7, h_pad=1)
+plt.savefig(pathF + varnm + "_alpha_x_by_t" + ".svg", dpi=300)
 plt.show()
 
+# %%############################################################################
+"""
+    Streamwise wavenumber and growth rate by spanwise-averaged data
+"""
 # %% extract probe data along spanwise
 VarList = [
     'x',
@@ -355,20 +370,19 @@ p2p.ReadINCAResults(path1, VarList, SavePath=path,
 # %% extract probe data along spanwise
 pathSW = path + 'Spanwise/'
 x0 = np.arange(-40.0, 0.0 + 0.5, 0.5)
-y0 = 0.001953125
-dirs = sorted(os.listdir(path1))
-fm = pd.read_hdf(path + "SpanwiseFlow.h5")
+y0 = 0.001953125   # 0.00390625 # 
+fm = pd.read_hdf(pathSW + "SpanwiseFlow.h5")
 for j in range(np.size(x0)):
     filenm = pathSW + 'spanwise_' + str(x0[j]) + '.dat'
     var = fm.loc[(fm['x']==x0[j]) & (fm['y']==y0), ['z', 'u', 'p']].values
     df = pd.DataFrame(data=var, columns=['z', 'u', 'p'])
     df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
     
-base = pd.read_csv(pathB + 'baseline.dat', sep=' ', skiprows=0,
+base = pd.read_csv(pathL + 'baseline_' + yloc+ '.dat', sep=' ', skiprows=0,
                    index_col=False, skipinitialspace=True) 
 
 # %% variables along spanwise direction
-varnm = 'p'
+varnm = 'u'
 if varnm == 'u':
     ylab = r"$u^\prime / u_\infty$"
 else:
@@ -379,7 +393,7 @@ fig3, ax3 = plt.subplots(figsize=(6.0, 3.0))
 matplotlib.rc("font", size=textsize)
 # ax3 = fig.add_subplot(122)
 for i in range(4):
-    filenm = pathSW + 'spanwise_' + str(xloc[i]) + '.dat'   
+    filenm = pathSW + 'spanwise_' + str(xloc[i]) + yloc + '.dat'  
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
     # val = var[varnm] - np.mean(var[varnm])
@@ -409,11 +423,10 @@ freq_x = np.zeros((1, np.size(x0)))
 amplt_x = np.zeros((1, np.size(x0)))
 phase_x = np.zeros((1, np.size(x0)))
 for i in range(np.size(x0)):
-    var = pd.read_csv(pathSW + 'spanwise_' + str(x0[i]) + '.dat', sep=' ', 
+    var = pd.read_csv(pathSW+'spanwise_'+str(x0[i])+yloc+'.dat', sep=' ', 
                       skiprows=0, index_col=False, skipinitialspace=True)
     var_per = var[varnm] - base.loc[base['x']==x0[i], [varnm]].values[0]
     var_per = var_per - np.mean(var_per) # make sure mean value is zero
-    # 
     var_fft = np.fft.rfft(var_per)  # remove value at 0 frequency    
     amplt = np.abs(var_fft)
     phase = np.angle(var_fft, deg=False)
@@ -421,13 +434,17 @@ for i in range(np.size(x0)):
     freq_x[0, i] = freq[ind]
     amplt_x[0, i] = amplt[ind]
     phase_x[0, i] = phase[ind]
+dtheta = np.diff(phase_x[0, :])
+ind = np.where(dtheta[:] < -1.8*np.pi)[0]
+phase_x[0, ind[0]+1:] = phase_x[0, ind[0]+1:] + 2*np.pi
+# phase_x[0, ind[1]+1:] = phase_x[0, ind[1]+1:] - 2*np.pi
 res_fft = np.concatenate((x0.reshape(1,-1), freq_x, amplt_x, phase_x))
 varlist = ['x', 'beta', 'amplt', 'phase']
 df = pd.DataFrame(data=res_fft.T, columns=varlist)
-df.to_csv(pathSW + varnm + '_beta.dat', sep=' ',
+df.to_csv(pathSW + varnm + '_beta_by_z_' + yloc + '.dat', sep=' ',
           index=False, float_format='%1.8e')
 
-# %% Amplitude and phase with spanwise distance
+# %% Amplitude and phase by spanwise distance
 fig = plt.figure(figsize=(6.4, 3.0))
 ax = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)
@@ -451,26 +468,29 @@ ax1.yaxis.offsetText.set_fontsize(numsize)
 ax1.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + varnm + "_fft_z" + str(x0[i]) + ".svg", dpi=300)
+plt.savefig(pathF + varnm + "_fft_by_z" + str(x0[i]) + ".svg", dpi=300)
 plt.show()
 
 # %% alpha with x by spanwise profiles
 delta = 1e-3
 lst = pd.read_csv(pathL + 'LST_TS.dat', sep=' ',
                   index_col=False, skipinitialspace=True)
-var = pd.read_csv(pathSW + 'u_beta.dat', sep=' ', 
+var = pd.read_csv(pathSW + varnm + '_beta_by_z_' + yloc + '.dat', sep=' ', 
                   skiprows=0, index_col=False, skipinitialspace=True)
-alpha_i = fv.sec_ord_fdd(var['x'], var['amplt'])
-alpha_r = -fv.sec_ord_fdd(var['x'], var['phase'])
+lst = lst.iloc[1:].reset_index()
+var = var.iloc[2:].reset_index()
+alpha_i = va.sec_ord_fdd(var['x'], var['amplt'])
+alpha_r = -va.sec_ord_fdd(var['x'], var['phase'])
 alpha_i = alpha_i / var['amplt']
 fig = plt.figure(figsize=(6.4, 3.2))
 #fig, ax = plt.subplots(figsize=(3.2, 3.2))
 matplotlib.rc("font", size=textsize)
 ax1 = fig.add_subplot(121)
-ax1.plot(var['x'], alpha_r, 'k-', linewidth=1.2)
-ax1.plot(lst['x'], lst['alpha_r']/lst['bl'] * delta, 'k:', linewidth=1.2)
+ax1.scatter(lst['x'], lst['alpha_r']/lst['bl'] * delta, s=14, marker='o',
+           facecolors='w', edgecolors='k', linewidths=0.8)
+ax1.plot(var['x'], -alpha_r*2*np.pi, 'k-', linewidth=1.2)
 ax1.set_xlim([-40.0, -6.0])
-# ax1.set_ylim([0.2, 0.4])
+ax1.set_ylim([0.0, 3.0])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax1.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
 ax1.yaxis.offsetText.set_fontsize(numsize)
@@ -478,15 +498,16 @@ ax1.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax1.set_ylabel(r'$\alpha_r^* \delta_0$', fontsize=textsize)
 ax1.tick_params(labelsize=numsize)
 ax1.grid(b=True, which="both", linestyle=":")
-ax1.annotate("(a)", xy=(-0.18, 1.00), xycoords='axes fraction',
+ax1.annotate(r"$(a)$", xy=(-0.18, 1.00), xycoords='axes fraction',
              fontsize=numsize)
 
 matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(122)
-ax.plot(var['x'], alpha_i, 'k-', linewidth=1.2)
-ax.plot(lst['x'], -lst['alpha_i']/lst['bl'] * delta, 'k:', linewidth=1.2)
+ax.scatter(lst['x'], -lst['alpha_i']/lst['bl'] * delta, s=14, marker='o',
+           facecolors='w', edgecolors='k', linewidths=0.8)
+ax.plot(var['x'], alpha_i*2*np.pi, 'k-', linewidth=1.2)
 ax.set_xlim([-40.0, -6.0])
-ax.set_ylim([-1, 1])
+ax.set_ylim([-0.4, 0.4])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-1, 1))
 ax.yaxis.offsetText.set_fontsize(numsize)
@@ -494,53 +515,55 @@ ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax.set_ylabel(r'$-\alpha_i^* \delta_0$', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
-ax.annotate("(b)", xy=(-0.18, 1.00), xycoords='axes fraction',
+ax.annotate(r"$(b)$", xy=(-0.15, 1.00), xycoords='axes fraction',
              fontsize=numsize)
-plt.savefig(pathF + varnm + "_alpha_x-by_z" + ".svg", dpi=300)
+plt.tight_layout(pad=0.5, w_pad=0.7, h_pad=1)
+plt.savefig(pathF + varnm + "_alpha_x_by_z" + ".svg", dpi=300)
 plt.show()
 
-# %% boundary layer profile
-path = "/media/weibo/VID2/BFS_M1.7TS/"
-path2 = path + "Slice/TP_2D_Z_03/"
-
-#file = glob(pathB + '*plt')
-#p2p.ReadAllINCAResults(pathB, FoldPath2=pathB, 
-#                       FileName=file, SpanAve='Y', OutFile="BaseFlow")
-base = pd.read_hdf(path2 + 'TP_2D_Z_03_00899.50.h5')
-varlist = ['x', 'y', 'z', 'u', 'v', 'w', 'p', 'T']
-x0 = np.arange(-40.0, 0.0 + 1.0, 1.0)
-for i in range(np.size(xloc)):
-    df = base.loc[base['x']==xloc[i], varlist]
-    df.to_csv(pathSW + 'Z_03_00899.50_' + str(xloc[i]) + '.dat',
-              index=False, float_format='%1.8e', sep=' ', )
-
-# %% Save boundary layer profile at a X location
+# %%############################################################################
+"""
+    Compare of boundary layer amplitude profile from LES and DNS
+"""
+# %% Save boundary layer profile at a X location by z
 for j in range(np.size(x0)):
-    filenm = pathP + 'BL_Profile_' + str(x0[j]) + '.h5'
+    filenm = pathSW + 'BL_Profile_' + str(x0[j]) + '_by_z.h5'
+    var = fm.loc[fm['x']==x0[j], ['z', 'y', 'u', 'p']]
+    y_uniq = np.unique(var['y'])
+    df = pd.DataFrame(var)
+    df.to_hdf(filenm, 'w', format='fixed')   
+# %% Save boundary layer profile at a X location by time
+stime = np.arange(700.0, 1000 + 0.25, 0.25) # n*61.5
+xrg = np.arange(-40.0, 0.0 + 0.5, 0.5)
+for j in range(np.size(x0)):
+    filenm = pathP + 'BL_Profile_' + str(x0[j]) + '_by_t.h5'
     var = fm.loc[fm['x']==x0[j], ['y', 'u', 'p']]
     y_uniq = np.unique(var['y'])
     time = np.repeat(stime, np.size(y_uniq))
     df = pd.DataFrame(data=np.hstack((time.reshape(-1,1), var)),
                       columns=['time', 'y', 'u', 'p'])
     df.to_hdf(filenm, 'w', format='fixed')   
-
 # %% Fourier tranform of BL profile
-xloc = [-36.0, -24.0, -10.0]
-num_samp = np.size(stime)
+varnm = 'p'
+by_var = '_by_z'
+num_samp = 257 # np.size(stime)
+freq_samp = (num_samp - 1) / 16 # 4
+xloc = [-30.0, -25.0, -10.0]
 freq = np.linspace(0.0, freq_samp / 2, math.ceil(num_samp/2), endpoint=False)
 bf = pd.read_hdf(pathB + 'BaseFlow.h5')
 for j in range(np.size(xloc)):
-    file = 'BL_Profile_' + str(xloc[j]) + '.h5'
-    fm = pd.read_hdf(pathP + file)
+    file = 'BL_Profile_' + str(xloc[j]) + by_var + '.h5'
+    var = pd.read_hdf(pathSW + file)
     bf1 = bf.loc[bf['x']==xloc[j], ['y', varnm]]    
-    y_uni = np.unique(fm['y'])
+    y_uni = np.unique(var['y'])
     profile = np.zeros( (np.size(y_uni), 3) )
     for i in range(np.size(y_uni)):
         var1 = var.loc[var['y']==y_uni[i], varnm]
         base_var = bf1.loc[bf1['y']==y_uni[i], varnm]
-        var1 = var1 - base_var 
+        var1 = var1.values - np.repeat(base_var, np.size(var1.values)) 
         var_per = var1 - np.mean(var1)  # make sure mean value is zero
         var_fft = np.fft.rfft(var_per)  # remove value at 0 frequency    
+        freq = np.fft.fftfreq(np.size(var1.values), 16/(np.size(var1.values)-1))
         amplt = np.abs(var_fft)
         phase = np.angle(var_fft, deg=False)
         ind = np.argmax(amplt)
@@ -549,38 +572,58 @@ for j in range(np.size(xloc)):
         profile[i, 2] = phase[ind]
     df = pd.DataFrame(data=np.hstack((y_uni.reshape(-1, 1), profile)),
                       columns=['y', 'freq', 'amplit', 'phase'])
-    filenm = pathP + varnm + '_profile_ftt_' + str(xloc[j]) + '.dat'
+    filenm = pathSW + varnm + '_profile_ftt_' + str(xloc[j]) + by_var + '.dat'
     df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
 
 # %% plot BL profile of amplitude along streamwise
-filenm = pathP + varnm + '_profile_ftt_' + str(-36.0) + '.dat'
-amp_fft = pd.read_csv(filenm, sep=' ', skiprows=0,
-                      index_col=False, skipinitialspace=True)
-ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep=' ',
+# results from LST
+if varnm == 'u':
+    ylab = r'$|u^\prime|/|u^\prime|_{max}$'
+else:
+    ylab = r'$|p^\prime|/|p^\prime|_{max}$'
+x0 = -30.0
+ts_profile = pd.read_csv(path + 'UnstableMode_' + str(x0) + '.inp', sep=' ',
                          index_col=False, skiprows=4,
                          skipinitialspace=True)
 ts_profile['u'] = np.sqrt(ts_profile['u_r']**2+ts_profile['u_i']**2)
 ts_profile['p'] = np.sqrt(ts_profile['p_r']**2+ts_profile['p_i']**2)
-# normalized
-ts_profile['u'] = ts_profile['u'] / np.max(ts_profile['u'])
+ts_profile['u'] = ts_profile['u'] / np.max(ts_profile['u']) # normalized
 ts_profile['p'] = ts_profile['p'] / np.max(ts_profile['p'])
+# results from LES
+filenm = pathSW + varnm + '_profile_ftt_' + str(x0) + by_var + '.dat'
+amp_fft = pd.read_csv(filenm, sep=' ', skiprows=0,
+                      index_col=False, skipinitialspace=True)
+amp_norm = amp_fft['amplit']/np.max(amp_fft['amplit'])
 # plot lines
 fig, ax = plt.subplots(figsize=(3.2, 3.2))
 matplotlib.rc('font', size=numsize)
-amp_norm = amp_fft['amplit']/np.max(amp_fft['amplit'])
-ax.scatter(amp_norm, amp_fft['y'], s=12, marker='o',
+ax.plot(amp_norm, amp_fft['y'], 'k', linewidth=1.2)
+ax.scatter(ts_profile[varnm], ts_profile.y, s=12, marker='o',
            facecolors='w', edgecolors='k', linewidths=0.8)
-ax.plot(ts_profile.u, ts_profile.y, 'k', linewidth=1.2)
 ax.set_ylim([0, 5])
-ax.set_xlabel(r'$|p^\prime|/|p^\prime|_{max}$', fontsize=textsize)
+ax.set_xlabel(ylab, fontsize=textsize)
 ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.show()
 plt.savefig(
-    pathF + "BLAmplit_" + varnm + ".svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "BLAmplit_" + varnm + by_var + '.svg', 
+    bbox_inches="tight", pad_inches=0.1
 )
 
+# %%############################################################################
+"""
+    Streamwise boundary layer profile of fluctuations
+"""
+# %% boundary layer profile
+path2 = path + "Slice/TP_2D_Z_03/"
+base = pd.read_hdf(path2 + 'TP_2D_Z_03_00899.50.h5')
+varlist = ['x', 'y', 'z', 'u', 'v', 'w', 'p', 'T']
+x0 = np.arange(-40.0, 0.0 + 1.0, 1.0)
+for i in range(np.size(xloc)):
+    df = base.loc[base['x']==xloc[i], varlist]
+    df.to_csv(pathSW + 'Z_03_00899.50_' + str(xloc[i]) + '.dat',
+              index=False, float_format='%1.8e', sep=' ', )
 # %% plot BL profile along streamwise
 bf = pd.read_hdf(pathB + 'BaseFlow.h5')
 varnm = 'p'
