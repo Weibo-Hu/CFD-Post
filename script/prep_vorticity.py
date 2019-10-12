@@ -70,15 +70,16 @@ equ = [
     '{py} = ddy({p})',
     '{pz} = ddz({p})',
 ]
-FoldPath = "/media/weibo/VID1/BFS_M1.7TS/bubble/"  # TS/Slice/TP_2D_S_10/"
-OutFolder = "/media/weibo/VID2/BFS_M1.7TS/"  # TS/Slice/TP_2D_S_10/"
-subzone = [(-10.0, 30.0), (-3.0, 1.0)]
+FoldPath = "/media/weibo/VID2/BFS_M1.7TS1/bubble/"  # TS/Slice/TP_2D_S_10/"
+OutFolder = "/media/weibo/VID2/BFS_M1.7TS1/"  # TS/Slice/TP_2D_S_10/"
+subzone = [(-40.0, 30.0), (-3.0, 2.0)]
+# subzone = [(-10.0, 30.0), (-3.0, 1.0)]
 dirs = os.listdir(FoldPath)
 for i in range(np.size(dirs)):
-    files = pd.read_csv(OutFolder + 'ZoomZone1.dat', header=None)[0]
+    # files = pd.read_csv(OutFolder + 'ZoomZone1.dat', header=None)[0]
+    # infiles = [os.path.join(filedir, name) for name in files]
     filedir = FoldPath + dirs[i] + '/'
-    infiles = [os.path.join(filedir, name) for name in files]
-    outfile = 'TP_data_'
+    outfile = 'TP_data'
     with timer("Read " + dirs[i]):
         DataFrame, time = \
         p2p.ReadINCAResults(filedir, VarList, SubZone=subzone, Equ=equ,
