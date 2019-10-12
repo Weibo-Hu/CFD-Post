@@ -98,7 +98,15 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
         return(theta, u_d, rho_d)
 
 
-# Obtain radius of curvature
+# shape factor of boundary layer    
+def shape_factor(y, u, rho, u_d=None):
+    delta_star = bl_thickness(y, u, u_d=u_d, rho=rho, opt='displacement')[0]
+    theta = bl_thickness(y, u, u_d=u_d, rho=rho, opt='momentum')[0]
+    shape = delta_star / theta
+    return (shape)
+
+
+# radius of flow curvature
 def radius(x, y):
     y1 = fv.sec_ord_fdd(x, y)
     y2 = fv.sec_ord_fdd(x, y1)
@@ -129,6 +137,13 @@ def skinfriction(mu, du, dy):
     # all variables are nondimensional
     Cf = 2 * mu * du / dy
     return Cf
+
+
+# Obtain turbulent kinetic energy
+def tke(df):
+    # all variables are nondimensional
+    kinetic_energy = 0.5 * (df['<u`u`>'] + df['<v`v`>'] + df['<w`w`>'])
+    return kinetic_energy
 
 
 # obtain Power Spectral Density
@@ -174,6 +189,8 @@ def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
         Freq, Var_psd = signal.welch(
             Var, fs=Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // overlap
         )
+        # num = np.size(Var_psd)
+        # Freq = np.linspace(Freq_samp / TotalNo, Freq_samp / 2, num)
         # Freq = Freq[1:]
         # Var_psd = Var_psd[1:]
     return (Freq, Var_psd)
@@ -951,13 +968,8 @@ def integral_db(x, y, val, range1=None, range2=None, opt=2):
     elif opt == 3:
         ms1, ms2 = np.meshgrid(range1, range2)
         val_intp = griddata((x, y), val, (ms1, ms2))
-        # ind_p1, ind_p2 = np.where(val_intp[:, :] > 0.0)  # posivive values
-        # ind_n1, ind_n2 = np.where(val_intp[:, :] < 0.0)  # negative values
-        # val_intp_p, val_intp_n = np.zeros((2, n1, n2))
-        # val_intp_p[ind_p1, ind_p2] = val_intp[ind_p1, ind_p2]
-        # val_intp_n[ind_n1, ind_n2] = val_intp[ind_n1, ind_n2]
-        val_intp_p = np.where(val_intp > 0.0, val_intp, 0.0)
-        val_intp_n = np.where(val_intp < 0.0, val_intp, 0.0)
+        val_intp_p = np.where(val_intp > 0.0, val_intp, 0.0)  # posivive values
+        val_intp_n = np.where(val_intp < 0.0, val_intp, 0.0)  # negative values
         Iy = np.zeros((n2, 2))
         for i in range(n2):
             Iy[i, 0] = np.trapz(val_intp_p[i, :], range1)
