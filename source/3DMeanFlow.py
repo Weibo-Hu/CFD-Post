@@ -30,7 +30,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/VID2/BFS_M1.7TS1/"
+path = "/media/weibo/VID2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -621,27 +621,45 @@ for j in range(np.size(dirs)-1):
     tab_dat = pd.read_csv(dirs[j+1], sep=' ',
                           index_col=False, skipinitialspace=True)
     tab_new = tab_new.add(tab_dat, fill_value=0)
-# %%
-vortex3 = tab_new/np.size(dirs)
+
+if (dirs[0].find('_x_') > 0):
+    lab = [r"$T_{xy}$", r"$T_{xz}$", r"$S_{xx}$", r"$D$"]
+if (dirs[0].find('_y_') > 0):
+    lab = [r"$T_{yx}$", r"$T_{yz}$", r"$S_{yy}$", r"$D$"]
+if (dirs[0].find('_z_') > 0):
+    lab = [r"$T_{zx}$", r"$T_{zy}$", r"$S_{zz}$", r"$D$"]
+vortex3 = tab_new / np.size(dirs)
 # vortex3 = vortex3.iloc[1:,:]
+def full_term(df, ax):
+    sc = np.amax(np.abs(df.iloc[:, 1:].values))
+    ax.plot(df['x'], df['tilt1_p']/sc, "k", linewidth=1.5)
+    ax.plot(df['x'], df['tilt2_p']/sc, "b", linewidth=1.5)
+    ax.plot(df['x'], df['stretch_p']/sc, "r", linewidth=1.5)
+    ax.plot(df['x'], df['dilate_p']/sc, "g", linewidth=1.5)
+    ax.plot(df['x'], df['tilt1_n']/sc, "k-", linewidth=1.5)
+    ax.plot(df['x'], df['tilt2_n']/sc, "b-", linewidth=1.5)
+    ax.plot(df['x'], df['stretch_n']/sc, "r-", linewidth=1.5)
+    ax.plot(df['x'], df['dilate_n'] / sc, "g-", linewidth=1.5)
+
+
+def partial_term(df, ax):
+    tilt1 = df['tilt1_p']+df['tilt1_n']
+    tilt2 = df['tilt2_p']+df['tilt1_n']
+    stret = df['stretch_p']+df['stretch_n']
+    dilat = df['dilate_p']+df['dilate_n']
+    torqu = df['torque_p']+df['torque_n']
+    sc = np.max([tilt1, tilt2, stret, dilat, torqu])
+    ax3.plot(vortex3['x'], tilt1/sc, "k", linewidth=1.5)
+    ax3.plot(vortex3['x'], tilt2/sc, "b", linewidth=1.5)
+    ax3.plot(vortex3['x'], stret/sc, "r", linewidth=1.5)
+    ax3.plot(vortex3['x'], dilat/sc, "g", linewidth=1.5)
+    # ax3.plot(vortex3['x'], torqu/sc, "C7:", linewidth=1.5)
+
+
+# %% plot streamwise vorticity balance
 fig3, ax3 = plt.subplots(figsize=(6.4, 2.8))
-tilt1 = vortex3['tilt1_p']+vortex3['tilt1_n']
-tilt2 = vortex3['tilt2_p']+vortex3['tilt1_n']
-stret = vortex3['stretch_p']+vortex3['stretch_n']
-dilat = vortex3['dilate_p']+vortex3['dilate_n']
-torqu = vortex3['torque_p']+vortex3['torque_n']
-sc = np.max([tilt1, tilt2, stret, dilat, torqu])  # 1
-ax3.plot(vortex3['x'], tilt1/sc, "k", linewidth=1.5)
-ax3.plot(vortex3['x'], tilt2/sc, "b", linewidth=1.5)
-ax3.plot(vortex3['x'], stret/sc, "r", linewidth=1.5)
-ax3.plot(vortex3['x'], dilat/sc, "g", linewidth=1.5)
-ax3.plot(vortex3['x'], torqu/sc, "C7:", linewidth=1.5)
-#ax3.plot(vortex3['x'], vortex3['tilt1_n']/sc, "k:", linewidth=1.5)
-#ax3.plot(vortex3['x'], vortex3['tilt2_n']/sc, "b:", linewidth=1.5)
-#ax3.plot(vortex3['x'], vortex3['stretch_n']/sc, "r:", linewidth=1.5)
-#ax3.plot(vortex3['x'], vortex3['dilate_n']/sc, "g:", linewidth=1.5)
-#ax3.plot(vortex3['x'], vortex3['torque_n']/sc, "C7:", linewidth=1.5)
-lab = [r"$T_y$", r"$T_z$", r"$S$", r"$D$", r"$B$"]
+full_term(vortex3, ax3)
+# partial_term(vortex3, ax3)
 ax3.legend(lab, ncol=2, loc="upper right", fontsize=numsize)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel("Term", fontsize=textsize)
