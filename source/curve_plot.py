@@ -14,7 +14,7 @@ import matplotlib
 import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, splev, splrep
 from data_post import DataPost
-import variable_analysis as fv
+import variable_analysis as va
 from timer import timer
 import os
 from planar_field import PlanarField as pf
@@ -120,13 +120,13 @@ x0 = 30.0
 ## results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)
-u_tau = fv.u_tau(BLProf, option='mean')
+u_tau = va.u_tau(BLProf, option='mean')
 mu_inf = BLProf['<mu>'].values[-1]
-delta, u_inf = fv.bl_thickness(BLProf['walldist'], BLProf['<u>'])
-delta_star, u_inf, rho_inf = fv.bl_thickness(
+delta, u_inf = va.bl_thickness(BLProf['walldist'], BLProf['<u>'])
+delta_star, u_inf, rho_inf = va.bl_thickness(
         BLProf['walldist'], BLProf['<u>'], 
         rho=BLProf['<rho>'], opt='displacement')
-theta, u_inf, rho_inf = fv.bl_thickness(
+theta, u_inf, rho_inf = va.bl_thickness(
         BLProf['walldist'], BLProf['<u>'], 
         rho=BLProf['<rho>'], opt='momentum')
 Re_theta = rho_inf * u_inf * theta / mu_inf
@@ -135,12 +135,12 @@ Re_tau = BLProf['<rho>'].values[0] * u_tau / BLProf['<mu>'].values[0] * delta
 print("Re_tau=", Re_tau)
 print("Re_theta=", Re_theta)
 print("Re_delta*=", Re_delta_star)
-CalUPlus = fv.direst_transform(BLProf, option='mean')
+CalUPlus = va.direst_transform(BLProf, option='mean')
 ## results from theory by van Driest
-StdUPlus1, StdUPlus2 = fv.std_wall_law()
+StdUPlus1, StdUPlus2 = va.std_wall_law()
 ## results from known DNS
 Re_theta = 2000 # 1400
-ExpUPlus = fv.ref_wall_law(Re_theta)[0]
+ExpUPlus = va.ref_wall_law(Re_theta)[0]
 ## plot velocity profile
 fig, ax = plt.subplots(figsize=(3.2, 3))
 matplotlib.rc('font', size=numsize)
@@ -183,7 +183,7 @@ plt.show()
 # %% Reynolds stresses in Morkovin scaling
 ## results from known DNS
 ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
-    fv.ref_wall_law(Re_theta)
+    va.ref_wall_law(Re_theta)
 ## results from current LES
 xi = np.sqrt(BLProf['<rho>'] / BLProf['<rho>'][0])
 uu = np.sqrt(BLProf['<u`u`>']) / u_tau * xi 
@@ -303,10 +303,10 @@ theta = np.zeros(num)
 for i in range(num):
     y0, u0 = MeanFlow.BLProfile("x", xd[i], "u")
     y0, rho0 = MeanFlow.BLProfile("x", xd[i], "rho")
-    delta[i] = fv.BLThickness(y0.values, u0.values)
-    delta_star[i] = fv.BLThickness(y0.values, u0.values,
+    delta[i] = va.BLThickness(y0.values, u0.values)
+    delta_star[i] = va.BLThickness(y0.values, u0.values,
                                    rho0.values, opt='displacement')
-    theta[i] = fv.BLThickness(
+    theta[i] = va.BLThickness(
         y0.values, u0.values, rho0.values, opt='momentum')
 
 stream = np.loadtxt(pathM + 'Streamline.dat', skiprows=1)
@@ -330,10 +330,10 @@ popt, pcov = DataPost.fit_func(func, xd, yd, guess=None)
 A, B, C, D = popt
 fitfunc = lambda t: A * t ** 3 + B * t **2 + C * t + D
 yd = fitfunc(xd)
-# gortler = fv.Gortler(1.3718e7, xd, delta1, theta)
-radius = fv.Radius(xd[:-1], delta_fit[:-1])
-# radius = fv.Radius(xd[:-1], yd[:-1])
-gortler = fv.GortlerTur(theta[:-1], delta_star[:-1], radius)
+# gortler = va.Gortler(1.3718e7, xd, delta1, theta)
+radius = va.Radius(xd[:-1], delta_fit[:-1])
+# radius = va.Radius(xd[:-1], yd[:-1])
+gortler = va.GortlerTur(theta[:-1], delta_star[:-1], radius)
 
 fig3, ax3 = plt.subplots(figsize=(5, 2.5))
 ax3.plot(xd, delta, 'k-', linewidth=1.5)
@@ -390,14 +390,14 @@ plt.show()
 
 # %%############################################################################
 """
-    skin friction & pressure coefficiency along streamwise
+    skin friction & pressure coefficiency/turbulent kinetic energy along streamwise
 """
 # %% Plot streamwise skin friction
 MeanFlow.copy_meanval()
 WallFlow = MeanFlow.PlanarData.groupby("x", as_index=False).nth(1)
-WallFlow = WallFlow[WallFlow.x != -0.0078125]
-mu = fv.viscosity(13718, WallFlow["T"])
-Cf = fv.skinfriction(mu, WallFlow["u"], WallFlow["walldist"]).values
+# WallFlow = WallFlow[WallFlow.x != -0.0078125]
+mu = va.viscosity(13718, WallFlow["T"])
+Cf = va.skinfriction(mu, WallFlow["u"], WallFlow["walldist"]).values
 ind = np.where(Cf[:] < 0.005)
 # fig2, ax2 = plt.subplots(figsize=(5, 2.5))
 fig = plt.figure(figsize=(6.4, 2.2))
@@ -417,28 +417,48 @@ ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF+'Cf.svg',bbox_inches='tight', pad_inches=0.1)
+plt.savefig(pathF+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # % pressure coefficiency
-fa = 1.7 * 1.7 * 1.4
-# fig3, ax3 = plt.subplots(figsize=(5, 2.5))
+# fa = 1.7 * 1.7 * 1.4
+# # fig3, ax3 = plt.subplots(figsize=(5, 2.5))
+# ax3 = fig.add_subplot(122)
+# ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
+# ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+# ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
+# ax3.set_xlim([-20.0, 40.0])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+# ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
+# ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
+# ax3.grid(b=True, which="both", linestyle=":")
+# ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
+#              fontsize=numsize)
+# plt.tick_params(labelsize=numsize)
+# plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+# # plt.savefig(path2 + "Cp.svg", dpi=300)
+# plt.savefig(pathF + "CfCp.svg", dpi=300)
+# plt.show()
+
+# % turbulent kinetic energy
+tke = va.tke(WallFlow).values
 ax3 = fig.add_subplot(122)
-ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
+matplotlib.rc("font", size=textsize)
+ax3.plot(xwall[ind], tke[ind], "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
+ax3.set_ylabel(r"$k/u^2_\infty$", fontsize=textsize)
 ax3.set_xlim([-20.0, 40.0])
-ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
+ax3.yaxis.offsetText.set_fontsize(numsize)
 ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-# plt.savefig(path2 + "Cp.svg", dpi=300)
-plt.savefig(pathF + "CfCp.svg", dpi=300)
+plt.subplots_adjust(wspace=0.3)
+plt.savefig(pathF+'CfTk.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # %%############################################################################
@@ -470,8 +490,8 @@ sigma = np.std(p0)
 timezone = np.arange(800, 1149.50 + 0.5, 0.5)
 dt = 0.5
 for j in range(np.size(Snapshots[:, 0])):
-    gamma[j] = fv.Intermittency(sigma, p0, Snapshots[j, :], timezone)
-    alpha[j] = fv.Alpha3(Snapshots[j, :])
+    gamma[j] = va.Intermittency(sigma, p0, Snapshots[j, :], timezone)
+    alpha[j] = va.Alpha3(Snapshots[j, :])
 
 # %% Plot Intermittency factor
 # universal intermittency distribution
