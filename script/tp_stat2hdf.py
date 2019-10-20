@@ -9,15 +9,13 @@ Created on Thu Jun 20 14:48:11 2019
 
 
 # %% Load necessary module
-import os
-from timer import timer
 import plt2pandas as p2p
 import numpy as np
 import pandas as pd
 from glob import glob
 
 # %%
-path = '/media/weibo/VID2/BFS_M1.7L/'
+path = '/media/weibo/VID2/BFS_M1.7TS1/'
 
 p2p.create_folder(path)
 pathTP = path + 'TP_stat/'
