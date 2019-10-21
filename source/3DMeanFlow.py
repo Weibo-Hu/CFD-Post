@@ -13,7 +13,7 @@ from scipy.interpolate import splprep, splev
 import matplotlib
 import pandas as pd
 import plt2pandas as p2p
-import variable_analysis as fv
+import variable_analysis as va
 from line_field import LineField as lf
 from planar_field import PlanarField as pf
 from triaxial_field import TriField as tf
@@ -30,7 +30,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7TS1/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -93,13 +93,13 @@ x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
 
 # %% Mean flow isolines
-fv.dividing_line(MeanFlow.PlanarData, pathM)
+va.dividing_line(MeanFlow.PlanarData, pathM)
 # %% Save sonic line
-fv.sonic_line(MeanFlow.PlanarData, pathM, option='velocity', Ma_inf=1.7)
+va.sonic_line(MeanFlow.PlanarData, pathM, option='velocity', Ma_inf=1.7)
 # %% Save boundary layer
-fv.boundary_edge(MeanFlow.PlanarData, pathM)
+va.boundary_edge(MeanFlow.PlanarData, pathM, jump2=8.75)
 # %% Save shock line
-fv.shock_line(MeanFlow.PlanarData, pathM)
+va.shock_line(MeanFlow.PlanarData, pathM)
 # %% 
 plt.close("All")
 
@@ -118,8 +118,8 @@ rho[corner] = np.nan
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(0.33, 1.03, 41)
-cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1)  # rainbow_r
-ax.set_xlim(-10.0, 30.0)
+cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend='both')  # rainbow_r
+ax.set_xlim(-20.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -127,9 +127,10 @@ ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(0.33, 1.03, 3)
-cbaxes = fig.add_axes([0.17, 0.75, 0.18, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.17, 0.68, 0.16, 0.07])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
-cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
+cbar = plt.colorbar(cbar, cax=cbaxes, extendrect='False',
+                    orientation="horizontal", ticks=rg2)
 cbar.set_label(
     r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontdict=font
 )
@@ -161,18 +162,18 @@ seeds = np.array(
 xbox, ybox = np.meshgrid(x1, y1)
 u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (xbox, ybox))
 v = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.v, (xbox, ybox))
-ax.streamplot(
-    xbox,
-    ybox,
-    u,
-    v,
-    color="w",
-    density=[3.0, 2.0],
-    arrowsize=0.7,
-    start_points=seeds.T,
-    maxlength=30.0,
-    linewidth=1.0,
-)
+#ax.streamplot(
+#    xbox,
+#    ybox,
+#    u,
+#    v,
+#    color="w",
+#    density=[3.0, 2.0],
+#    arrowsize=0.7,
+#    start_points=seeds.T,
+#    maxlength=30.0,
+#    linewidth=1.0,
+#)
 
 plt.savefig(pathF + "MeanFlow.svg", bbox_inches="tight")
 plt.show()
@@ -723,30 +724,30 @@ plt.show()
 """
 # %% Numerical schiliren in X-Y plane
 flow = pf()
-file = path + 'iso_z0.h5'
-flow.load_data(path, FileList=file, NameList='h5')
-df = flow.PlanarData.query("x<=30.0 & y<=10.0")
-x, y = np.meshgrid(np.unique(df.x), np.unique(df.y))
+file = path + 'snapshots/TP_2D_Z_03_01000.00.plt'
+flow.load_data(path, FileList=file)
+plane = flow.PlanarData
+x, y = np.meshgrid(np.unique(plane.x), np.unique(plane.y))
 corner = (x < 0.0) & (y < 0.0)
-var = 'schlieren'
-rho = griddata((df.x, df.y), df[var], (x, y))
-print("rho_max=", np.max(df[var]))
-print("rho_min=", np.min(df[var]))
-rho[corner] = np.nan
+var = '|grad(rho)|'
+schlieren = griddata((plane.x, plane.y), plane[var], (x, y))
+print("rho_max=", np.max(plane[var]))
+print("rho_min=", np.min(plane[var]))
+schlieren[corner] = np.nan
 # %%
-fig, ax = plt.subplots(figsize=(6.4, 2.0))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(0, 2.0, 21)
-cbar = ax.contourf(x, y, rho, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(-10.0, 30.0)
-ax.set_ylim(-3.0, 10.0)
+cbar = ax.contourf(x, y, schlieren, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
+ax.set_xlim(-40.0, 25.0)
+ax.set_ylim(-3.0, 15.0)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(0, 2.0, 3)
-cbbox = fig.add_axes([0.16, 0.56, 0.20, 0.30], alpha=0.9)
+cbbox = fig.add_axes([0.16, 0.50, 0.20, 0.30], alpha=0.9)
 [cbbox.spines[k].set_visible(False) for k in cbbox.spines]
 cbbox.tick_params(
     axis="both",
@@ -761,12 +762,12 @@ cbbox.tick_params(
 )
 cbbox.set_facecolor([1, 1, 1, 0.7])
 # Add colorbar
-cbaxes = fig.add_axes([0.17, 0.77, 0.18, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.17, 0.71, 0.18, 0.07])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
                     extendrect='False', ticks=rg2)
 cbar.set_label(
-    r"$S_c$",
+    r"$|\nabla \rho|$",
     rotation=0,
     fontsize=textsize-1,
 )
