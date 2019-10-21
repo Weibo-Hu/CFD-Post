@@ -607,14 +607,15 @@ def SpanAve(DataFrame, OutputFile = None):
         DataFrame.to_csv(outfile, index=False, sep = '\t')
         outfile.close()
 
+
 def TimeAve(DataFrame):
     grouped = DataFrame.groupby(['x', 'y', 'z'])
     DataFrame = grouped.mean().reset_index()
     return (DataFrame)
 
+
 def create_folder(path):
-    exists = os.path.exists(path + 'Figures')
-    if not exists:
+    if not os.path.exists(path + 'Figures'):
         os.mkdir(path + 'Figures')
     exists = os.path.exists(path + 'Instant')
     if not exists:
@@ -637,6 +638,13 @@ def create_folder(path):
     exists = os.path.exists(path + 'snapshots')
     if not exists:
         os.mkdir(path + 'snapshots')
+    pathF = path + 'Figures'
+    pathP = path + "probes/"
+    pathM = path + "MeanFlow/"
+    pathS = path + "SpanAve/"
+    pathT = path + "TimeAve/"
+    pathI = path + "Instant/"
+    return(pathF, pathP, pathM, pathS, pathT, pathI)
 
 
 
