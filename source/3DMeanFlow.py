@@ -724,9 +724,10 @@ plt.show()
 """
 # %% Numerical schiliren in X-Y plane
 flow = pf()
-file = path + 'snapshots/TP_2D_Z_03_01000.00.plt'
-flow.load_data(path, FileList=file)
+file = path + 'snapshots/' + 'TP_2D_Z_03_01000.00.szplt'  # 'TP_2D_Z_03_1000.h5' #  
+flow.load_data(path, FileList=file) # , NameList='h5')
 plane = flow.PlanarData
+plane.to_hdf(path+'snapshots/TP_2D_Z_03_1000.h5', 'w', format='fixed')
 x, y = np.meshgrid(np.unique(plane.x), np.unique(plane.y))
 corner = (x < 0.0) & (y < 0.0)
 var = '|grad(rho)|'
@@ -737,7 +738,7 @@ schlieren[corner] = np.nan
 # %%
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
-rg1 = np.linspace(0, 2.0, 21)
+rg1 = np.linspace(0, 3.0, 21)
 cbar = ax.contourf(x, y, schlieren, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
 ax.set_xlim(-40.0, 25.0)
 ax.set_ylim(-3.0, 15.0)
@@ -746,7 +747,7 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
-rg2 = np.linspace(0, 2.0, 3)
+rg2 = np.linspace(0, 3.0, 3)
 cbbox = fig.add_axes([0.16, 0.50, 0.20, 0.30], alpha=0.9)
 [cbbox.spines[k].set_visible(False) for k in cbbox.spines]
 cbbox.tick_params(
