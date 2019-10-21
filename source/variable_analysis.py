@@ -746,7 +746,7 @@ def dividing_line(dataframe, path=None):
     return xy
 
 
-def boundary_edge(dataframe, path):
+def boundary_edge(dataframe, path, jump1=None, jump2=None):  # jump = reattachment location
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
     if 'u' not in dataframe.columns:
@@ -754,11 +754,19 @@ def boundary_edge(dataframe, path):
         # dataframe['u'] = dataframe['<u>']
 
     u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
+    if (jump1==None):
+        expand = 0.0  # reattchament location
+    else:
+        expand = jump1
+    if (jump2==None):
+        shock = 10.375  # reattchament location
+    else:
+        shock = jump2
     umax = u[-1, :]
-    rg1 = (x[1, :] < 10.375)  # in front of the shock
+    rg1 = (x[1, :] < expand)  # in front of the shock
     umax[rg1] = 1.0
-    rg2 = (x[1, :] <= 10.375)  # behind the shock
-    umax[rg2] = 0.95
+    rg2 = (x[1, :] >= shock)  # behind the shock
+    umax[rg2] = 0.98
     u = u / (np.transpose(umax))
     corner = (x < 0.0) & (y < 0.0)
     u[corner] = np.nan
