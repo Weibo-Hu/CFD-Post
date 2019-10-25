@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
+import plt2pandas as p2p
 import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, splev, splrep
 from data_post import DataPost
@@ -21,7 +22,8 @@ from planar_field import PlanarField as pf
 
 
 ## data path settings
-path = "/media/weibo/VID2/BFS_M1.7L/"
+path = "/media/weibo/VID2/BFS_M1.7Tur/"
+p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -116,7 +118,7 @@ plt.savefig(
     Compare the law of wall: theoretical by van Driest, experiments, LES
 """
 # %% velocity profile, computation
-x0 = 30.0
+x0 = -1.0
 ## results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)

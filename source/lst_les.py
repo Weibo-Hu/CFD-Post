@@ -70,7 +70,7 @@ numsize = 10
 """
 # %% load sequential slices
 path1 = pathS + 'TP_2D_Z_03/'
-stime = np.arange(700.0, 1000 + 0.25, 0.25) # n*61.5
+stime = np.arange(700.0, 1000, 0.25) # n*61.5
 xrg = np.arange(-40.0, 0.0 + 0.5, 0.5)
 newlist = ['x', 'y', 'z', 'u', 'p']
 dirs = sorted(os.listdir(path1))
@@ -87,20 +87,22 @@ for i in range(np.size(dirs)):
 # %% extract probe data with time
 # x = -0.1875, y = 0.03125; x = 0.203125, y = 0.0390625; x = 0.5, y = -0.078125 
 # x0 = 0.59375
+xrg = [0.5, 0.75, 1.0, 2.0] # [-0.1875, 0.203125, 0.5, 0.59375]
 x0 = xrg
-y0 = 0.00390625 # 0.001953125  0.005859375 0.0078125 0.296875
+y0 = [-0.375, -0.4375, -0.53125, -0.46875] #[0.03125, 0.0390625, -0.078125, -0.171875] # 0.001953125  0.005859375 0.0078125 0.296875
 if y0 == 0.001953125:
     yloc = 'wall'
 else:
     yloc = 'wall2'
 num_samp = np.size(stime)
+var_list = ['x', 'y', 'u', 'p']
 var = np.zeros((num_samp, 2))
 for j in range(np.size(x0)):
-    filenm = pathLB + 'timeline_' + str(x0[j]) + yloc + '.dat'
-    var = sp.loc[(sp['x']==x0[j]) & (sp['y']==y0), ['u', 'p']].values
+    file = pathP + 'timeline_' + str(x0[j]) + '.dat' # yloc + '.dat'
+    var = sp.loc[(sp['x']==x0[j]) & (sp['y']==y0[j]), var_list].values
     df = pd.DataFrame(data=np.hstack((stime.reshape(-1, 1), var)), 
-                      columns=['time', 'u', 'p'])
-    df.to_csv(filenm, sep=' ', index=False, float_format='%1.8e')
+                      columns=['time', 'x', 'y', 'u', 'p'])
+    df.to_csv(file, sep=' ', index=False, float_format='%1.8e')
 # del fm_temp, fm   
 
 # %% make base flow 
@@ -129,15 +131,15 @@ else:
     ylab = r"$p^\prime/(\rho_\infty u_\infty ^2)$"
     ylab_sub = r"$_{p^\prime}$"
 # xloc = [-36.0, -24.0, -10.0]
-xloc = [-0.1875, 0.203125, 0.59375]
-curve= ['k-', 'b-', 'g-']
+xloc = xrg # [-0.1875, 0.203125, 0.59375]
+curve= ['k-', 'b-', 'g-', 'r-']
 fig3, ax3 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
-for i in range(3):
-    filenm = pathLB + 'timeline_' + str(xloc[i]) + yloc + '.dat'  
+for i in range(np.size(xloc)):
+    filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'  
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
-    val = var[varnm] - np.mean(var[varnm])
+    val = var[varnm] # - np.mean(var[varnm])
     # val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
     ax3.plot(var['time'], val, curve[i], linewidth=1.2)
 
@@ -183,8 +185,8 @@ plt.show()
 dt = 0.25
 fig4, ax4 = plt.subplots(figsize=(6.0, 2.8))
 matplotlib.rc("font", size=textsize)
-for i in range(3):
-    filenm = pathP + 'timeline_' + str(xloc[i]) + yloc + '.dat'  
+for i in range(np.size(xloc)):
+    filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'  
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
                       index_col=False, skipinitialspace=True)
     val = var[varnm] - np.mean(var[varnm])

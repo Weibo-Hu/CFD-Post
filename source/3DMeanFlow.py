@@ -30,7 +30,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/VID2/BFS_M1.7TS1/"
+path = "/media/weibo/VID2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -185,19 +185,20 @@ plt.show()
 # %% Plot rms contour of the mean flow field
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
-var = "R22"
-uu = griddata((MeanFlow.x, MeanFlow.y), getattr(MeanFlow, var), (x, y))
-print("uu_max=", np.max(np.sqrt(np.abs(getattr(MeanFlow, var)))))
-print("uu_min=", np.min(np.sqrt(np.abs(getattr(MeanFlow, var)))))
+var = "<u`u`>"
+var_val = getattr(MeanFlow.PlanarData, var)
+uu = griddata((MeanFlow.x, MeanFlow.y), var_val, (x, y))
+print("uu_max=", np.max(np.sqrt(np.abs(var_val))))
+print("uu_min=", np.min(np.sqrt(np.abs(var_val))))
 corner = (x < 0.0) & (y < 0.0)
 uu[corner] = np.nan
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 cb1 = 0.0
-cb2 = 0.2
+cb2 = 0.16
 rg1 = np.linspace(cb1, cb2, 21)
 cbar = ax.contourf(
-    x, y, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1
+    x, y, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1, extend='both'
 )  # rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
@@ -224,7 +225,8 @@ cbbox.set_facecolor([1, 1, 1, 0.7])
 # Add colorbar
 cbaxes = fig.add_axes([0.17, 0.75, 0.18, 0.07])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
-cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
+cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
+                    extendrect='False', ticks=rg2)
 cbar.set_label(
     r"$\sqrt{|\langle v^\prime v^\prime \rangle|}$",
     rotation=0,
@@ -243,7 +245,7 @@ ax.plot(boundary[:, 0], boundary[:, 1], "k", linewidth=1.5)
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.5)
 
-plt.savefig(pathF + "MeanFlowRMSVV.svg", bbox_inches="tight")
+plt.savefig(pathF + "MeanFlowRMSUU.svg", bbox_inches="tight")
 plt.show()
 
 # %%############################################################################
@@ -724,10 +726,10 @@ plt.show()
 """
 # %% Numerical schiliren in X-Y plane
 flow = pf()
-file = path + 'snapshots/' + 'TP_2D_Z_03_01000.00.szplt'  # 'TP_2D_Z_03_1000.h5' #  
-flow.load_data(path, FileList=file) # , NameList='h5')
+file = path + 'snapshots/' + 'TP_2D_Z_03_1000.h5' # 'TP_2D_Z_03_01000.00.szplt'  #  
+flow.load_data(path, FileList=file, NameList='h5')
 plane = flow.PlanarData
-plane.to_hdf(path+'snapshots/TP_2D_Z_03_1000.h5', 'w', format='fixed')
+# plane.to_hdf(path+'snapshots/TP_2D_Z_03_1000.h5', 'w', format='fixed')
 x, y = np.meshgrid(np.unique(plane.x), np.unique(plane.y))
 corner = (x < 0.0) & (y < 0.0)
 var = '|grad(rho)|'
@@ -739,8 +741,8 @@ schlieren[corner] = np.nan
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(0, 3.0, 21)
-cbar = ax.contourf(x, y, schlieren, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(-40.0, 25.0)
+cbar = ax.contourf(x, y, schlieren, cmap="bwr", levels=rg1, extend='both')  # binary # rainbow_r
+ax.set_xlim(-35.0, 25.0)
 ax.set_ylim(-3.0, 15.0)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -772,6 +774,7 @@ cbar.set_label(
     rotation=0,
     fontsize=textsize-1,
 )
+# ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "SchlierenXY.svg", bbox_inches="tight")
 plt.show()
 # %% Numerical schiliren in X-Z plane
