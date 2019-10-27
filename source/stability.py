@@ -31,7 +31,7 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/VID2/BFS_M1.7L/"
+path = "/media/weibo/VID2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -110,7 +110,7 @@ plt.savefig(
 
 # %% compute coordinates where the BL profile has Max RMS along streamwise direction
 varn = '<u`u`>'
-xnew = np.arange(0.0, 40.0+0.125, 0.125)
+xnew = np.arange(-40.0, 40.0+0.125, 0.125)
 znew = np.zeros(np.size(xnew))
 varv = np.zeros(np.size(xnew))
 ynew = np.zeros(np.size(xnew))
@@ -130,7 +130,7 @@ matplotlib.rc('font', size=14)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
 ax.plot(xnew, ynew, 'k', label=r'$q^\prime_\mathrm{max}$')
-ax.plot(xx, yy, 'k--', label='bubble')
+# ax.plot(xx, yy, 'k--', label='bubble')
 legend = ax.legend(loc='upper right', shadow=False, fontsize=numsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
@@ -159,6 +159,25 @@ ax.grid(b=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
     pathF + "PerturProfileX.svg", bbox_inches="tight", pad_inches=0.1
+)
+
+# %% Plot RMS of velocity on the wall along streamwise direction
+xynew = pd.read_csv(pathM + 'MaxRMS.dat', sep=' ')
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
+matplotlib.rc('font', size=numsize)
+ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
+ax.set_ylabel(ylab, fontsize=textsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.plot(xynew['x'], xynew['<u`u`>'], 'k')
+ax.set_yscale('log')
+ax.set_xlim([-5, 30])
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+ax.grid(b=True, which="both", linestyle=":")
+ax.tick_params(labelsize=numsize)
+ax.yaxis.offsetText.set_fontsize(numsize-1)
+plt.show()
+plt.savefig(
+    pathF + "MaxRMS_x.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% Plot RMS of velocity along wall-normal direction
@@ -279,11 +298,11 @@ var = 'p' # 'u'
 Snapshots = DataFrame[['x', 'y', 'z', 'u', 'p']]
 
 fa = 1.7*1.7*1.4
-skip = 2
+skip = 1
 timepoints = np.arange(700, 999.75 + 0.25, 0.25)
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
-        if i % skip == 1:
+        if i % skip == 0:
             TempFrame = pd.read_hdf(InFolder + dirs[i+1])
             grouped = TempFrame.groupby(['x', 'y', 'z'])
             Frame1 = grouped.mean().reset_index()
@@ -292,10 +311,11 @@ with timer("Load Data"):
                 sys.exit('The input snapshots does not match!!!')
             Snapshots = pd.concat([Snapshots, Frame2])
 
-Snapshots[var] = Snapshots[var] * fa
+# Snapshots.loc[var] = Snapshots.loc[var] * fa
+Snapshots.assign(var=Snapshots[var] * fa)
 m, n = np.shape(Snapshots)
-dt = 0.5
-freq_samp = 2.0
+dt = 0.25
+freq_samp = 4.0
 
 
 # %% compute amplitude of variable along a line
@@ -391,17 +411,19 @@ plt.show()
     frequency-weighted PSD along a line
 """
 # %% compute
+var = 'u'
 samples = int(np.size(timepoints) / skip / 2 + 1)
 FPSD = np.zeros((samples, np.size(xval)))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i], 0.0]
-    freq, FPSD[:, i] = fv.fw_psd_map(Snapshots, xyz, var, dt, freq_samp, opt=1)
+    freq, FPSD[:, i] = fv.fw_psd_map(Snapshots, xyz, var, dt, freq_samp, 
+                                     opt=2, seg=8, overlap=4)
 np.savetxt(pathSL + 'FWPSD_freq.dat', freq, delimiter=' ')
 np.savetxt(pathSL + 'FWPSD_x.dat', xval, delimiter=' ')
-np.savetxt(pathSL + 'FWPSD_psd.dat', FPSD, delimiter=' ')
+np.savetxt(pathSL + var + '_FWPSD_psd.dat', FPSD, delimiter=' ')
 
 freq = np.loadtxt(pathSL + 'FWPSD_freq.dat', delimiter=' ')
-FPSD = np.loadtxt(pathSL + 'FWPSD_psd.dat', delimiter=' ')
+FPSD = np.loadtxt(pathSL + var + '_FWPSD_psd.dat', delimiter=' ')
 freq = freq[1:]
 FPSD = FPSD[1:, :]
 
@@ -418,27 +440,24 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 print(np.max(FPSD1))
 print(np.min(FPSD1))
-cb1 = -10
+cb1 = -15
 cb2 = 0
 lev = np.linspace(cb1, cb2, 41)
-cbar = ax.contourf(xval, freq, FPSD1, cmap='RdBu_r', levels=lev) # seismic # bwr
+cbar = ax.contourf(xval, freq, FPSD1, cmap='coolwarm', levels=lev) # seismic # bwr
 ax.plot(xval, max_freq, 'C7-', linewidth=1.2)
 # every stage of the transition
-ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=3.2, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=6.5, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=9.7, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=12., linewidth=1.0, linestyle='--', color='k')
+# ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
-ax.set_xlim([0.0, 30.0])
-rg = np.linspace(cb1, cb2, 5)
+ax.set_xlim([-10.0, 30.0])
+rg = np.linspace(cb1, cb2, 3)
 cbar = plt.colorbar(cbar, ticks=rg)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.update_ticks()
 barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{max} ]$'
 # barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
-cbar.set_label(barlabel, rotation=90, fontsize=numsize)
+ax.set_title(barlabel, pad=3, fontsize=numsize-1)
+# cbar.set_label(barlabel, rotation=90, fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathF + var + "_FWPSDMap_max.svg",
