@@ -16,8 +16,10 @@ import matplotlib.ticker as ticker
 import variable_analysis as va
 from timer import timer
 import warnings
+from glob import glob
 import os
 from planar_field import PlanarField as pf
+from triaxial_field import TriField as tf
 
 
 path0 = "/media/weibo/VID2/BFS_M1.7L/"
@@ -176,13 +178,13 @@ for j in range(np.size(x0)):
 varnm = 'u'
 dt = 0.25
 if varnm == 'u':
-    ylab = r"$u^\prime / u_\infty$"
+    ylab = r"$u / u_\infty$"
     ylab_sub = r"$_{u^\prime}$"
 else:
     ylab = r"$p^\prime/(\rho_\infty u_\infty ^2)$"
     ylab_sub = r"$_{p^\prime}$"
 
-xloc = [2.0] # [-0.1875] # [0.203125] #, 0.203125, 
+xloc = [-0.1875] # [2.0] # [0.59375] # [0.203125] # , 
 curve0= ['g-'] # , 'b-', 'g-']
 curve1= ['b-'] # , 'b:', 'g:']
 fig3, ax3 = plt.subplots(figsize=(6.4, 1.5))
@@ -203,9 +205,10 @@ for i in range(np.size(xloc)):
     ax1.plot(var1['time'], val1, curve1[i], linewidth=0.8)
     
     fre0, fpsd0 = va.fw_psd(var0[varnm], dt, 1/dt, opt=2, seg=8, overlap=4)
-    ax2.semilogx(fre0, fpsd0/np.max(fpsd0), curve0[i], linewidth=0.8)
+    ax2.semilogx(fre0, fpsd0, curve0[i], linewidth=0.8)
+    # ax2.set_yscale('log')
     fre1, fpsd1 = va.fw_psd(var1[varnm], dt, 1/dt, opt=2, seg=8, overlap=4)
-    ax2.semilogx(fre1, fpsd1/np.max(fpsd1), curve1[i], linewidth=0.8)
+    ax2.semilogx(fre1, fpsd1, curve1[i], linewidth=0.8)
 
 ax1.set_ylabel(ylab, fontsize=textsize)
 ax1.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=textsize)
@@ -215,12 +218,116 @@ ax1.set_xlim([700, 1000])
 ax1.tick_params(labelsize=numsize)
 ax1.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax1.grid(b=True, which="both", linestyle=":")
-ax1.yaxis.offsetText.set_fontsize(numsize)
-ax2.set_ylabel(r"$f \mathcal{P}/\mathcal{P}_\mathrm{max}$", fontsize=textsize-1)
+ax1.yaxis.offsetText.set_fontsize(numsize-1)
+ax2.set_ylabel(r"$f \mathcal{P}$", fontsize=textsize-1)  # /\mathcal{P}_\mathrm{max}
 ax2.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.grid(b=True, which="both", linestyle=":")
-ax2.yaxis.offsetText.set_fontsize(numsize)
+ax2.yaxis.offsetText.set_fontsize(numsize-1)
 ax2.tick_params(labelsize=numsize)
 plt.savefig(pathC + varnm + "_time_d.svg", bbox_inches='tight', dpi=300)
 plt.show()
+
+
+# %%############################################################################
+"""
+    Development of variables with spanwise direction
+"""
+# %% load data
+TimeFlow0 = tf()
+TimeFlow0.load_3data(path0T, FileList=path0+'TP_912.plt') #, NameList='plt')
+TimeFlow1 = tf()
+TimeFlow1.load_3data(path1T, FileList=path1+'TP_912.plt') #, NameList='plt')
+# %% save data
+xyloc = [[-0.1875, 0.03125], [0.203125, 0.0390625], [0.59375, -0.171875], [2.0, 0.46875]]
+for i in range(np.shape(xyloc)[0]):
+    file = path0P + 'spanwise_' + str(xyloc[i][0]) + '.dat'
+    var0 = TimeFlow0.TriData
+    df = var0.loc[(var0['x']==xyloc[i][0]) &  (var0['y']==xyloc[i][1])]
+    val0 = df.drop_duplicates(subset='z', keep='first')
+    val0.to_csv(file, sep=' ', index=False, float_format='%1.8e')
+
+    file = path1P + 'spanwise_' + str(xyloc[i][0]) + '.dat'
+    var1 = TimeFlow1.TriData
+    df = var1.loc[(var1['x']==xyloc[i][0]) &  (var1['y']==xyloc[i][1])]
+    val1 = df.drop_duplicates(subset='z', keep='first')
+    val1.to_csv(file, sep=' ', index=False, float_format='%1.8e')
+
+# %% variables with time
+varnm = 'u'
+dz = 0.03125
+if varnm == 'u':
+    ylab = r"$u / u_\infty$"
+    ylab_sub = r"$_{u^\prime}$"
+else:
+    ylab = r"$p /(\rho_\infty u_\infty ^2)$"
+    ylab_sub = r"$_{p^\prime}$"
+
+xyloc = [[-0.1875, 0.03125]] # [2.0] # [0.59375] # [0.203125] # , 
+curve0= ['g-'] # , 'b-', 'g-']
+curve1= ['b-'] # , 'b:', 'g:']
+fig3, ax3 = plt.subplots(figsize=(6.4, 1.5))
+grid = plt.GridSpec(1, 3, wspace=0.4)
+ax1 = plt.subplot(grid[0, :2])
+ax2 = plt.subplot(grid[0, 2:])
+matplotlib.rc("font", size=numsize)
+for i in range(np.shape(xyloc)[0]):
+    filenm = 'spanwise_' + str(xyloc[i][0]) + '.dat'  
+    val0 = pd.read_csv(path0P + filenm, sep=' ', skiprows=0,
+                       index_col=False, skipinitialspace=True)
+    ax1.plot(val0['z'], val0[varnm]-np.mean(val0[varnm]), curve0[i], linewidth=0.8)
+    
+    val1 = pd.read_csv(path1P + filenm, sep=' ', skiprows=0,
+                       index_col=False, skipinitialspace=True)
+    ax1.plot(val1['z'], val1[varnm]-np.mean(val1[varnm]), curve1[i], linewidth=0.8)
+    
+    fre0, fpsd0 = va.fw_psd(val0[varnm], dz, 1/dz, opt=2, seg=4, overlap=2)
+    ax2.semilogx(fre0, fpsd0, curve0[i], linewidth=0.8)
+    fre1, fpsd1 = va.fw_psd(val1[varnm], dz, 1/dz, opt=2, seg=4, overlap=2)
+    ax2.semilogx(fre1, fpsd1, curve1[i], linewidth=0.8)
+
+ax1.set_ylabel(ylab, fontsize=textsize)
+ax1.set_xlabel(r"$z / \delta_0$", fontsize=textsize)
+ax1.set_xlim([-8.0, 8.0])
+# ax1.set_ylim([-4e-3, 4.1e-3]) # ([-8.0e-4, 6.0e-4])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+ax1.tick_params(labelsize=numsize)
+ax1.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax1.grid(b=True, which="both", linestyle=":")
+ax1.yaxis.offsetText.set_fontsize(numsize-1)
+ax2.set_ylabel(r"$\lambda_z \mathcal{P}$", fontsize=textsize-1)  # /\mathcal{P}_\mathrm{max}
+ax2.set_xlabel(r"$\lambda_z \delta_0$", fontsize=textsize)
+ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax2.grid(b=True, which="both", linestyle=":")
+ax2.yaxis.offsetText.set_fontsize(numsize-1)
+ax2.tick_params(labelsize=numsize)
+plt.savefig(pathC + "u_z_a_per.svg", bbox_inches='tight', dpi=300)
+plt.show()
+
+# %%############################################################################
+"""
+    Growth of RMS along streamwise direction
+"""
+# %% Plot RMS of velocity on the wall along streamwise direction
+xynew0 = pd.read_csv(path0M + 'MaxRMS.dat', sep=' ')
+xynew1 = pd.read_csv(path1M + 'MaxRMS.dat', sep=' ')
+fig, ax = plt.subplots(figsize=(3.2, 3.0))
+matplotlib.rc('font', size=numsize)
+ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
+ax.set_ylabel(ylab, fontsize=textsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+# ax.plot(xynew0['x'], np.sqrt(xynew0['<u`u`>']), 'g:', linewidth=1.0)
+ax.scatter(xynew0['x'], np.sqrt(xynew0['<u`u`>']), s=7, marker='o',
+           facecolors='w', edgecolors='g', linewidths=0.8)
+ax.plot(xynew1['x'], np.sqrt(xynew1['<u`u`>']), 'b-', linewidth=1.0)
+ax.set_yscale('log')
+ax.set_xlim([-5.0, 5.0])
+ax.set_ylim([0.0001, 0.2])
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+ax.grid(b=True, which="both", linestyle=":")
+ax.tick_params(labelsize=numsize)
+ax.yaxis.offsetText.set_fontsize(numsize-1)
+plt.show()
+plt.savefig(
+    pathC + "MaxRMS_x1.svg", bbox_inches="tight", pad_inches=0.1
+)
