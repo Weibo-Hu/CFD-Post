@@ -20,7 +20,7 @@ import variable_analysis as fv
 from scipy.interpolate import griddata  # interp1d
 from scipy.integrate import trapz, dblquad  # simps,
 # import scipy.optimize
-from scipy.interpolate import splprep, splev
+from scipy.interpolate import splprep, splev, interp1d
 # from numpy import NaN, Inf, arange, isscalar, asarray, array
 import sys
 from timer import timer
@@ -57,9 +57,13 @@ def alpha3(WallPre):
 
 
 # Obtain nondimensinal dynamic viscosity
-def viscosity(Re_delta, T):
+def viscosity(Re_delta, T, law='POW', T_inf=273):
     # nondimensional T
-    mu = 1.0 / Re_delta * np.power(T, 0.75)
+    if(law=='POW'):
+        mu = 1.0 / Re_delta * np.power(T, 0.75)
+    else:  # Sutherland's law, mu_ref = mu_inf
+        S = 110.4 / T_inf
+        mu = 1.0 * Re_delta * (1 + S) / (T + S) * np.power(T, 3/2)
     return mu
 
 
@@ -179,11 +183,11 @@ def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
             )  # time space must be equal
     # POD, fast fourier transform and remove the half
     if opt == 2:
-        Var_fft = np.fft.rfft(Var)[1:]  # remove value at 0 frequency
+        Var_fft = np.fft.rfft(Var) # [1:]  # remove value at 0 frequency
         Var_psd = np.abs(Var_fft) ** 2 / (Freq_samp * TotalNo)
         num = np.size(Var_fft)
-        # Freq = np.linspace(0.0, Freq_samp / 2, num, endpoint=False)
-        Freq = np.linspace(Freq_samp / TotalNo, Freq_samp / 2, num)
+        Freq = np.linspace(0.0, Freq_samp / 2, num)
+        # Freq = np.linspace(Freq_samp / TotalNo, Freq_samp / 2, num)
     if opt == 1:
         ns = TotalNo // seg
         Freq, Var_psd = signal.welch(
@@ -387,21 +391,30 @@ def u_tau(frame, option='mean'):
     ------
         friction/shear velocity from mean or instantaneous flow
     """
-    if (frame['walldist'].values[0] != 0):
+    if(frame['walldist'].values[0] != 0):
         sys.exit('Please reset wall distance/velocity from zero!!!')
-    if option == 'mean':
+    if(option == 'mean'):
         # rho_wall = frame['rho_m'].values[0]
         # mu_wall = frame['mu_m'].values[0]
         # delta_u = frame['u_m'].values[1] - frame['u_m'].values[0]
-        rho_wall = frame['<rho>'].values[0]
-        mu_wall = frame['<mu>'].values[0]
-        delta_u = frame['<u>'].values[1] - frame['<u>'].values[0]
+        rho_wall = frame['<rho>'].values[1]
+        mu_wall = frame['<mu>'].values[1]
+        delta_u = frame['<u>'].values[1] # - frame['<u>'].values[0]
+        u_value = frame['<u>'].values
     else:
-        rho_wall = frame['rho'].values[0]
-        mu_wall = frame['mu'].values[0]
-        delta_u = frame['u'].values[1] - frame['u'].values[0]
+        rho_wall = frame['rho'].values[1]
+        mu_wall = frame['mu'].values[1]
+        delta_u = frame['u'].values[1] # - frame['u'].values[0]
+        u_value = frame['u'].values
+    walldist2 = frame['walldist'].values[1]
+    
+#    if(frame['walldist'].values[1] > 0.005):
+#        print('Interpolate for u_wall')
+#        func = interp1d(frame['walldist'].values, u_value, kind='cubic')
+#        delta_u = func(0.004)
+#        walldist2 = 0.004
 
-    tau_wall = mu_wall * delta_u / frame['walldist'].values[1]
+    tau_wall = mu_wall * delta_u / walldist2
     shear_velocity = np.sqrt(np.abs(tau_wall / rho_wall))
     return (shear_velocity)
 
@@ -434,12 +447,15 @@ def direst_transform(frame, option='mean'):
     if (walldist[0] != 0):
         sys.exit('Please reset wall distance from zero!!!')
     m = np.size(u)
-    rho_wall = rho[0]
-    mu_wall = mu[0]
+    rho_wall = rho[1]
+    mu_wall = mu[1]
     shear_velocity = u_tau(frame, option=option)
     u_van = np.zeros(m)
+    dudy = sec_ord_fdd(walldist, u)
+    rho_ratio = np.sqrt(rho / rho_wall)
     for i in range(m):
-        u_van[i] = np.trapz(rho[: i + 1] / rho_wall, u[: i + 1])
+        # u_van[i] = np.trapz(rho_ratio[: i + 1], u[: i + 1])
+        u_van[i] = np.trapz(rho_ratio[:i+1]*dudy[:i+1], walldist[:i+1])
     u_plus_van = u_van / shear_velocity
     y_plus = shear_velocity * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
@@ -458,7 +474,7 @@ def direst_wall_lawRR(walldist, u_tau, uu, rho):
     rho_wall = rho[0]
     uu_van = np.zeros(m)
     for i in range(m):
-        uu_van[i] = np.trapz(rho[: i + 1] / rho_wall, uu[: i + 1])
+        uu_van[i] = np.trapz(np.sqrt(rho[: i + 1] / rho_wall), uu[: i + 1])
     uu_plus_van = uu_van / u_tau
     # y_plus = u_tau * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
