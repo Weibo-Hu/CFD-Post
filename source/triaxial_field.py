@@ -64,4 +64,10 @@ class TriField(PlanarField):
     def span_ave(self):
         grouped = self._data_field.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
-        return(df)
+        return (df)
+
+    def unique(self):
+        grouped = self._data_field.groupby(['x', 'y', 'z'])
+        df = grouped.mean().reset_index()
+        self._data_field = df
+        return (df)
