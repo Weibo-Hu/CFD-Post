@@ -74,7 +74,10 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
     if Equ is not None:
         for i in range(np.size(Equ)):
             tp.data.operate.execute_equation(Equ[i])
-    SolTime = dataset.solution_times[0]
+    if (np.size(dataset.solution_times) == 0):
+        SolTime = 0.0
+    else:
+        SolTime = dataset.solution_times[0]
     skip = skip + 1
     # num_zones = dataset.num_zones
     df = pd.DataFrame(columns=VarList)
@@ -85,33 +88,43 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         nx = int(np.size(np.unique(xvar)))
         ny = int(np.size(np.unique(yvar)))
         nz = int(np.size(np.unique(zvar)))
-        for i in range(np.size(VarList)):
-            varval = zone.values(VarList[i]).as_numpy_array()
-            # this method does much repeated work,
-            # try to find index to filter variables
-            if skip != 1:
-                NewCol = varval.reshape((nx, ny, nz), order='F')
-                if nx % skip == 1:
-                    NewCol = NewCol[0::skip, :, :]
-                else:
-                    print("No skip in x direction")
-                if ny % skip == 1:
-                    NewCol = NewCol[:, 0::skip, :]
-                else:
-                    print("No skip in y direction")
-                if nz % skip == 1:
-                    NewCol = NewCol[:, :, 0::skip]
-                else:
-                    print("No skip in z direction")
-                varval = NewCol.ravel(order='F')
+        x1 = np.min(xvar)
+        x2 = np.max(xvar)
+        y1 = np.min(yvar)
+        y2 = np.max(yvar)
+        z1 = np.min(zvar)
+        z2 = np.max(zvar)
+        if((SubZone[0][0] < x2 and x1 < SubZone[0][1])
+            and (SubZone[1][0] < y2 and y1 < SubZone[1][1])
+            and (SubZone[2][0] < z2 and z1 < SubZone[2][1])):
 
-            if i == 0:  # first column
-                VarCol = varval
-            else:  # other columns
-                Var_index = varval
-                VarCol = np.column_stack((VarCol, Var_index))
-        df1 = pd.DataFrame(data=VarCol, columns=VarList)
-        df = df.append(df1, ignore_index=True)
+            for i in range(np.size(VarList)):
+                varval = zone.values(VarList[i]).as_numpy_array()
+                # this method does much repeated work,
+                # try to find index to filter variables
+                if skip != 1:
+                    NewCol = varval.reshape((nx, ny, nz), order='F')
+                    if nx % skip == 1:
+                        NewCol = NewCol[0::skip, :, :]
+                    else:
+                        print("No skip in x direction")
+                    if ny % skip == 1:
+                        NewCol = NewCol[:, 0::skip, :]
+                    else:
+                        print("No skip in y direction")
+                    if nz % skip == 1:
+                        NewCol = NewCol[:, :, 0::skip]
+                    else:
+                        print("No skip in z direction")
+                    varval = NewCol.ravel(order='F')
+
+                if i == 0:  # first column
+                    VarCol = varval
+                else:  # other columns
+                    Var_index = varval
+                    VarCol = np.column_stack((VarCol, Var_index))
+            df1 = pd.DataFrame(data=VarCol, columns=VarList)
+            df = df.append(df1, ignore_index=True)
     del dataset, varval
     # df = df.drop_duplicates(keep='last')  # if on,spanwise-average may wrong
     if SpanAve is not None:
@@ -121,12 +134,6 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         grouped = df.groupby(['x', 'y', 'z'])
         df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
-    if SubZone is not None:
-        df['x'] = df['x'].astype(float)
-        df['y'] = df['y'].astype(float)
-        df['z'] = df['z'].astype(float)
-        df = df.query("x>={0} & x<={1} & y<={2}".format(
-                       SubZone[0][0], SubZone[0][1], SubZone[1][1]))
     if SavePath is not None and OutFile is not None:
         st = str(np.round(SolTime, 2))
         df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
@@ -319,7 +326,10 @@ def ReadAllINCAResults(FoldPath, SavePath=None, Equ=None,
             tp.data.operate.execute_equation(Equ[i])
     VarList = [v.name for v in dataset.variables()]
     df = pd.DataFrame(columns=VarList)
-    SolTime = dataset.solution_times[0]
+    if (np.size(dataset.solution_times) == 0):
+        SolTime = 0.0
+    else:
+        SolTime = dataset.solution_times[0]
     for zone in dataset.zones('*'):
         for i in range(np.size(VarList)):
             if i == 0:
