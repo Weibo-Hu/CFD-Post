@@ -22,7 +22,7 @@ from planar_field import PlanarField as pf
 
 
 ## data path settings
-path = "/media/weibo/VID2/BFS_M1.7Tur/"
+path = "/media/weibo/IM1/BFS_M1.7Tur/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -70,6 +70,7 @@ timezone = np.arange(700, 999.75 + 0.25, 0.25)
 x1x2 = [700, 1000]
 StepHeight = 3.0
 MeanFlow = pf()
+#MeanFlow.load_data(path + 'inca_out/')
 MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 
@@ -118,10 +119,20 @@ plt.savefig(
     Compare the law of wall: theoretical by van Driest, experiments, LES
 """
 # %% velocity profile, computation
-x0 = -1.0
+x0 = -5.0
 ## results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)
+# path = "/media/weibo/VID2/FlatTur_coarse/"
+#df = np.loadtxt(path + 'boundary_input_000001.dat')
+#varnm = ['y', 'z', '<u>', '<v>', '<w>', '<rho>', '<T>',
+#         '<u`u`>', '<v`v`>', '<w`w`>', '<u`v`>', 'u`w`', 'v`w`']
+#BLProf = pd.DataFrame(data=df, columns=varnm)
+#grouped = BLProf.groupby('y')
+#BLProf = grouped.mean().reset_index()
+#BLProf['walldist'] = BLProf['y']
+#BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
+# %%
 u_tau = va.u_tau(BLProf, option='mean')
 mu_inf = BLProf['<mu>'].values[-1]
 delta, u_inf = va.bl_thickness(BLProf['walldist'], BLProf['<u>'])
@@ -141,7 +152,7 @@ CalUPlus = va.direst_transform(BLProf, option='mean')
 ## results from theory by van Driest
 StdUPlus1, StdUPlus2 = va.std_wall_law()
 ## results from known DNS
-Re_theta = 2000 # 1400
+Re_theta = 1000 # 1400 #  
 ExpUPlus = va.ref_wall_law(Re_theta)[0]
 ## plot velocity profile
 fig, ax = plt.subplots(figsize=(3.2, 3))
@@ -253,13 +264,13 @@ plt.show()
     y+ along streamwise
 """
 # %% calculate yplus ahead/behind the step
-wallval = -3.0 # 0.0 
-dy =  -2.997037172317505 #  # 0.001953125
+wallval = 0.0 #-3.0 #  
+dy = 0.001953125 # -2.997037172317505 #  #  
 # -2.997037172317505  # 0.00390625
 frame = MeanFlow.PlanarData.loc[(MeanFlow.PlanarData['y']==dy
-                                 ) & (MeanFlow.PlanarData['x']>0.0)]
+                                 ) & (MeanFlow.PlanarData['x']<0.0)]
 frame1 = MeanFlow.PlanarData.loc[(MeanFlow.PlanarData['y']==wallval
-                                  ) & (MeanFlow.PlanarData['x']>0.0)]
+                                  ) & (MeanFlow.PlanarData['x']<0.0)]
 rho = frame1['<rho>'].values
 mu = frame1['<mu>'].values
 delta_u = (frame['<u>'].values-frame1['<u>'].values) / (dy - wallval)
@@ -269,7 +280,7 @@ yplus = (dy - wallval) * u_tau * rho / mu
 x = frame['x'].values
 res = np.vstack((x, yplus))
 frame2 = pd.DataFrame(data=res.T, columns=['x', 'yplus'])
-frame2.to_csv(pathM + 'YPLUS2.dat',
+frame2.to_csv(pathM + 'YPLUS1.dat',
               index=False, float_format='%1.8e', sep=' ')
 
 # %% plot yplus along streamwise

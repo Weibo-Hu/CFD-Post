@@ -31,7 +31,7 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7L/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -411,13 +411,13 @@ plt.show()
     frequency-weighted PSD along a line
 """
 # %% compute
-var = 'u'
+var = 'p'
 samples = int(np.size(timepoints) / skip / 2 + 1)
 FPSD = np.zeros((samples, np.size(xval)))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i], 0.0]
     freq, FPSD[:, i] = fv.fw_psd_map(Snapshots, xyz, var, dt, freq_samp, 
-                                     opt=2, seg=8, overlap=4)
+                                     opt=1, seg=4, overlap=2)
 np.savetxt(pathSL + 'FWPSD_freq.dat', freq, delimiter=' ')
 np.savetxt(pathSL + 'FWPSD_x.dat', xval, delimiter=' ')
 np.savetxt(pathSL + var + '_FWPSD_psd.dat', FPSD, delimiter=' ')
@@ -443,14 +443,15 @@ print(np.min(FPSD1))
 cb1 = -15
 cb2 = 0
 lev = np.linspace(cb1, cb2, 41)
-cbar = ax.contourf(xval, freq, FPSD1, cmap='coolwarm', levels=lev) # seismic # bwr
-ax.plot(xval, max_freq, 'C7-', linewidth=1.2)
+cbar = ax.contourf(xval, freq, FPSD1, extend='both',
+                   cmap='coolwarm', levels=lev) # seismic # bwr
+ax.plot(xval, max_freq, 'C7-', linewidth=1.0)
 # every stage of the transition
 # ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
 ax.set_xlim([-10.0, 30.0])
 rg = np.linspace(cb1, cb2, 3)
-cbar = plt.colorbar(cbar, ticks=rg)
+cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.update_ticks()

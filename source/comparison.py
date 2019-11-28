@@ -24,9 +24,9 @@ from triaxial_field import TriField as tf
 
 path0 = "/media/weibo/VID2/BFS_M1.7L/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
-path1 = "/media/weibo/VID2/BFS_M1.7TS/"
+path1 = "/media/weibo/VID2/BFS_M1.7TS_LA/"
 path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)
-path2 = "/media/weibo/VID2/BFS_M1.7TS1/"
+path2 = "/media/weibo/VID2/BFS_M1.7TS1_HA/"
 path2F, path2P, path2M, path2S, path2T, path2I = p2p.create_folder(path2)
 pathC = path2 + 'Comparison/'
 
@@ -108,10 +108,10 @@ ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathC+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
+# plt.savefig(pathC+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
-# % turbulent kinetic energy
+# % wall pressure / turbulent kinetic energy
 # xwall0 = Flow0['x'].values
 tke0 = np.sqrt(WallFlow0['<p`p`>'].values)
 tke1 = np.sqrt(WallFlow1['<p`p`>'].values)
@@ -123,12 +123,14 @@ ax3.scatter(xwall[ind0][0::8], tke0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
 ax3.plot(xwall[ind1], tke1[ind1], "k", linewidth=1.1)
 ax3.plot(xwall[ind2], tke2[ind2], "k--", linewidth=1.1)
+ax3.set_yscale('log')
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ylab = r"$2\sqrt{\langle p^{\prime}p^{\prime} \rangle}/\rho_\infty u^2_\infty$"
+ylab = r"$p_{\mathrm{rms}}$"  # 
+# ylab=r"$2\sqrt{\langle p^{\prime}p^{\prime} \rangle}/\rho_\infty u^2_\infty$"
 ax3.set_ylabel(ylab, fontsize=textsize)
 ax3.set_xlim([-40.0, 40.0])
-ax3.set_ylim([-0.001, 0.02])
-ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax3.set_ylim([0.00003, 0.05])
+# ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
@@ -137,7 +139,8 @@ ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.subplots_adjust(hspace=0.2)  # adjust space between subplots
-plt.savefig(pathC+'CfPrms.pdf', bbox_inches='tight', pad_inches=0.1)
+outfile = os.path.join(pathC, 'CfPrms.svg')
+plt.savefig(outfile, bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # %%############################################################################
@@ -145,7 +148,8 @@ plt.show()
     time sequential data at some probes
 """
 # %% load sequential slices
-path_z3 = path0S + 'TP_2D_Z_03/'
+path1Sl = path1 + 'Slice/'
+path_z3 = path1Sl + 'TP_2D_Z_03/'
 stime = np.arange(700.0, 1000, 0.25) # n*61.5
 newlist = ['x', 'y', 'z', 'u', 'p']
 dirs = sorted(os.listdir(path_z3 ))
@@ -164,7 +168,7 @@ num_samp = np.size(stime)
 var_list = ['x', 'y', 'u', 'p']
 var = np.zeros((num_samp, 2))
 for j in range(np.size(x0)):
-    file = path0P + 'timeline_' + str(x0[j]) + '.dat'
+    file = path1P + 'timeline_' + str(x0[j]) + '.dat'
     var = sp.loc[(sp['x']==x0[j]) & (sp['y']==y0[j]), var_list].values
     df = pd.DataFrame(data=np.hstack((stime.reshape(-1, 1), var)), 
                       columns=['time', 'x', 'y', 'u', 'p'])
@@ -184,7 +188,7 @@ else:
     ylab = r"$p^\prime/(\rho_\infty u_\infty ^2)$"
     ylab_sub = r"$_{p^\prime}$"
 
-xloc = [-0.1875] # [2.0] # [0.59375] # [0.203125] # , 
+xloc = [0.59375] # [0.203125] #[-0.1875] # [2.0] #  , 
 curve0= ['g-'] # , 'b-', 'g-']
 curve1= ['b-'] # , 'b:', 'g:']
 fig3, ax3 = plt.subplots(figsize=(6.4, 1.5))
