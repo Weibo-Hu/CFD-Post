@@ -355,9 +355,9 @@ def ReadAllINCAResults(FoldPath, SavePath=None, Equ=None,
 def frame2tec(dataframe,
               SaveFolder,
               FileName,
-              time=None,
               z=None,
-              zonename=None,
+              zname=None,
+              stime=None,
               float_format='%.8f'):
     if not os.path.exists(SaveFolder):
         raise IOError('ERROR: directory does not exist: %s' % SaveFolder)
@@ -371,10 +371,10 @@ def frame2tec(dataframe,
     I = np.size(x)
     J = np.size(y)
     K = np.size(z)
-    if zonename is None:
-        zone_name = "Zone_"+FileName
+    if(isinstance(zname, int)):
+        zone_name = 'B' + '{:010}'.format(zname)
     else:
-        zone_name = "Zone_0000"+str(zonename)
+        zone_name = 'B' + '{:010}'.format(1)
     zone = 'ZONE T= "{}" \n'.format(zone_name)
     xx, yy = np.meshgrid(x, y, indexing='ij')
     # xx, yy, zz = np.meshgrid(x, y, z, indexing='ij')
@@ -404,8 +404,8 @@ def frame2tec(dataframe,
     with open(SavePath + '.dat', 'w') as f:
         f.write(header+'\n')
         f.write(zone)
-        if time is not None:
-            time = np.float64(time)
+        if stime is not None:
+            time = np.float64(stime)
             f.write(' StrandID=1, SolutionTime={}\n\n'.format(time))
         else:
             f.write('\n')
@@ -434,10 +434,10 @@ def frame2tec3d(dataframe,
     header = "VARIABLES="
     for i in range(len(dataframe.columns)):
         header = '{} "{}"'.format(header, dataframe.columns[i])
-    with timer("save" + FileName + " tecplot .dat"):
+    with timer("save " + FileName + " tecplot .dat"):
         with open(SavePath + '.dat', 'w') as f:
             f.write(header)
-            if zname is not None:
+            if(isinstance(zname, int)):
                 zonename = 'B' + '{:010}'.format(zname)
             else:
                 zonename = 'B' + '{:010}'.format(1)
@@ -455,7 +455,7 @@ def frame2tec3d(dataframe,
             data.to_csv(f, sep='\t', index=False, header=False,
                         float_format=float_format)
 
-def zone2tec(path, filename, df, zonename, num, time=None):
+def zone2tec(path, filename, df, zonename, time=None):
     header = "VARIABLES = "
     zone = 'ZONE T = "{}" \n'.format(zonename)
     with open(path + filename + '.dat', 'w') as f:
@@ -468,8 +468,11 @@ def zone2tec(path, filename, df, zonename, num, time=None):
             f.write(' StrandID=1, SolutionTime = {}\n'.format(time))
         else:
             f.write('\n')
+        nx = np.size(np.unique(df['x']))
+        ny = np.size(np.unique(df['y']))
+        nz = np.size(np.unique(df['z']))
         f.write(' I = {}, J = {}, K = {}\n'.format(
-                num[0], num[1], num[2]))
+                nx, ny, nz))
         df = df.sort_values(by=['z', 'y', 'x'])
         df.to_csv(f, sep=' ', index=False, header=False,
                   float_format='%9.8e')
@@ -574,13 +577,17 @@ def tec2npy(Folder, InFile, OutFile):
 
 
 
-def tec2plt(Folder, InFile, OutFile):
+def tec2plt(Folder, InFile, OutFile=None):
     dataset = tp.data.load_tecplot(
         Folder + InFile + '.dat', read_data_option=2)
-    tp.data.save_tecplot_plt(Folder + OutFile + '.plt', dataset=dataset)
+    if OutFile is None:
+        filename = InFile
+    else:
+        filename = OutFile
+    tp.data.save_tecplot_plt(Folder + filename + '.plt', dataset=dataset)
 
 
-def tec2szplt(Folder, InFile, OutFile):
+def tec2szplt(Folder, InFile, OutFile=None):
     dataset = tp.data.load_tecplot(
         Folder + InFile + '.dat', read_data_option=2)
     tp.data.save_tecplot_szl(Folder + OutFile + '.szplt', dataset=dataset)
