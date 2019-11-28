@@ -13,7 +13,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.ticker as ticker
-from scipy.interpolate import interp1d, splev, splrep
+from scipy.interpolate import interp1d, splev, splrep, spline
 from data_post import DataPost
 import variable_analysis as fv
 from timer import timer
@@ -23,7 +23,7 @@ from glob import glob
 
 
 # %% data path settings
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/Data2/BFS_M1.7TS/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -106,8 +106,8 @@ ax.set_yticks(np.arange(0.008, 0.024 + 0.004, 0.004))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
 ax.yaxis.offsetText.set_fontsize(numsize)
 ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$\beta^* l$", fontsize=textsize)
-ax.set_ylabel(r"$\omega^* \l / u_\infty$", fontsize=textsize)
+ax.set_xlabel(r"$\beta l$", fontsize=textsize)
+ax.set_ylabel(r"$\omega \l / u_\infty$", fontsize=textsize)
 ax.axvline(x=0.393, ymin=0, ymax=0.5,
            color="gray", linestyle="--", linewidth=1.0)
 ax.axhline(y=0.101, xmin=0, xmax=0.32,
@@ -121,11 +121,11 @@ cbar.formatter.set_powerlimits((-2, 2))
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.update_ticks()
 cbar.set_label(
-    r"$\alpha_i^* \l$", rotation=0, x=-0.15,
+    r"$\alpha_i \l$", rotation=0, x=-0.15,
     labelpad=-25, fontsize=textsize
 )
 cbaxes.tick_params(labelsize=numsize)
-plt.savefig(pathF + "TS_mode_contour.svg", bbox_inches="tight")
+plt.savefig(pathF + "TS_mode_contour.pdf", bbox_inches="tight")
 plt.show()
 
 # %% Plot LST spectrum
@@ -140,8 +140,8 @@ ax.scatter(spectrum['alpha_r'], spectrum['alpha_i'], s=15, marker='o',
            facecolors='k', edgecolors='k', linewidths=0.5)
 ax.set_xlim([-2, 2])
 ax.set_ylim([-0.1, 0.3])
-ax.set_xlabel(r'$\alpha_r^* \delta_0$', fontsize=textsize)
-ax.set_ylabel(r'$\alpha_i^* \delta_0$', fontsize=textsize)
+ax.set_xlabel(r'$\alpha_r \delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$\alpha_i \delta_0$', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "TS_mode_spectrum.svg", bbox_inches="tight")
@@ -177,7 +177,7 @@ ax.plot(ts_profile.t, ts_profile.y, 'c', linewidth=1.2)
 ax.set_xlim(0.0, 1.0)
 ax.tick_params(axis='x', which='major', pad=5)
 ax.set_ylim(0.0, 5.0)
-ax.set_xlabel(r'$|\tilde{q}|/|\tilde{q}|_{max}$', fontsize=textsize)
+ax.set_xlabel(r'$|\tilde{q}|/|\tilde{q}|_\mathrm{max}$', fontsize=textsize)
 ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
@@ -242,16 +242,22 @@ fig, ax = plt.subplots(figsize=(3.2, 3.2))
 matplotlib.rc("font", size=textsize)
 # plot lines
 y_s1 = np.linspace(ReBeta1[1:-1].min(), ReBeta1[1:-1].max(), 200)
-x_s1 = spline(ReBeta1[1:-1], Re1[1:-1], y_s1)
+tck = splrep(ReBeta1[1:-1], Re1[1:-1], s=0)
+x_s1 = splev(y_s1, tck) # spline(ReBeta1[1:-1], Re1[1:-1], y_s1)
+
 y_s2 = np.linspace(ReBeta2[1:-1].min(), ReBeta2[1:-1].max(), 200)
-x_s2 = spline(ReBeta2[1:-1], Re2[1:-1], y_s2)
+tck = splrep(ReBeta2[1:-1], Re2[1:-1], s=0)
+x_s2 = splev(y_s2, tck) # x_s2 = spline(ReBeta2[1:-1], Re2[1:-1], y_s2)
+
 y_s3 = np.linspace(ReBeta3[1:-1].min(), ReBeta3[1:-1].max(), 200)
-x_s3 = spline(ReBeta3[1:-1], Re3[1:-1], y_s3)
+tck = splrep(ReBeta3[1:-1], Re3[1:-1], s=0)
+x_s3 = splev(y_s3, tck) # x_s3 = spline(ReBeta3[1:-1], Re3[1:-1], y_s3)
 ax.plot(x_s1, y_s1, 'k-', linewidth=1.2)
 ax.plot(x_s2, y_s2, 'k--', linewidth=1.2)
 ax.plot(x_s3, y_s3, 'k:', linewidth=1.2)
 xm_s = np.linspace(beta3['Re'][1:].min(), beta3['Re'][1:].max(), 100)
-ym_s = spline(beta3['Re'][1:], beta3['beta3'][1:], xm_s, order=4)
+tck = splrep(beta3['Re'][1:], beta3['beta3'][1:])
+ym_s = splev(xm_s, tck) # ym_s = spline(beta3['Re'][1:], beta3['beta3'][1:], xm_s, order=4)
 ax.plot(beta3['Re'][1:], beta3['beta3'][1:], 'k-.', linewidth=1.2)
 #ax.plot(beta1['Re'], beta1['beta1'], 'r-',
 #        beta1['Re'], beta1['beta2'], 'r-', linewidth=1.2)
@@ -263,7 +269,7 @@ ax.plot(beta3['Re'][1:], beta3['beta3'][1:], 'k-.', linewidth=1.2)
 ax.set_xlim([2160, 2280])
 ax.set_ylim([0.02, 0.13])
 ax.set_xlabel(r'$Re_l$', fontsize=textsize)
-ax.set_ylabel(r'$\beta^* l$', fontsize=textsize)
+ax.set_ylabel(r'$\beta l$', fontsize=textsize)
 ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-1, 1))
 ax.yaxis.offsetText.set_fontsize(numsize)
@@ -289,11 +295,16 @@ fig, ax = plt.subplots(figsize=(3.2, 3.2))
 matplotlib.rc("font", size=textsize)
 # plot lines
 y_s1 = np.linspace(ReBeta1[1:-1].min(), ReBeta1[1:-1].max(), 200)
-x_s1 = spline(ReBeta1[1:-1], Re1[1:-1], y_s1)
+tck = splrep(np.sort(ReBeta1[1:-1]), Re1[1:-1], s=0)
+x_s1 = splev(y_s1, tck) # spline(ReBeta1[1:-1], Re1[1:-1], y_s1)
+
 y_s2 = np.linspace(ReBeta2[1:-1].min(), ReBeta2[1:-1].max(), 200)
-x_s2 = spline(ReBeta2[1:-1], Re2[1:-1], y_s2)
-y_s3 = np.linspace(ReBeta3[2:-1].min(), ReBeta3[2:-1].max(), 200)
-x_s3 = spline(ReBeta3[1:-1], Re3[1:-1], y_s3)
+tck = splrep(np.sort(ReBeta2[1:-1]), Re2[1:-1], s=0)
+x_s2 = splev(y_s2, tck) # x_s2 = spline(ReBeta2[1:-1], Re2[1:-1], y_s2)
+
+y_s3 = np.linspace(ReBeta3[1:-1].min(), ReBeta3[1:-1].max(), 200)
+tck = splrep(np.sort(ReBeta3[1:-1]), Re3[1:-1], s=0)
+x_s3 = splev(y_s3, tck) # x_s3 = spline(ReBeta3[1:-1], Re3[1:-1], y_s3)
 x_s1[0] = Re1[1]
 y_s1[0] = ReBeta1[1]
 x_s2[0] = Re2[1]
@@ -304,7 +315,8 @@ ax.plot(x_s1, y_s1, 'k-', linewidth=1.2)
 ax.plot(x_s2, y_s2, 'k--', linewidth=1.2)
 ax.plot(x_s3, y_s3, 'k:', linewidth=1.2)
 xm_s = np.linspace(beta1['Re'][1:].min(), beta1['Re'][1:].max(), 100)
-ym_s = spline(beta1['Re'][1:], beta1['omega3'][1:], xm_s, order=4)
+tck = splrep(beta1['Re'][1:], beta1['omega3'][1:], s=0)
+ym_s = splev(xm_s, tck)  # spline(beta1['Re'][1:], beta1['omega3'][1:], xm_s, order=4)
 ax.plot(beta1['Re'][1:], beta1['omega3'][1:], 'k-.', linewidth=1.2)
 # plot lines
 #ax.plot(beta1['Re'], beta1['omega1'], 'r-',
@@ -319,10 +331,10 @@ ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
 ax.yaxis.offsetText.set_fontsize(numsize)
 ax.set_xlabel(r'$Re_l$', fontsize=textsize)
-ax.set_ylabel(r'$\omega^* l/u_\infty$', fontsize=textsize)
+ax.set_ylabel(r'$\omega l/u_\infty$', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
-plt.savefig(pathF + "Re_omega.svg", bbox_inches="tight")
+plt.savefig(pathF + "Re_omega.pdf", bbox_inches="tight")
 plt.show()
 
 # %% TS-modes along streamwise
