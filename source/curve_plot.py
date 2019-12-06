@@ -22,7 +22,7 @@ from planar_field import PlanarField as pf
 
 
 ## data path settings
-path = "/media/weibo/IM1/BFS_M1.7Tur/"
+path = "/media/weibo/IM1/BFS_M1.7Tur1/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -119,19 +119,23 @@ plt.savefig(
     Compare the law of wall: theoretical by van Driest, experiments, LES
 """
 # %% velocity profile, computation
-x0 = -5.0
-## results from LES
-MeanFlow.copy_meanval()
-BLProf = MeanFlow.yprofile('x', x0)
+# df = p2p.ReadAllINCAResults(path + 'inca_out/', path + 'inca_out/', 
+#                             FileName=path + 'inca_out/MeanFlow.szplt',
+#                             SpanAve=True, OutFile='MeanFlow')
 # path = "/media/weibo/VID2/FlatTur_coarse/"
 #df = np.loadtxt(path + 'boundary_input_000001.dat')
-#varnm = ['y', 'z', '<u>', '<v>', '<w>', '<rho>', '<T>',
-#         '<u`u`>', '<v`v`>', '<w`w`>', '<u`v`>', 'u`w`', 'v`w`']
-#BLProf = pd.DataFrame(data=df, columns=varnm)
+# varnm = ['x', 'y', 'z', '<u>', '<v>', '<w>', '<rho>', '<T>',
+#          '<u`u`>', '<v`v`>', '<w`w`>', '<u`v`>', 'u`w`', 'v`w`']
+#BLProf = pd.DataFrame(data=df.values[2:, :], columns=varnm)
 #grouped = BLProf.groupby('y')
 #BLProf = grouped.mean().reset_index()
 #BLProf['walldist'] = BLProf['y']
 #BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
+# %% velocity profile, computation
+x0 = -40.0
+## results from LES
+MeanFlow.copy_meanval()
+BLProf = MeanFlow.yprofile('x', x0)
 # %%
 u_tau = va.u_tau(BLProf, option='mean')
 mu_inf = BLProf['<mu>'].values[-1]
@@ -152,10 +156,11 @@ CalUPlus = va.direst_transform(BLProf, option='mean')
 ## results from theory by van Driest
 StdUPlus1, StdUPlus2 = va.std_wall_law()
 ## results from known DNS
-Re_theta = 1000 # 1400 #  
+Re_theta = 800 # 1400 #  
 ExpUPlus = va.ref_wall_law(Re_theta)[0]
 ## plot velocity profile
-fig, ax = plt.subplots(figsize=(3.2, 3))
+fig = plt.figure(figsize=(6.4, 3.0))
+ax = fig.add_subplot(121)
 matplotlib.rc('font', size=numsize)
 ax.plot(
     StdUPlus1[:, 0],
@@ -186,6 +191,7 @@ ax.set_ylabel(r"$\langle u_{VD}^+ \rangle$", fontdict=font)
 ax.set_xlabel(r"$\Delta y^+$", fontdict=font)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
+ax.annotate("(a)", xy=(-0.16, 0.98), xycoords='axes fraction', fontsize=numsize)
 plt.tick_params(labelsize="medium")
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 # plt.tick_params(labelsize=numsize)
@@ -193,7 +199,7 @@ plt.savefig(
     pathF + 'WallLaw' + str(x0) + '.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
-# %% Reynolds stresses in Morkovin scaling
+#  Reynolds stresses in Morkovin scaling
 ## results from known DNS
 ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
     va.ref_wall_law(Re_theta)
@@ -206,8 +212,9 @@ uv = BLProf['<u`v`>'] / u_tau**2 * xi**2
 # spl = splrep(CalUPlus[:, 0], uu, s=0.1)
 # uu = splev(CalUPlus[:, 0], spl)
 ## plot Reynolds stress
-fig, ax = plt.subplots(figsize=(3.2, 3.2))
-ax.scatter(
+# fig, ax = plt.subplots(figsize=(3.2, 3.2))
+ax2 = fig.add_subplot(122)
+ax2.scatter(
     ExpUrmsPlus[:, 0],
     ExpUrmsPlus[:, 1],
     linewidth=0.8,
@@ -215,43 +222,45 @@ ax.scatter(
     facecolor="none",
     edgecolor="k",
 )
-ax.scatter(
+ax2.scatter(
     ExpVrmsPlus[:, 0],
     ExpVrmsPlus[:, 1],
     linewidth=0.8,
     s=8.0,
     facecolor="none",
-    edgecolor="r",
+    edgecolor="k", #"r",
 )
-ax.scatter(
+ax2.scatter(
     ExpWrmsPlus[:, 0],
     ExpWrmsPlus[:, 1],
     linewidth=0.8,
     s=8.0,
     facecolor="none",
-    edgecolor="b",
+    edgecolor="k", #"b",
 )
-ax.scatter(
+ax2.scatter(
     ExpUVPlus[:, 0],
     ExpUVPlus[:, 1],
     linewidth=0.8,
     s=8.0,
     facecolor="none",
-    edgecolor="gray",
+    edgecolor="k", #"gray",
 )
-ax.plot(CalUPlus[:, 0], uu, "k", linewidth=1.5)
-ax.plot(CalUPlus[:, 0], vv, "r", linewidth=1.5)
-ax.plot(CalUPlus[:, 0], ww, "b", linewidth=1.5)
-ax.plot(CalUPlus[:, 0], uv, "gray", linewidth=1.5)
-ax.set_xscale("log")
-ax.set_xlim([1, 2000])
+ax2.plot(CalUPlus[:, 0], uu, "k", linewidth=1.5)
+ax2.plot(CalUPlus[:, 0], vv, "k", linewidth=1.5)
+ax2.plot(CalUPlus[:, 0], ww, "k", linewidth=1.5)
+ax2.plot(CalUPlus[:, 0], uv, "k", linewidth=1.5)
+ax2.set_xscale("log")
+ax2.set_xlim([1, 2000])
 # ax.set_ylim([0, 30])
-ax.set_ylabel(r"$\langle u^{\prime}_i u^{\prime}_j \rangle$", fontdict=font)
-ax.set_xlabel(r"$y^+$", fontdict=font)
-ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.grid(b=True, which="both", linestyle=":")
+ax2.set_ylabel(r"$\langle u^{\prime}_i u^{\prime}_j \rangle$", fontdict=font)
+ax2.set_xlabel(r"$y^+$", fontdict=font)
+ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax2.grid(b=True, which="both", linestyle=":")
+ax2.annotate("(b)", xy=(-0.18, 0.98), xycoords='axes fraction',fontsize=numsize)
+plt.subplots_adjust(wspace=0.8)
 plt.tick_params(labelsize="medium")
-plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=0.3)
 plt.savefig(
     pathF + "ReynoldStress" + str(x0) + ".svg",
     bbox_inches="tight",
