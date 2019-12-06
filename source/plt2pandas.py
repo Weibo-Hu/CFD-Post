@@ -127,10 +127,10 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
             df = df.append(df1, ignore_index=True)
     del dataset, varval
     # df = df.drop_duplicates(keep='last')  # if on,spanwise-average may wrong
-    if SpanAve is not None:
+    if SpanAve == True:
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
-    else:
+    if SpanAve == None:
         grouped = df.groupby(['x', 'y', 'z'])
         df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
@@ -436,7 +436,7 @@ def frame2tec3d(dataframe,
         header = '{} "{}"'.format(header, dataframe.columns[i])
     with timer("save " + FileName + " tecplot .dat"):
         with open(SavePath + '.dat', 'w') as f:
-            f.write(header)
+            f.write(header+'\n')
             if(isinstance(zname, int)):
                 zonename = 'B' + '{:010}'.format(zname)
             else:
