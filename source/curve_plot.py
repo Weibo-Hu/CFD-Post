@@ -22,7 +22,7 @@ from planar_field import PlanarField as pf
 
 
 ## data path settings
-path = "/media/weibo/IM1/BFS_M1.7Tur1/"
+path = "/media/weibo/IM1/BFS_M1.7Tur/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -86,13 +86,13 @@ MeanFlowL.add_walldist(StepHeight)
 """
 # %% plot BL profile along streamwise
 MeanFlow.copy_meanval()
-fig, ax = plt.subplots(1, 7, figsize=(6.4, 2.2))
-fig.subplots_adjust(hspace=0.5, wspace=0.15)
+fig, ax = plt.subplots(1, 8, figsize=(6.4, 2.4))
+fig.subplots_adjust(hspace=0.5, wspace=0.18)
 matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-40, 0, 5, 10, 15, 20, 30])
+xcoord = np.array([-30, 2.0, 4.625, 6.25, 9.25, 10, 20, 30])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df['walldist']
@@ -101,12 +101,13 @@ for i in range(np.size(xcoord)):
     ax[i].set_ylim([0, 3])
     if i != 0:
         ax[i].set_yticklabels('')
+        ax[i].set_title(r'${}$'.format(xcoord[i]), fontsize=numsize-2)
     ax[i].set_xticks([0, 0.5, 1], minor=True)
-    ax[i].tick_params(axis='both', which='major', labelsize=numsize)
-    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=numsize - 2)
+    ax[i].tick_params(axis='both', which='major', labelsize=numsize)   
     ax[i].grid(b=True, which="both", linestyle=":")
+ax[0].set_title(r'$x/\delta_0={}$'.format(xcoord[0]), fontsize=numsize-2)
 ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
-ax[3].set_xlabel(r'$u/u_\infty$', fontsize=textsize)
+ax[4].set_xlabel(r'$u /u_\infty$', fontsize=textsize)
 plt.tick_params(labelsize=numsize)
 plt.show()
 plt.savefig(
@@ -132,7 +133,7 @@ plt.savefig(
 #BLProf['walldist'] = BLProf['y']
 #BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
 # %% velocity profile, computation
-x0 = -40.0
+x0 = -30.0
 ## results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)
@@ -187,8 +188,8 @@ ax.plot(CalUPlus[:, 0], CalUPlus[:, 1], "k", linewidth=1.5)
 ax.set_xscale("log")
 ax.set_xlim([0.5, 2000])
 ax.set_ylim([0, 30])
-ax.set_ylabel(r"$\langle u_{VD}^+ \rangle$", fontdict=font)
-ax.set_xlabel(r"$\Delta y^+$", fontdict=font)
+ax.set_ylabel(r"$\langle u_{VD}^+ \rangle$", fontsize=textsize)
+ax.set_xlabel(r"$\Delta y^+$", fontsize=textsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 ax.annotate("(a)", xy=(-0.16, 0.98), xycoords='axes fraction', fontsize=numsize)
@@ -273,8 +274,8 @@ plt.show()
     y+ along streamwise
 """
 # %% calculate yplus ahead/behind the step
-wallval = 0.0 #-3.0 #  
-dy = 0.001953125 # -2.997037172317505 #  #  
+wallval = 0.0 # -3.0 # 
+dy = 0.001953125 #-2.997037172317505 #   #  
 # -2.997037172317505  # 0.00390625
 frame = MeanFlow.PlanarData.loc[(MeanFlow.PlanarData['y']==dy
                                  ) & (MeanFlow.PlanarData['x']<0.0)]
@@ -312,7 +313,7 @@ plt.show()
 
 # %%############################################################################
 """
-    y+ along streamwise
+    Compute BL edge & Gortler number
 """
 # %% Compute BL edge & Gortler number
 # compute
@@ -422,7 +423,7 @@ mu = va.viscosity(13718, WallFlow["T"])
 Cf = va.skinfriction(mu, WallFlow["u"], WallFlow["walldist"]).values
 ind = np.where(Cf[:] < 0.005)
 # fig2, ax2 = plt.subplots(figsize=(5, 2.5))
-fig = plt.figure(figsize=(6.4, 2.2))
+fig = plt.figure(figsize=(6.4, 2.6))
 matplotlib.rc("font", size=textsize)
 ax2 = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)
@@ -433,7 +434,7 @@ ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
 ax2.set_xlim([-20.0, 40.0])
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=9.2, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.12, 1.04), xycoords='axes fraction',
@@ -443,45 +444,47 @@ plt.savefig(pathF+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # % pressure coefficiency
-# fa = 1.7 * 1.7 * 1.4
-# # fig3, ax3 = plt.subplots(figsize=(5, 2.5))
-# ax3 = fig.add_subplot(122)
-# ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
-# ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-# ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
-# ax3.set_xlim([-20.0, 40.0])
-# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
-# ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-# ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-# ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
-# ax3.grid(b=True, which="both", linestyle=":")
-# ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
-#              fontsize=numsize)
-# plt.tick_params(labelsize=numsize)
-# plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-# # plt.savefig(path2 + "Cp.svg", dpi=300)
-# plt.savefig(pathF + "CfCp.svg", dpi=300)
-# plt.show()
-
-# % turbulent kinetic energy
-tke = va.tke(WallFlow).values
+fa = 1.7 * 1.7 * 1.4
+# fig3, ax3 = plt.subplots(figsize=(5, 2.5))
 ax3 = fig.add_subplot(122)
-matplotlib.rc("font", size=textsize)
-ax3.plot(xwall[ind], tke[ind], "k", linewidth=1.5)
+ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax3.set_ylabel(r"$k/u^2_\infty$", fontsize=textsize)
+ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
 ax3.set_xlim([-20.0, 40.0])
+ax3.set_ylim([0.25, 1.25])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=9.2, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
-ax3.yaxis.offsetText.set_fontsize(numsize)
-ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
-             fontsize=numsize)
+ax3.annotate("(b)", xy=(-0.16, 1.04), xycoords='axes fraction',
+              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.subplots_adjust(wspace=0.3)
-plt.savefig(pathF+'CfTk.svg', bbox_inches='tight', pad_inches=0.1)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+ # plt.savefig(path2 + "Cp.svg", dpi=300)
+plt.savefig(pathF + "CfCp.svg", dpi=300)
 plt.show()
+
+# % turbulent kinetic energy
+#tke = va.tke(WallFlow).values
+#ax3 = fig.add_subplot(122)
+#matplotlib.rc("font", size=textsize)
+#ax3.plot(xwall[ind], tke[ind], "k", linewidth=1.5)
+#ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+#ax3.set_ylabel(r"$k/u^2_\infty$", fontsize=textsize)
+#ax3.set_xlim([-20.0, 40.0])
+## ax3.set_ylim([-0.001, 0.002])
+#ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+#ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
+#ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
+#ax3.grid(b=True, which="both", linestyle=":")
+#ax3.yaxis.offsetText.set_fontsize(numsize)
+#ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
+#             fontsize=numsize)
+#plt.tick_params(labelsize=numsize)
+#plt.subplots_adjust(wspace=0.3)
+#plt.savefig(pathF+'CfTk.svg', bbox_inches='tight', pad_inches=0.1)
+#plt.show()
 
 # %%############################################################################
 """
