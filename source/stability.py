@@ -16,7 +16,7 @@ import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, splev, splrep
 from scipy import signal
 from data_post import DataPost
-import variable_analysis as fv
+import variable_analysis as va
 from timer import timer
 import sys
 import os
@@ -31,7 +31,7 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/VID2/BFS_M1.7L/"
+path = "/media/weibo/IM1/BFS_M1.7Tur/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -115,7 +115,7 @@ znew = np.zeros(np.size(xnew))
 varv = np.zeros(np.size(xnew))
 ynew = np.zeros(np.size(xnew))
 for i in range(np.size(xnew)):
-    df = fv.max_pert_along_y(stat, '<u`u`>', [xnew[i], znew[i]])
+    df = va.max_pert_along_y(stat, '<u`u`>', [xnew[i], znew[i]])
     varv[i] = df[varn]
     ynew[i] = df['y']
 data = np.vstack((xnew, ynew, varv))
@@ -147,7 +147,7 @@ plt.savefig(
 loc = ['z', 'y']
 val = [0.0, -2.99704]
 varnm = '<u`u`>'
-pert = fv.pert_at_loc(stat, varnm, loc, val)
+pert = va.pert_at_loc(stat, varnm, loc, val)
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=14)
 ax.set_ylabel(r"$\sqrt{u^{\prime 2}}/u_{\infty}$", fontsize=textsize)
@@ -183,7 +183,7 @@ plt.savefig(
 # %% Plot RMS of velocity along wall-normal direction
 loc = ['x', 'z']
 val = [10.0, 0.0]
-pert = fv.pert_at_loc(stat, varnm, loc, val)
+pert = va.pert_at_loc(stat, varnm, loc, val)
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=14)
 ax.set_xlabel(r"$u^{\prime}/u_{\infty}$", fontsize=textsize)
@@ -226,7 +226,7 @@ matplotlib.rc('font', size=14)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 # a
 val = valarr[0]
-pert = fv.pert_at_loc(stat3d, varnm, loc, val)
+pert = va.pert_at_loc(stat3d, varnm, loc, val)
 ax[0].plot(np.sqrt(pert[varnm]), pert['z'], 'k-')
 ax[0].set_xlim([0.0, 1e-3])
 ax[0].ticklabel_format(axis="x", style="sci", scilimits=(-1, 1))
@@ -238,7 +238,7 @@ ax[0].grid(b=True, which="both", linestyle=":")
 ax[0].xaxis.offsetText.set_fontsize(numsize)
 # b
 val = valarr[1]
-pert = fv.pert_at_loc(stat3d, varnm, loc, val)
+pert = va.pert_at_loc(stat3d, varnm, loc, val)
 ax[1].plot(np.sqrt(pert[varnm]), pert['z'], 'k-')
 ax[1].set_xlim([1e-2, 3e-2])
 ax[1].ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
@@ -249,7 +249,7 @@ ax[1].grid(b=True, which="both", linestyle=":")
 ax[1].xaxis.offsetText.set_fontsize(numsize)
 # c
 val = valarr[2]
-pert = fv.pert_at_loc(stat3d, varnm, loc, val)
+pert = va.pert_at_loc(stat3d, varnm, loc, val)
 ax[2].plot(np.sqrt(pert[varnm]), pert['z'], 'k-')
 ax[2].set_xlim([0.05, 0.20])
 ax[2].set_xlabel(r"$\sqrt{u^{\prime 2}}/u_{\infty}$",
@@ -261,7 +261,7 @@ ax[2].set_title(title[2], fontsize=numsize)
 ax[2].grid(b=True, which="both", linestyle=":")
 # d
 val = valarr[3]
-pert = fv.pert_at_loc(stat3d, varnm, loc, val)
+pert = va.pert_at_loc(stat3d, varnm, loc, val)
 ax[3].plot(np.sqrt(pert[varnm]), pert['z'], 'k-')
 ax[3].set_xlim([0.05, 0.20])
 ax[3].ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
@@ -271,7 +271,7 @@ ax[3].set_title(title[3], fontsize=numsize)
 ax[3].grid(b=True, which="both", linestyle=":")
 # e
 val = valarr[4]
-pert = fv.pert_at_loc(stat3d, varnm, loc, val)
+pert = va.pert_at_loc(stat3d, varnm, loc, val)
 ax[4].plot(np.sqrt(pert[varnm]), pert['z'], 'k-')
 ax[4].set_xlim([0.05, 0.20])
 ax[4].ticklabel_format(axis="x", style="sci", scilimits=(-2, 2))
@@ -299,7 +299,7 @@ Snapshots = DataFrame[['x', 'y', 'z', 'u', 'p']]
 
 fa = 1.7*1.7*1.4
 skip = 1
-timepoints = np.arange(700, 999.75 + 0.25, 0.25)
+timepoints = np.arange(951.0, 1028.75 + 0.25, 0.25)
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         if i % skip == 0:
@@ -321,12 +321,13 @@ freq_samp = 4.0
 # %% compute amplitude of variable along a line
 # xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
 xynew = np.loadtxt(pathM + "MaxRMS.dat", skiprows=1)
-xval = xynew[:, 0]
-yval = xynew[:, 1]
+ind = (xynew[:, 0] <= 30.0) & (xynew[:, 0] >= -10.0)
+xval = xynew[ind, 0]
+yval = xynew[ind, 1]
 amplit = np.zeros(np.size(xval))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i], 0.0]
-    amplit[i] = fv.amplit(Snapshots, xyz, var)
+    amplit[i] = va.amplit(Snapshots, xyz, var)
 
 # %% plot amplitude of variable along a line
 fig, ax = plt.subplots(figsize=(6.4, 3))
@@ -350,7 +351,7 @@ loc = ['x', 'y']
 uu = np.zeros(np.size(xval))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i]]
-    uu[i] = fv.pert_at_loc(stat, varnm, loc, xyz)[varnm]
+    uu[i] = va.pert_at_loc(stat, varnm, loc, xyz)[varnm]
 
 # %% draw RMS & amplication factor along streamwise
 fig, ax = plt.subplots(figsize=(6.4, 3.0))
@@ -390,7 +391,7 @@ varnm = 'p'
 rms = np.zeros(np.size(xval))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i], 0.0]
-    rms[i] = fv.rms_map(Snapshots, xyz, varnm)
+    rms[i] = va.rms_map(Snapshots, xyz, varnm)
 
 # plot
 matplotlib.rcParams['xtick.direction'] = 'in'
@@ -416,7 +417,7 @@ samples = int(np.size(timepoints) / skip / 2 + 1)
 FPSD = np.zeros((samples, np.size(xval)))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i], 0.0]
-    freq, FPSD[:, i] = fv.fw_psd_map(Snapshots, xyz, var, dt, freq_samp, 
+    freq, FPSD[:, i] = va.fw_psd_map(Snapshots, xyz, var, dt, freq_samp, 
                                      opt=1, seg=4, overlap=2)
 np.savetxt(pathSL + 'FWPSD_freq.dat', freq, delimiter=' ')
 np.savetxt(pathSL + 'FWPSD_x.dat', xval, delimiter=' ')
@@ -440,7 +441,7 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 print(np.max(FPSD1))
 print(np.min(FPSD1))
-cb1 = -15
+cb1 = -6
 cb2 = 0
 lev = np.linspace(cb1, cb2, 41)
 cbar = ax.contourf(xval, freq, FPSD1, extend='both',
@@ -480,7 +481,7 @@ matplotlib.rcParams['ytick.direction'] = 'in'
 xcoord = np.array([-40, 0, 5, 10, 15, 20, 30])
 loc = ['z', 'x']
 for i in range(np.size(xcoord)):
-    pert = fv.pert_at_loc(stat, varnm, loc, [0.0, xcoord[i]])
+    pert = va.pert_at_loc(stat, varnm, loc, [0.0, xcoord[i]])
     if xcoord[i] > 0.0:
         ax[i].plot(np.sqrt(pert[varnm]), pert['y']+3.0, 'k-')
     else:
