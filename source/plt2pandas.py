@@ -135,7 +135,7 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if SavePath is not None and OutFile is not None:
-        st = str(np.round(SolTime, 2))
+        st = "%08.2f" % SolTime
         df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
     return (df, SolTime)
 
@@ -295,14 +295,13 @@ def GirdIndex(FileID, xarr, yarr, zarr):
     FileID['ind'] = ind_arr
     return (FileID)
 
-
 def SaveSlice(df, SolTime, SpanAve, SavePath):
     if SpanAve == float('Inf'):  # span-averaged
         grouped = df.groupby(['x', 'y'])
         df = grouped.mean().reset_index()
     else:  # extract a slice at z=SpanAve
         df = df.loc[df['z'] == SpanAve].reset_index(drop=True)
-    df.to_hdf(SavePath+"Slice"+"%0.1f"%SpanAve+"SolTime"+"%0.2f"%SolTime+".h5",
+    df.to_hdf(SavePath+"Slice"+"%0.1f"%SpanAve+"SolTime"+"%08.2f"%SolTime+".h5",
               'w', format='fixed')
     return df
 
@@ -347,7 +346,7 @@ def ReadAllINCAResults(FoldPath, SavePath=None, Equ=None,
         df = grouped.mean().reset_index()
         # df = df.loc[df['z'] == 0.0].reset_index(drop=True)
     if SavePath is not None and OutFile is not None:
-        st = str(np.round(SolTime, 2))
+        st = "%08.2f" % SolTime
         df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
     return(df)
 
@@ -655,7 +654,7 @@ def create_folder(path):
     exists = os.path.exists(path + 'snapshots')
     if not exists:
         os.mkdir(path + 'snapshots')
-    pathF = path + 'Figures'
+    pathF = path + 'Figures/'
     pathP = path + "probes/"
     pathM = path + "MeanFlow/"
     pathS = path + "SpanAve/"
