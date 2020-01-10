@@ -14,7 +14,6 @@ import numpy as np
 import scipy as sp
 import warnings
 import pandas as pd
-from DataPost import DataPost
 from scipy.interpolate import interp1d
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import scipy.optimize
@@ -29,12 +28,12 @@ from timer import timer
 # phi-each column is a mode structure
 # eigval-the amount of enery in each mode
 # alpha -time amplitude, each mode varies in time
-def POD(var, outfile, fluc=None, method=None):
+def pod(var, outfile, fluc=False, method=None):
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if(n > m):
         sys.exit(
             "NO of snapshots had better be smaller than NO of grid points!!!")
-    if fluc == 'True':
+    if fluc == True:
         var = var - np.transpose(np.tile(np.mean(var, axis=1), (n, 1)))
     if method == 'svd':  # svd method
         phi, sigma, VH = sp.linalg.svd(var, full_matrices=False)
@@ -64,15 +63,15 @@ def POD(var, outfile, fluc=None, method=None):
         #            delimiter = "\t", header = 'mode')
     return (eigval, eigvec, phi, alpha)
 
-def POD_EigSpectrum(Percent, eigval):
+def pod_eigspectrum(Percent, eigval):
     EnergyFrac       = eigval/np.sum(eigval)*100
     EnergyCumulation = np.cumsum(EnergyFrac)
     index = np.where(EnergyCumulation >= Percent)
-    num = index[0][0]
+    num = np.size(eigval) - np.size(index[0]) + 1
     #NewFlow = inner1d(coeff[:,:num], phi[:,:num])
     return EnergyFrac, EnergyCumulation, num#NewFlow
 
-def POD_Reconstruct(num, Snapshots, eigval, phi, alpha):
+def pod_reconstruct(num, Snapshots, eigval, phi, alpha):
     # SVD
     NewFlow = phi[:,:num]*alpha[:num,:]
     # eigval problem
