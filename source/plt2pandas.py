@@ -415,38 +415,36 @@ def frame2tec(dataframe,
 
 
 def frame2tec3d(dataframe,
-                SaveFolder,
-                FileName,
+                path,
+                filename,
                 zname=None,
                 stime=None,
-                float_format='%.8f'):
-    if not os.path.exists(SaveFolder):
-        raise IOError('ERROR: directory does not exist: %s' % SaveFolder)
-    SavePath = os.path.join(SaveFolder, FileName)
-    x = dataframe.x.unique()
-    y = dataframe.y.unique()
-    z = dataframe.z.unique()
-    In = np.size(x)
-    Jn = np.size(y)
-    Kn = np.size(z)
-    dataframe = dataframe.sort_values(by=['z', 'y', 'x'])
+                float_format='%9.8e'):
+    if not os.path.exists(path):
+        raise IOError('ERROR: directory does not exist: %s' % path)
+    SavePath = os.path.join(path, filename)
+    In = np.size(np.unique(dataframe['x']))
+    Jn = np.size(np.unique(dataframe['y']))
+    Kn = np.size(np.unique(dataframe['z']))
+
     header = "VARIABLES="
     for i in range(len(dataframe.columns)):
         header = '{} "{}"'.format(header, dataframe.columns[i])
-    with timer("save " + FileName + " tecplot .dat"):
+    if(isinstance(zname, int)):
+        zonename = 'B' + '{:010}'.format(zname)
+    else:
+        zonename = 'B' + '{:010}'.format(1)
+    zone = 'ZONE T= "{}" \n'.format(zonename)
+
+    with timer("save " + filename + " tecplot .dat"):
         with open(SavePath + '.dat', 'w') as f:
-            f.write(header+'\n')
-            if(isinstance(zname, int)):
-                zonename = 'B' + '{:010}'.format(zname)
-            else:
-                zonename = 'B' + '{:010}'.format(1)
-            zone = 'ZONE T= "{}" \n'.format(zonename)
             if stime is not None:
                 stime = np.float64(stime)
                 timeid = 'StrandID={0}, SolutionTime={1}\n'.format(i+1, stime)
             else:
                 timeid = 'StrandID={}\n'.format(i + 1)
             xyz = 'I = {}, J = {}, K = {}\n'.format(In, Jn, Kn)
+            f.write(header+'\n')
             f.write(zone)
             f.write(timeid)
             f.write(xyz)
@@ -454,12 +452,13 @@ def frame2tec3d(dataframe,
             data.to_csv(f, sep='\t', index=False, header=False,
                         float_format=float_format)
 
+"""
 def zone2tec(path, filename, df, zonename, time=None):
     header = "VARIABLES = "
     zone = 'ZONE T = "{}" \n'.format(zonename)
+    for i in range(len(df.columns)):
+        header = '{} "{}"'.format(header, df.columns[i])
     with open(path + filename + '.dat', 'w') as f:
-        for i in range(len(df.columns)):
-            header = '{} "{}"'.format(header, df.columns[i])
         f.write(header+'\n')
         f.write(zone)
         if time is not None:
@@ -475,7 +474,7 @@ def zone2tec(path, filename, df, zonename, time=None):
         df = df.sort_values(by=['z', 'y', 'x'])
         df.to_csv(f, sep=' ', index=False, header=False,
                   float_format='%9.8e')
-
+"""
 
 def mul_zone2tec(path, filename, zoneinfo, df, zoneid=None, stime=None):
     header = "VARIABLES = "
