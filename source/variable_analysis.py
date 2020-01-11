@@ -128,7 +128,7 @@ def gortler(Re_inf, x, y, theta, scale=0.001):
     return gortler
 
 
-def gortlerTur(theta, delta_star, radi):
+def gortler_tur(theta, delta_star, radi):
     # radi = Radius(x, y)
     a1 = theta / 0.018 / delta_star
     a2 = np.sqrt(theta / np.abs(radi))
@@ -485,14 +485,14 @@ def direst_wall_lawRR(walldist, u_tau, uu, rho):
 
 
 # Obtain reattachment location with time
-def reattach_loc(InFolder, OutFolder, timezone, skip=1, opt=2):
+def reattach_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timezone))
     j = 0
     if opt == 1:
         data = pd.read_hdf(InFolder + dirs[0])
         # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
-        NewFrame = data.query("x>=8.0 & x<=13.0")
+        NewFrame = data.query("x>=7.5 & x<=13.0")
         TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
         ind = TemFrame.index.values
         for i in range(np.size(dirs)):
@@ -507,7 +507,7 @@ def reattach_loc(InFolder, OutFolder, timezone, skip=1, opt=2):
             if i % skip == 0:
                 with timer("Computing reattaching point " + dirs[i]):
                     frame = pd.read_hdf(InFolder + dirs[i])
-                    xy = dividing_line(frame)
+                    xy = dividing_line(frame, loc=loc)
                     xarr[j] = np.max(xy[:, 0])
                     j = j + 1
     reatt = np.vstack((timezone, xarr)).T
@@ -583,7 +583,7 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1):
     matplotlib.rc("font", size=18)
     data = pd.read_hdf(InFolder + dirs[0])
     x0 = np.unique(data["x"])
-    x1 = x0[x0 > 10.0]
+    x1 = x0[x0 > 8.0]
     x1 = x1[x1 <= 30.0]
     y0 = np.unique(data["y"])
     y1 = y0[y0 > -2.5]
@@ -726,7 +726,7 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
                delimiter='  ', header=header)
 
 
-def dividing_line(dataframe, path=None):
+def dividing_line(dataframe, path=None, loc=-0.015625):
     NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
     if 'u' not in NewFrame.columns:
@@ -740,12 +740,22 @@ def dividing_line(dataframe, path=None):
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     xylist = []
+    nolist = []
     for i, isoline in enumerate(cs1.collections[0].get_paths()):
         xy = isoline.vertices
+        nolist.append(np.shape(xy)[0])
         if np.any(xy[:, 1] == -0.015625):  # pick the bubble line
+            if (np.min(xy[:, 1]) < -2.0) & (np.min(xy[:, 0]) < 1.0):
+                ind = i
+        elif np.any(xy[:, 1] == loc):
             ind = i
         xylist.append(xy)
         xycor = np.vstack((xycor, xy))
+    try:
+        ind
+    except:
+        print('find no bubble line!!!')
+        ind = np.argmax(nolist)
     xy = xylist[ind]
     fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     ax1.scatter(xy[:, 0], xy[:, 1])
@@ -801,16 +811,25 @@ def boundary_edge(dataframe, path, jump1=None, jump2=None):  # jump = reattachme
     )
 
 
-def bubble_area(InFolder, OutFolder, timezone, step=3.0, skip=1):
+def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
+                step=3.0, skip=1, cutoff=None):
     dirs = sorted(os.listdir(InFolder))
     area = np.zeros(np.size(timezone))
     j = 0
+    if cutoff is None:
+        cutoff = -0.015625
+    else:
+        assert isinstance(cutoff, float), \
+            'cutoff:{} is not a float'.format(cutoff.__class__.__name__)
     for i in range(np.size(dirs)):
         if i % skip == 0:
             with timer("Bubble area at " + dirs[i]):
                 dataframe = pd.read_hdf(InFolder + dirs[i])
-                xy = dividing_line(dataframe)
+                xy = dividing_line(dataframe, loc=loc)
                 area[j] = trapz(xy[:, 1] + step, xy[:, 0])
+                ind = np.argmax(xy[:, 1])
+                if xy[ind, 1] < cutoff:
+                    area[j] = area[j] + 0.5 * xy[ind, 0] * (3 + xy[ind, 1])
             j = j + 1
     area_arr = np.vstack((timezone, area)).T
     np.savetxt(
