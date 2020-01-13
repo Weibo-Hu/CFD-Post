@@ -182,23 +182,23 @@ plt.show()
 
 # %% specific mode in space
 ind = 1
-var = var0
-fa = 1.0  # 1.7*1.7*1.4 #  
+var = var2
+fa = 1.7*1.7*1.4 # 1.0  #     
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
-newflow = phi[:, ind - 1]*coeff[ind - 1, 1]
+newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
 modeflow = newflow[varset[var][0]:varset[var][1]]
 print("The limit value: ", np.min(modeflow)*fa, np.max(modeflow)*fa)
 u = griddata((xval, yval), modeflow, (x, y))*fa
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
-fig, ax = plt.subplots(figsize=(3.6, 1.8))
-c1 = -0.006 # -0.01 # -0.006
+fig, ax = plt.subplots(figsize=(3.8, 1.6))
+c1 = -0.0025 # -0.01 # -0.006
 c2 = -c1 #0.063
 
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
-cbar = ax.contourf(x, y, u, cmap='RdBu_r', levels=lev1) #, extend='both')
+cbar = ax.contourf(x, y, u, cmap='RdBu_r', levels=lev1, extend='both')
 #ax.contour(x, y, u, levels=lev2, colors='k', linewidths=0.8, extend='both')
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'), extend='both')
 ax.set_xlim(x1, x2)
@@ -212,7 +212,7 @@ ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
-                     ticks=rg2)
+                     ticks=rg2, extendrect='False')
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()

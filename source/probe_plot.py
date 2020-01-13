@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 import matplotlib
 from scipy.interpolate import interp1d  # spline, splev, splrep
 # from scipy import signal  # integrate
-import variable_analysis as fv
+import variable_analysis as va
 from line_field import LineField as lf
 
 # -- data path settings
-path = "/media/weibo/VID2/BFS_M1.7L/"
+path = "/media/weibo/IM1/BFS_M1.7Tur/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -45,7 +45,7 @@ numsize = 10
 probe = lf()
 fa = 1.7 * 1.7 * 1.4
 var = 'p'
-timezone = [400, 600]
+timezone = np.arange(975, 1064.00 + 0.25, 0.25)
 xloc = [-40.0, -30.0, -20.0, -10.0, -1.0]
 yloc = 0.0
 zloc = 0.0
@@ -116,7 +116,7 @@ probe.load_probe(pathP, (-10.0, 0.0, 0.0))
 dt = 0.02
 freq_samp = 50
 var = 'u'
-freq, fpsd = fv.fw_psd(getattr(probe, var), probe.time, freq_samp)
+freq, fpsd = va.fw_psd(getattr(probe, var), probe.time, freq_samp)
 # fig, ax1 = plt.subplots(figsize=(6.4, 2.8))
 fig = plt.figure(figsize=(6.4, 2.8))
 ax1 = fig.add_subplot(121)
@@ -135,7 +135,7 @@ plt.show()
 
 probe1 = lf()
 probe1.load_probe(pathP, (-20.0, 0.0, 0.0))
-freq1, fpsd1 = fv.fw_psd(getattr(probe1, var), probe1.time, freq_samp)
+freq1, fpsd1 = va.fw_psd(getattr(probe1, var), probe1.time, freq_samp)
 ax2 = fig.add_subplot(122)
 matplotlib.rc('font', size=textsize)
 ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
@@ -168,8 +168,8 @@ for j in range(np.size(xzone)):
     else:
         probe.load_probe(pathP, (xzone[j], -3.0, 0.0))
     probe.extract_series((t1, t2))
-    gamma[j] = fv.intermittency(sigma, p0, probe.p, probe.time)
-    alpha[j] = fv.alpha3(probe.p)
+    gamma[j] = va.intermittency(sigma, p0, probe.p, probe.time)
+    alpha[j] = va.alpha3(probe.p)
 # -- plot
 fig3, ax3 = plt.subplots(figsize=(6.4, 3.0))
 ax3.plot(xzone, gamma, 'ko')
@@ -208,18 +208,19 @@ plt.show()
 """
 # %% Calculate singnal of Xr, Xsl, Xsf, Xb
 InFolder = path + 'Slice/TP_2D_S_10/'
-timezone = np.arange(700, 999.75 + 0.25, 0.25)
+timezone = np.arange(975, 1064.00 + 0.25, 0.25)
+skip = 1
 # -- reattachement location
-reatt = fv.reattach_loc(InFolder, pathI, timezone[0::2], skip=2, opt=2)
+reatt = va.reattach_loc(InFolder, pathI, timezone, loc=-0.5, skip=skip, opt=2)
 # -- shock location outside the boundary layer
-fv.shock_loc(InFolder, pathI, timezone[0::2], skip=2)
+va.shock_loc(InFolder, pathI, timezone, skip=skip)
 # -- shock foot within the boudnary layer
-fv.shock_foot(InFolder, pathI, timezone[0::2], -1.875, 0.82, skip=2)
+va.shock_foot(InFolder, pathI, timezone, -1.875, 0.64, skip=skip)  # 0.82 for laminar
 # -- area of the separation bubble
-fv.bubble_area(InFolder, pathI, timezone[0::2], skip=2)
-dt = 0.5
-fs = 2.0
-x1x2 = [700, 1000]
+va.bubble_area(InFolder, pathI, timezone, skip=skip)
+dt = 0.25
+fs = 4.0
+x1x2 = [950, 1100]
 # %%############################################################################
 """
     Temporal evolution & Power spectral density
@@ -250,7 +251,7 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = fv.fw_psd(Xk*fa, dt, 1/dt, opt=1)
+Fre, FPSD = va.fw_psd(Xk*fa, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
@@ -281,7 +282,7 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = fv.fw_psd(Xb, dt, 1/dt, opt=1)
+Fre, FPSD = va.fw_psd(Xb, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
@@ -296,10 +297,10 @@ shock2 = np.loadtxt(pathI + "ShockB.dat", skiprows=1)
 foot = np.loadtxt(pathI + "ShockFoot.dat", skiprows=1)
 delta_x = shock2[0, 2] - shock1[0, 2]
 angle = np.arctan(delta_x / (shock2[:, 1] - shock1[:, 1])) / np.pi * 180
-shockloc = shock2[:, 1] - 8.0 / np.tan(angle/180*np.pi)
+shockloc = shock2[:, 1] - 8.0 / np.tan(angle/180*np.pi)  # outside the BL
 Xl = shockloc
 Xf = foot[:, 1]
-Xs = shockloc
+Xs = Xf  # shockloc
 # %% temporal evolution
 fig, ax = plt.subplots(figsize=(6.4, 3.0))
 ax.plot(shock1[:, 0], Xs, "k-")
@@ -314,7 +315,7 @@ ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
 plt.savefig(pathF + "Shockloc.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
-print("Corelation: ", fv.correlate(Xs, Xk))
+# print("Corelation: ", va.correlate(Xs, Xk))
 
 # -- FWPSD
 fig, ax = plt.subplots(figsize=(3.2, 3.2))
@@ -323,12 +324,12 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = fv.fw_psd(Xs, dt, 1/dt, opt=1)
+Fre, FPSD = va.fw_psd(Xs, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathF + "ShocklocFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "ShockfootFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 # %% singnal of reattachment point
 # -- temporal evolution
@@ -338,7 +339,7 @@ fig, ax = plt.subplots(figsize=(6.4, 2.0))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
 ax.plot(reatt[:, 0], Xr, "k-")
-ax.set_xlim([700, 1000])
+ax.set_xlim(x1x2)
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$x_r/\delta_0$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
@@ -355,7 +356,7 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = fv.fw_psd(Xr, dt, 1/dt, opt=1)
+Fre, FPSD = va.fw_psd(Xr, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
@@ -366,7 +367,7 @@ plt.show()
 # %% gradient of Xr
 x1x2 = [-40, 10]
 fig, ax = plt.subplots(figsize=(6.4, 3.0))
-dxr = fv.sec_ord_fdd(timezone, Xr)
+dxr = va.sec_ord_fdd(timezone, Xr)
 ax.plot(timezone, dxr, "k-")
 ax.set_xlim(x1x2)
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
@@ -437,9 +438,9 @@ Xr2 = probe22[:, 1]
 fig = plt.figure(figsize=(10, 4))
 matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(121)
-Fre, coher = fv.coherence(Xr0, Xs0, dt, fs)
-Fre1, coher1 = fv.coherence(Xr1, Xs1, dt, fs)
-Fre2, coher2 = fv.coherence(Xr2, Xs2, dt, fs)
+Fre, coher = va.coherence(Xr0, Xs0, dt, fs)
+Fre1, coher1 = va.coherence(Xr1, Xs1, dt, fs)
+Fre2, coher2 = va.coherence(Xr2, Xs2, dt, fs)
 ax.semilogx(Fre, coher, "k-", linewidth=1.0)
 # ax.semilogx(Fre1, coher1, "k:", linewidth=1.0)
 # ax.semilogx(Fre2, coher2, "k--", linewidth=1.0)
@@ -453,9 +454,9 @@ plt.tick_params(labelsize=numsize)
 ax.annotate("(a)", xy=(-0.15, 1.0), xycoords="axes fraction", fontsize=numsize)
 
 ax = fig.add_subplot(122)
-Fre, cpsd = fv.cro_psd(Xr0, Xs0, dt, fs)
-Fre1, cpsd1 = fv.cro_psd(Xr1, Xs1, dt, fs)
-Fre2, cpsd2 = fv.cro_psd(Xr2, Xs2, dt, fs)
+Fre, cpsd = va.cro_psd(Xr0, Xs0, dt, fs)
+Fre1, cpsd1 = va.cro_psd(Xr1, Xs1, dt, fs)
+Fre2, cpsd2 = va.cro_psd(Xr2, Xs2, dt, fs)
 ax.semilogx(Fre, np.arctan(cpsd.imag, cpsd.real), "k-", linewidth=1.0)
 # ax.semilogx(Fre, np.arctan(cpsd1.imag, cpsd1.real), "k:", linewidth=1.0)
 # ax.semilogx(Fre, np.arctan(cpsd2.imag, cpsd2.real), "k--", linewidth=1.0)
@@ -482,7 +483,7 @@ x2 = Xk
 delay = np.arange(-60.0, 60+0.5, 0.5)
 cor = np.zeros(np.size(delay))
 for i, dt in enumerate(delay):
-    cor[i] = fv.delay_correlate(x1, x2, 0.5, dt)
+    cor[i] = va.delay_correlate(x1, x2, 0.5, dt)
 
 fig, ax = plt.subplots(figsize=(5, 4))
 ax.plot(delay, cor, "k-")

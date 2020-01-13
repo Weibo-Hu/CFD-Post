@@ -28,7 +28,7 @@ from timer import timer
 # phi-each column is a mode structure
 # eigval-the amount of enery in each mode
 # alpha -time amplitude, each mode varies in time
-def pod(var, outfile, fluc=False, method=None):
+def pod(var, fluc=False, method=None):
     m, n = np.shape(var) # n: the number of snapshots, m: dimensions
     if(n > m):
         sys.exit(

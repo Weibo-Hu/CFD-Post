@@ -148,10 +148,12 @@ plt.show()
     time sequential data at some probes
 """
 # %% load sequential slices
+path1 = "/media/weibo/IM1/BFS_M1.7Tur/"
+path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)
 path1Sl = path1 + 'Slice/'
 path_z3 = path1Sl + 'TP_2D_Z_03/'
-stime = np.arange(700.0, 1000, 0.25) # n*61.5
-newlist = ['x', 'y', 'z', 'u', 'p']
+stime = np.arange(975, 1064.00 + 0.25, 0.25) # n*61.5
+newlist = ['x', 'y', 'z', 'u', 'p'] 
 dirs = sorted(os.listdir(path_z3 ))
 df_shape = np.shape(pd.read_hdf(path_z3  + dirs[0]))
 sp = pd.DataFrame()
@@ -162,8 +164,8 @@ for i in range(np.size(dirs)):
                       UserWarning)
     sp = sp.append(fm_temp.loc[:, newlist], ignore_index=True)
 # %% extract probe data with time
-x0 = [-0.1875, 0.203125, 0.5, 0.59375]
-y0 = [0.03125, 0.0390625, -0.078125, -0.171875] 
+x0 = [-10.0, -0.1875, 0.203125, 0.5, 0.59375, 9.0]
+y0 = [0.03125, 0.03125, 0.0390625, -0.078125, -0.171875, -2.34375] 
 num_samp = np.size(stime)
 var_list = ['x', 'y', 'u', 'p']
 var = np.zeros((num_samp, 2))
@@ -179,7 +181,7 @@ for j in range(np.size(x0)):
     Development of variables with time
 """
 # %% variables with time
-varnm = 'u'
+varnm = 'p'
 dt = 0.25
 if varnm == 'u':
     ylab = r"$u / u_\infty$"
@@ -188,7 +190,7 @@ else:
     ylab = r"$p^\prime/(\rho_\infty u_\infty ^2)$"
     ylab_sub = r"$_{p^\prime}$"
 
-xloc = [0.59375] # [0.203125] #[-0.1875] # [2.0] #  , 
+xloc = [9.0] # [0.59375] # [0.203125] #[-0.1875] # [2.0] #  , 
 curve0= ['g-'] # , 'b-', 'g-']
 curve1= ['b-'] # , 'b:', 'g:']
 fig3, ax3 = plt.subplots(figsize=(6.4, 1.5))
@@ -198,38 +200,39 @@ ax2 = plt.subplot(grid[0, 2:])
 matplotlib.rc("font", size=numsize)
 for i in range(np.size(xloc)):
     filenm = 'timeline_' + str(xloc[i]) + '.dat'  
-    var0 = pd.read_csv(path0P + filenm, sep=' ', skiprows=0,
-                       index_col=False, skipinitialspace=True)
-    val0 = var0[varnm] # - np.mean(var0[varnm])
+    #var0 = pd.read_csv(path0P + filenm, sep=' ', skiprows=0,
+    #                   index_col=False, skipinitialspace=True)
+    #val0 = var0[varnm] # - np.mean(var0[varnm])
     var1 = pd.read_csv(path1P + filenm, sep=' ', skiprows=0,
                        index_col=False, skipinitialspace=True)
     val1 = var1[varnm] # - np.mean(var1[varnm])
     # val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
-    ax1.plot(var0['time'], val0, curve0[i], linewidth=0.8)
+    #ax1.plot(var0['time'], val0, curve0[i], linewidth=0.8)
     ax1.plot(var1['time'], val1, curve1[i], linewidth=0.8)
     
-    fre0, fpsd0 = va.fw_psd(var0[varnm], dt, 1/dt, opt=2, seg=8, overlap=4)
-    ax2.semilogx(fre0, fpsd0, curve0[i], linewidth=0.8)
+    #fre0, fpsd0 = va.fw_psd(var0[varnm], dt, 1/dt, opt=2, seg=8, overlap=4)
+    #ax2.semilogx(fre0, fpsd0, curve0[i], linewidth=0.8)
     # ax2.set_yscale('log')
     fre1, fpsd1 = va.fw_psd(var1[varnm], dt, 1/dt, opt=2, seg=8, overlap=4)
     ax2.semilogx(fre1, fpsd1, curve1[i], linewidth=0.8)
 
 ax1.set_ylabel(ylab, fontsize=textsize)
 ax1.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=textsize)
-ax1.set_xlim([700, 1000])
+ax1.set_xlim([975, 1100])
 # ax1.set_ylim([-4e-3, 4.1e-3]) # ([-8.0e-4, 6.0e-4])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax1.tick_params(labelsize=numsize)
 ax1.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax1.grid(b=True, which="both", linestyle=":")
 ax1.yaxis.offsetText.set_fontsize(numsize-1)
+ax2.set_xlim([0.01, 2.0])
 ax2.set_ylabel(r"$f \mathcal{P}$", fontsize=textsize-1)  # /\mathcal{P}_\mathrm{max}
 ax2.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize-1)
 ax2.tick_params(labelsize=numsize)
-plt.savefig(pathC + varnm + "_time_d.svg", bbox_inches='tight', dpi=300)
+plt.savefig(path1F + varnm + "_time_f.svg", bbox_inches='tight', dpi=300)
 plt.show()
 
 

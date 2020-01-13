@@ -137,7 +137,7 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
     if SavePath is not None and OutFile is not None:
         st = "%08.2f" % SolTime
         df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
-    return (df, SolTime)
+    return(df, SolTime)
 
 
 # %% save zone information of every tecplot file

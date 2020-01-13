@@ -25,15 +25,19 @@ from matplotlib import colors as mcolors
 
 
 # %% data path settings
-path = "/media/weibo/Data3/BFS_M1.7L_0505/"
+path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
+p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
 pathS = path + "SpanAve/"
 pathT = path + "TimeAve/"
 pathI = path + "Instant/"
-pathV = path + 'video/'
-pathD = path + 'DMD/'
+pathD = path + "Domain/"
+pathPOD = path + "POD/"
+pathDMD = path + "DMD/"
+pathSS = path + 'Slice/TP_2D_S_10/'
+timepoints = np.arange(700, 999.5 + 0.5, 0.5)
 
 # %% figures properties settings
 plt.close("All")
@@ -44,12 +48,11 @@ font = {
 }
 
 matplotlib.rc('font', **font)
-textsize = 12
+textsize = 13
 numsize = 10
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # %% load data
-timepoints = np.arange(800, 1200.0 + 0.5, 0.5)
-dirs = glob(pathS+'*.h5')
+dirs = glob(pathSS+'*.h5')
 dirs.sort( key=lambda f: int(''.join(filter(str.isdigit, f))) )
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
@@ -57,6 +60,8 @@ if np.size(dirs) != np.size(timepoints):
 DataFrame = pd.read_hdf(dirs[0])
 DataFrame['walldist'] = DataFrame['y']
 DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
+grouped = DataFrame.groupby(['x', 'y'])
+DataFrame = grouped.mean().reset_index()
 NewFrame = DataFrame.query("x>=-5.0 & x<=30.0 & walldist>=0.0 & y<=5.0")
 ind = NewFrame.index.values
 xval = DataFrame['x'][ind] # NewFrame['x']
@@ -77,6 +82,8 @@ Snapshots = FirstFrame[ind].ravel(order='F')
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         TempFrame = pd.read_hdf(dirs[i+1])
+        grouped = TempFrame.groupby(['x', 'y'])
+        TempFrame = grouped.mean().reset_index()
         if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
         NextFrame = TempFrame[col].values
@@ -105,7 +112,7 @@ with timer("DMD computing"):
 print("The residuals of DMD is ", bfs.residuals)
 eigval = bfs.eigval
 # save results
-meanflow.to_hdf(pathD + 'MeanFlow.h5', 'w', format='fixed')
+meanflow.to_hdf(pathDMD + 'MeanFlow.h5', 'w', format='fixed')
 
 np.save(pathD + 'eigval', bfs.eigval) # \mu
 np.save(pathD + 'modes', bfs.modes) # \phi
@@ -116,7 +123,7 @@ np.save(pathD + 'amplitudes', bfs.amplitudes) # \alpha
 
 # %% SPDMD
 bfs1 = sparse.SparseDMD(Snapshots, bfs, dt=dt)
-gamma = [750, 800, 900]
+gamma = [300, 400, 500]
 with timer("SPDMD computing"):
     bfs1.compute_sparse(gamma)
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
@@ -128,7 +135,7 @@ bfs1.sparse.gamma[sp]
 r = np.size(eigval)
 sp_ind = np.arange(r)[bfs1.sparse.nonzero[:, sp]]
 
-np.savez(pathD + 'sparse.npz',
+np.savez(pathDMD + 'sparse.npz',
          Nz=bfs1.sparse.Nz,
          gamma=bfs1.sparse.gamma,
          nonzero=bfs1.sparse.nonzero)
@@ -157,12 +164,12 @@ ax1.set_ylabel(r'$\Im(\mu_i)$')
 ax1.grid(b=True, which='both', linestyle=':')
 plt.gca().set_aspect('equal', adjustable='box')
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathD+var+'DMDEigSpectrum.svg')
+plt.savefig(pathDMD+var+'DMDEigSpectrum.svg')
 plt.show()
 
 # %% discard the bad DMD modes
 # bfs2 = bfs
-bfs2 = bfs.reduce(0.9975)
+bfs2 = bfs.reduce(0.995)
 phi = bfs2.modes
 freq = bfs2.omega/2/np.pi
 beta = bfs2.beta
@@ -194,15 +201,15 @@ ax2.set_xlabel(r'$f \delta_0/u_\infty$')
 ax2.set_ylabel(r'$|\psi_i|$')
 ax2.grid(b=True, which='both', linestyle=':')
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathD+var+'DMDFreqSpectrum.svg')
+plt.savefig(pathDMD+var+'DMDFreqSpectrum.svg')
 plt.show()
 
 # %% specific mode in real space
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 var = var2
-fa = 1.7*1.7*1.4
-ind = 15
+fa =  1.7*1.7*1.4 # 1.0 # 
+ind = 24
 num = sp_ind[ind] # ind from small to large->freq from low to high
 freq1 = bfs.omega/2/np.pi
 name = str(round(freq1[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
@@ -215,12 +222,12 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 
 matplotlib.rc('font', size=textsize)
-fig, ax = plt.subplots(figsize=(8, 3))
-c1 = -0.010 #-0.024
-c2 = 0.010 #0.018
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+c1 = -0.007 #-0.024
+c2 = -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
-cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
+cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r', extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
 ax.set_xlim(x1, x2)
@@ -228,24 +235,26 @@ ax.set_ylim(y1, y2)
 ax.tick_params(labelsize=numsize)
 cbar.cmap.set_under('#053061')
 cbar.cmap.set_over('#67001f')
-ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
-ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
+ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
-cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
+cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
+                     extendrect='False', ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
 cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, 
-                x=-0.20, labelpad=-30, fontsize=textsize)
+                x=-0.20, labelpad=-26, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 # Add shock wave
 shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
-ax.plot(shock[:, 0], shock[:, 1], color='#aaff32', linewidth=1.5)
+ax.plot(shock[:, 0], shock[:, 1], color='#32cd32ff', linewidth=1.2)
 # Add sonic line
 sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
-ax.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.5)
+ax.plot(sonic[:, 0], sonic[:, 1], color='#32cd32ff',
+        linestyle='--', linewidth=1.5)
 # Add boundary layer
 boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
 ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
@@ -253,7 +262,7 @@ ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
 dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
 # ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
-plt.savefig(pathD+var+'DMDMode'+name+'Real.svg', bbox_inches='tight')
+plt.savefig(pathDMD+var+'DMDMode'+name+'Real.svg', bbox_inches='tight')
 plt.show()
 
 # % specific mode in imaginary space
@@ -264,12 +273,12 @@ u = griddata((xval, yval), imagflow, (x, y))*fa
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=18)
-fig, ax = plt.subplots(figsize=(8, 3))
-c1 = -0.009 #-0.024
-c2 = 0.009 #0.018
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+c1 = -0.006 #-0.024
+c2 = -c1 # 0.012 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)
-cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r') #, extend='both') 
+cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r', extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
 ax.set_xlim(x1, x2)
@@ -280,29 +289,31 @@ cbar.cmap.set_over('#67001f')
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
 cbaxes = fig.add_axes([0.25, 0.76, 0.30, 0.07])  # x, y, width, height
-cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
+cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
+                     extendrect='False', ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
 cbar1.set_label(r'$\Im(\phi_{})$'.format(var), rotation=0,
-                x=-0.20, labelpad=-30, fontsize=textsize)
+                x=-0.20, labelpad=-26, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
-ax.set_xlabel(r'$x/\delta_0$', fontdict=font)
-ax.set_ylabel(r'$y/\delta_0$', fontdict=font)
+ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 # Add shock wave
 shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
-ax.plot(shock[:, 0], shock[:, 1], 'g', linewidth=1.0)
+ax.plot(shock[:, 0], shock[:, 1], color='#32cd32ff', linewidth=1.2)
 # Add sonic line
 sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
-ax.plot(sonic[:, 0], sonic[:, 1], 'g--', linewidth=1.0)
+ax.plot(sonic[:, 0], sonic[:, 1], color='#32cd32ff',
+        linestyle='--', linewidth=1.5)
 # Add boundary layer
 boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
-ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.0)
+ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
 # Add dividing line(separation line)
 dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
-ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.0)
+ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
 # ax.annotate("(b)", xy=(-0.10, 1.0), xycoords='axes fraction', fontsize=numsize)
-plt.savefig(pathD+var+'DMDMode'+name+'Imag.svg', bbox_inches='tight')
+plt.savefig(pathDMD+var+'DMDMode'+name+'Imag.svg', bbox_inches='tight')
 plt.show()
 
 # %% growth rate of a specific mode

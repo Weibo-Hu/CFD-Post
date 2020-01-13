@@ -324,15 +324,17 @@ delta_star = np.zeros(num)
 theta = np.zeros(num)
 
 for i in range(num):
-    y0, u0 = MeanFlow.BLProfile("x", xd[i], "u")
-    y0, rho0 = MeanFlow.BLProfile("x", xd[i], "rho")
-    delta[i] = va.BLThickness(y0.values, u0.values)
-    delta_star[i] = va.BLThickness(y0.values, u0.values,
-                                   rho0.values, opt='displacement')
-    theta[i] = va.BLThickness(
-        y0.values, u0.values, rho0.values, opt='momentum')
+    df = MeanFlow.yprofile("x", xd[i])
+    y0 = df['y']
+    u0 = df['<u>']
+    rho0 = df['<rho>']
+    delta[i] = va.bl_thickness(y0.values, u0.values)[0]
+    delta_star[i] = va.bl_thickness(y0.values, u0.values,
+                                    rho=rho0.values, opt='displacement')[0]
+    theta[i] = va.bl_thickness(
+        y0.values, u0.values, rho=rho0.values, opt='momentum')[0]
 
-stream = np.loadtxt(pathM + 'Streamline.dat', skiprows=1)
+stream = np.loadtxt(pathM + 'BubbleLine.dat', skiprows=1)
 stream[:, -1] = stream[:, -1] + 3.0
 func = interp1d(stream[:, 0], stream[:, 1], bounds_error=False, fill_value=0.0)
 yd = func(xd)
@@ -354,17 +356,17 @@ A, B, C, D = popt
 fitfunc = lambda t: A * t ** 3 + B * t **2 + C * t + D
 yd = fitfunc(xd)
 # gortler = va.Gortler(1.3718e7, xd, delta1, theta)
-radius = va.Radius(xd[:-1], delta_fit[:-1])
+radius = va.radius(xd[:-1], delta_fit[:-1])
 # radius = va.Radius(xd[:-1], yd[:-1])
-gortler = va.GortlerTur(theta[:-1], delta_star[:-1], radius)
+gortler = va.gortler_tur(theta[:-1], delta_star[:-1], radius)
 
 fig3, ax3 = plt.subplots(figsize=(5, 2.5))
-ax3.plot(xd, delta, 'k-', linewidth=1.5)
-ax3.plot(xd, delta_fit, 'k--', linewidth=1.5)
-ax3.plot(xd, yd, 'k--', linewidth=1.5)
-ax3.plot(xd, theta, 'k:', linewidth=1.5)
+ax3.plot(xd, delta, 'k-', linewidth=1.5)  # boundary layer 
+ax3.plot(xd, delta_fit, 'k--', linewidth=1.5) 
+ax3.plot(xd, yd, 'k--', linewidth=1.5)  # bubble line
+ax3.plot(xd, theta, 'k:', linewidth=1.5)  # momentum
 # ax3.plot(xd[:-1], radius, 'k:', linewidth=1.5)
-ax3.plot(stream[:, 0], stream[:, 1], 'b--', linewidth=1.5)
+ax3.plot(stream[:, 0], stream[:, 1], 'b--', linewidth=1.5)  # bubble line
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
 # ax3.set_xlim([0.0, 30.0])
@@ -378,9 +380,9 @@ plt.savefig(pathF + "BLEdge.svg", dpi=300)
 plt.show()
 # %% Plot Gortler number
 # plot figure for delta/R
-fig = plt.figure(figsize=(10, 4))
+fig = plt.figure(figsize=(3.2, 3.0))
 matplotlib.rc("font", size=textsize)
-ax2 = fig.add_subplot(121)
+ax2 = fig.add_subplot(111)
 matplotlib.rc("font", size=textsize)
 ax2.plot(xd[:-1], delta_fit[:-1] / radius, "k", linewidth=1.5)
 ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -391,11 +393,11 @@ ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
-# plt.savefig(path2 + "Cf.svg", bbox_inches="tight", pad_inches=0.1)
-# plt.show()
+plt.savefig(pathF + "delta_radius.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 
 # %% plot figure for Gortler number
-fig3, ax3 = plt.subplots(figsize=(5, 4))
+fig3, ax3 = plt.subplots(figsize=(3.2, 3.0))
 # ax3 = fig.add_subplot(122)
 ax3.plot(xd[:-1], gortler, "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -491,7 +493,7 @@ plt.show()
     Intermittency
 """
 # %% Load data for Computing intermittency factor
-InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots2/"
+InFolder = pathSL + 'TP_2D_Z_03/'
 dirs = sorted(os.listdir(InFolder))
 data = pd.read_hdf(InFolder + dirs[0])
 data["walldist"] = data["y"]
@@ -512,11 +514,11 @@ gamma = np.zeros(np.size(xzone))
 alpha = np.zeros(np.size(xzone))
 p0 = Snapshots[0, :]
 sigma = np.std(p0)
-timezone = np.arange(800, 1149.50 + 0.5, 0.5)
+timezone = np.arange(975, 1064.00 + 0.25, 0.25)
 dt = 0.5
 for j in range(np.size(Snapshots[:, 0])):
-    gamma[j] = va.Intermittency(sigma, p0, Snapshots[j, :], timezone)
-    alpha[j] = va.Alpha3(Snapshots[j, :])
+    gamma[j] = va.intermittency(sigma, p0, Snapshots[j, :], timezone)
+    alpha[j] = va.alpha3(Snapshots[j, :])
 
 # %% Plot Intermittency factor
 # universal intermittency distribution
@@ -531,10 +533,10 @@ YminorLocator = ticker.MultipleLocator(0.1)
 xarr = np.linspace(-40.0, 70.0, 111)
 spl = splrep(xzone, gamma, s=0.35)
 yarr = splev(xarr, spl)
-fig3, ax3 = plt.subplots(figsize=(10, 3))
-# ax3.plot(xzone, gamma, 'k-')
-ax3.plot(xarr, yarr, "k-")
-ax3.scatter(x1, ga1, c="black", marker="o", s=10)
+fig3, ax3 = plt.subplots(figsize=(6.4, 2.6))
+ax3.plot(xzone, gamma, 'k--')
+ax3.plot(xarr, yarr, "k-")  # fitting values
+ax3.scatter(x1, ga1, c="black", marker="o", s=10)  # universal distribution
 ax3.scatter(x2, ga2, c="black", marker="o", s=10)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\gamma$", fontsize=textsize)

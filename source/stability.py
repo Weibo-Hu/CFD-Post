@@ -299,7 +299,7 @@ Snapshots = DataFrame[['x', 'y', 'z', 'u', 'p']]
 
 fa = 1.7*1.7*1.4
 skip = 1
-timepoints = np.arange(951.0, 1028.75 + 0.25, 0.25)
+timepoints = np.arange(951.0, 1064.00 + 0.25, 0.25)
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         if i % skip == 0:

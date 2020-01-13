@@ -30,7 +30,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/IM1/BFS_M1.7Tur/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -115,9 +115,11 @@ rho = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 print("rho_max=", np.max(MeanFlow.rho_m))
 print("rho_min=", np.min(MeanFlow.rho_m))
 rho[corner] = np.nan
-fig, ax = plt.subplots(figsize=(6.4, 2.2))
+cval1 = 0.28
+cval2 = 1.02
+fig, ax = plt.subplots(figsize=(6.4, 2.3))
 matplotlib.rc("font", size=textsize)
-rg1 = np.linspace(0.33, 1.03, 41)
+rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend='both')  # rainbow_r
 ax.set_xlim(-20.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
@@ -126,7 +128,7 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
-rg2 = np.linspace(0.33, 1.03, 3)
+rg2 = np.linspace(cval1, cval2, 3)
 cbaxes = fig.add_axes([0.17, 0.68, 0.16, 0.07])  # x, y, width, height
 cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, extendrect='False',
@@ -185,7 +187,7 @@ plt.show()
 # %% Plot rms contour of the mean flow field
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
-var = "<u`u`>"
+var = "<v`v`>"
 var_val = getattr(MeanFlow.PlanarData, var)
 uu = griddata((MeanFlow.x, MeanFlow.y), var_val, (x, y))
 print("uu_max=", np.max(np.sqrt(np.abs(var_val))))
@@ -245,7 +247,7 @@ ax.plot(boundary[:, 0], boundary[:, 1], "k", linewidth=1.5)
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.5)
 
-plt.savefig(pathF + "MeanFlowRMSUU.svg", bbox_inches="tight")
+plt.savefig(pathF + "MeanFlowRMSVV.svg", bbox_inches="tight")
 plt.show()
 
 # %%############################################################################
@@ -726,8 +728,8 @@ plt.show()
 """
 # %% Numerical schiliren in X-Y plane
 flow = pf()
-file = path + 'snapshots/' + 'TP_2D_Z_03_1000.h5' # 'TP_2D_Z_03_01000.00.szplt'  #  
-flow.load_data(path, FileList=file, NameList='h5')
+file = path + 'snapshots/' + 'TP_2D_Z_03_996.szplt' # 'TP_2D_Z_03_01000.00.h5'  #  
+flow.load_data(path, FileList=file, NameList=None)
 plane = flow.PlanarData
 # plane.to_hdf(path+'snapshots/TP_2D_Z_03_1000.h5', 'w', format='fixed')
 x, y = np.meshgrid(np.unique(plane.x), np.unique(plane.y))
@@ -741,7 +743,7 @@ schlieren[corner] = np.nan
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(0, 3.0, 21)
-cbar = ax.contourf(x, y, schlieren, cmap="bwr", levels=rg1, extend='both')  # binary # rainbow_r
+cbar = ax.contourf(x, y, schlieren, cmap="binary", levels=rg1, extend='both')  #binary #rainbow_r# bwr
 ax.set_xlim(-35.0, 25.0)
 ax.set_ylim(-3.0, 15.0)
 ax.tick_params(labelsize=numsize)
@@ -774,6 +776,12 @@ cbar.set_label(
     rotation=0,
     fontsize=textsize-1,
 )
+# Add boundary layer
+boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
+ax.plot(boundary[:, 0], boundary[:, 1], "b", linewidth=1.0)
+# Add dividing line(separation line)
+dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
+ax.plot(dividing[:, 0], dividing[:, 1], "b--", linewidth=1.0)
 # ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "SchlierenXY.svg", bbox_inches="tight")
 plt.show()

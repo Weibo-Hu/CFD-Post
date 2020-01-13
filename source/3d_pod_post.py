@@ -35,6 +35,10 @@ var2 = 'w'
 var3 = 'p'
 col = [var0, var1, var2, var3]
 
+# %%############################################################################
+"""
+    Load data
+"""
 # %% load first snapshot data
 path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
 p2p.create_folder(path)
@@ -50,8 +54,10 @@ timepoints = np.arange(1000, 1299.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(pathD))
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
-# obtain the basic information of the snapshots
+# obtain the basic information of the snapshots  
 DataFrame = pd.read_hdf(pathD + dirs[0])
+grouped = DataFrame.groupby(['x', 'y', 'z'])
+DataFrame = grouped.mean().reset_index()  
 xval = DataFrame['x']  # [-10.0, 30.0]
 yval = DataFrame['y']  # [-3.0, 2.0]
 zval = DataFrame['z']  # [-8.0, 8.0]
@@ -82,6 +88,8 @@ Snapshots = FirstFrame.ravel(order='F')
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         TempFrame = pd.read_hdf(pathD + dirs[i+1])
+        grouped = TempFrame.groupby(['x', 'y', 'z'])
+        TempFrame = grouped.mean().reset_index()
         if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
         NextFrame = TempFrame[col].values
@@ -99,11 +107,15 @@ m = int(m/o)
 meanflow = DataFrame/np.size(dirs)
 del TempFrame, DataFrame
 
+# %%############################################################################
+"""
+    Compute
+"""
 # %% POD
 dt = 0.5
 with timer("POD computing"):
     eigval, eigvec, phi, coeff = \
-        pod.pod(Snapshots, pathF, fluc=True, method='svd')
+        pod.pod(Snapshots, fluc=True, method='svd')
         
 meanflow.to_hdf(pathPOD + 'Meanflow.h5', 'w', format='fixed')
 np.save(pathPOD + 'eigval', eigval)
@@ -114,7 +126,12 @@ np.save(pathPOD + 'coeff', coeff)
 
 # %% Eigvalue Spectrum
 EFrac, ECumu, N_modes = pod.pod_eigspectrum(80, eigval)
-np.savetxt(path+'EnergyFraction600.dat', EFrac, fmt='%1.7e', delimiter='\t')
+np.savetxt(path + 'EnergyFraction600.dat', EFrac, fmt='%1.7e', delimiter='\t')
+
+# %%############################################################################
+"""
+    Plot
+"""
 var = var0
 matplotlib.rc('font', size=textsize)
 fig1, ax1 = plt.subplots(figsize=(3.3, 3.0))
@@ -158,7 +175,7 @@ names = ['x', 'y', 'z', var0, var1, var2, var3, 'u`', 'v`', 'w`', 'p`']
 mode_id = np.arange(10, 50, 1)
 for ind in mode_id:
     # ind = 10
-    modeflow = phi[:, ind] * coeff[ind, 0]
+    modeflow = phi[:, ind-1] * coeff[ind-1, 0]
     newflow = modeflow.reshape((m, o), order='F')
 
     data = np.hstack((xarr, yarr, zarr, base, newflow))
