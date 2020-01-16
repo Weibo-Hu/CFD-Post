@@ -42,7 +42,7 @@ pathSL = path + 'Slice/'
 
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 12
+textsize = 13
 numsize = 10
 matplotlib.rc("font", size=textsize)
 
@@ -110,6 +110,10 @@ plt.savefig(
 
 # %% compute coordinates where the BL profile has Max RMS along streamwise direction
 varn = '<u`u`>'
+if varn == '<u`u`>':
+    savenm = "MaxRMS_u.dat"
+else if varn =='<p`p`>':
+    savenm = "MaxRMS_p.dat"
 xnew = np.arange(-40.0, 40.0+0.125, 0.125)
 znew = np.zeros(np.size(xnew))
 varv = np.zeros(np.size(xnew))
@@ -121,8 +125,17 @@ for i in range(np.size(xnew)):
 data = np.vstack((xnew, ynew, varv))
 df = pd.DataFrame(data.T, columns=['x', 'y', varn])
 # df = df.drop_duplicates(keep='last')
-df.to_csv(pathM + "MaxRMS.dat", sep=' ',
+df.to_csv(pathM + savenm, sep=' ',
           float_format='%1.8e', index=False)
+
+# %% save the grid points on the wall
+xnew = np.arange(-40.0, 40.0+0.125, 0.125)
+ynew = 0.001953125 * np.ones(np.size(xnew))
+ind = np.where(xnew >= 0.0)
+ynew[ind] = -2.997037172
+data = np.vstack((xnew, ynew))
+df = pd.DataFrame(data.T, columns=['x', 'y'])
+df.to_csv(pathM + 'WallGrid.dat', sep=' ', float_format='%1.8e', index=False)
 
 # %% draw maximum value curve
 fig, ax = plt.subplots(figsize=(6.4, 3.0))
@@ -289,22 +302,23 @@ plt.savefig(
     distribution of amplitude & amplication factor along a line
 """
 # %% load time sequential snapshots
-InFolder = path + 'Slice/TP_2D_Z_03/'
+sp = 'Z_03'
+InFolder = path + 'Slice/TP_2D_' + sp + '/'
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
-grouped = DataFrame.groupby(['x', 'y', 'z'])
+grouped = DataFrame.groupby(['x', 'y'])
 DataFrame = grouped.mean().reset_index()
 var = 'p' # 'u'
 Snapshots = DataFrame[['x', 'y', 'z', 'u', 'p']]
 
 fa = 1.7*1.7*1.4
 skip = 1
-timepoints = np.arange(951.0, 1064.00 + 0.25, 0.25)
+timepoints = np.arange(951.0, 1200.75 + 0.25, 0.25)
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         if i % skip == 0:
             TempFrame = pd.read_hdf(InFolder + dirs[i+1])
-            grouped = TempFrame.groupby(['x', 'y', 'z'])
+            grouped = TempFrame.groupby(['x', 'y'])
             Frame1 = grouped.mean().reset_index()
             Frame2 = Frame1[['x', 'y', 'z', 'u', 'p']]
             if np.shape(Frame1)[0] != np.shape(DataFrame)[0]:
@@ -319,8 +333,9 @@ freq_samp = 4.0
 
 
 # %% compute amplitude of variable along a line
-# xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
+xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
 xynew = np.loadtxt(pathM + "MaxRMS.dat", skiprows=1)
+xynew = np.loadtxt(pathM + "WallGrid.dat", skiprows=1)
 ind = (xynew[:, 0] <= 30.0) & (xynew[:, 0] >= -10.0)
 xval = xynew[ind, 0]
 yval = xynew[ind, 1]
@@ -401,10 +416,11 @@ fig, ax = plt.subplots(figsize=(6.4, 3.0))
 ax.plot(xval, rms, 'k-')
 ax.set_xlim([0.0, 30.0])
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$\mathrm{RMS}(p^{\prime}/p_{\infty})$", fontsize=textsize)
+ax.set_ylabel(r"$\mathrm{RMS}(u^{\prime}/u_{\infty})$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.axvline(x=10.9, linewidth=1.0, linestyle='--', color='k')
-plt.savefig(pathF + var + "_RMSMap_max.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + varnm + "_RMSMap_max_" + sp + ".svg", 
+            bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %%############################################################################
@@ -421,34 +437,35 @@ for i in range(np.size(xval)):
                                      opt=1, seg=4, overlap=2)
 np.savetxt(pathSL + 'FWPSD_freq.dat', freq, delimiter=' ')
 np.savetxt(pathSL + 'FWPSD_x.dat', xval, delimiter=' ')
-np.savetxt(pathSL + var + '_FWPSD_psd.dat', FPSD, delimiter=' ')
+np.savetxt(pathSL + var + '_FWPSD_psd_' + sp + '.dat', FPSD, delimiter=' ')
 
 freq = np.loadtxt(pathSL + 'FWPSD_freq.dat', delimiter=' ')
-FPSD = np.loadtxt(pathSL + var + '_FWPSD_psd.dat', delimiter=' ')
+FPSD = np.loadtxt(pathSL + var + '_FWPSD_psd_' + sp + '.dat', delimiter=' ')
 freq = freq[1:]
 FPSD = FPSD[1:, :]
 
 # %% Plot frequency-weighted PSD map along a line
-SumFPSD = np.max(FPSD, axis=0) # np.sum(FPSD, axis=0)
+SumFPSD = np.min(FPSD, axis=0) # np.sum(FPSD, axis=0)
 FPSD1 = np.log(FPSD/SumFPSD) # np.log(FPSD) # 
 max_id = np.argmax(FPSD1, axis=0)
 max_freq = [freq[i] for i in max_id]
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
-fig, ax = plt.subplots(figsize=(6.4, 3.0))
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 print(np.max(FPSD1))
 print(np.min(FPSD1))
-cb1 = -6
-cb2 = 0
+cb1 = 0
+cb2 = 6
 lev = np.linspace(cb1, cb2, 41)
 cbar = ax.contourf(xval, freq, FPSD1, extend='both',
                    cmap='coolwarm', levels=lev) # seismic # bwr
 ax.plot(xval, max_freq, 'C7-', linewidth=1.0)
 # every stage of the transition
-# ax.axvline(x=0.6, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=0.0, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
 ax.set_xlim([-10.0, 30.0])
 rg = np.linspace(cb1, cb2, 3)
@@ -456,13 +473,13 @@ cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.update_ticks()
-barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{max} ]$'
+barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{min} ]$'
 # barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
 ax.set_title(barlabel, pad=3, fontsize=numsize-1)
 # cbar.set_label(barlabel, rotation=90, fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathF + var + "_FWPSDMap_max.svg",
+plt.savefig(pathF + var + "_FWPSDMap_max_" + sp + ".svg",
             bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
