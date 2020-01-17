@@ -10,17 +10,15 @@ Created on Thu Jun 20 14:48:11 2019
 import os
 from timer import timer
 import tecplot as tp
-import plt2pandas as p2p
 import numpy as np
-import pandas as pd
-import sys
 from glob import glob
 
 # %%
 path = '/media/weibo/IM1/BFS_M1.7Tur/'
-snap = 'TP_2D_S_10'
-FoldPath = path + 'snapshots/0/'
-OutPath = path + 'Slice/backup/'
+sid = 'Z_05'
+snap = 'TP_2D_' + sid
+FoldPath = path + 'snapshots/1100/'
+OutPath = path + 'snapshots/' + sid + '/'
 dirs = os.listdir(FoldPath)
 
 num = np.size(dirs)

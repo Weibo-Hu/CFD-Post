@@ -491,6 +491,8 @@ def reattach_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
     j = 0
     if opt == 1:
         data = pd.read_hdf(InFolder + dirs[0])
+        grouped = data.groupby(['x', 'y'])
+        data = grouped.mean().reset_index()
         # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
         NewFrame = data.query("x>=7.5 & x<=13.0")
         TemFrame = NewFrame.loc[NewFrame["y"] == -2.99703717231750488]
@@ -507,6 +509,8 @@ def reattach_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
             if i % skip == 0:
                 with timer("Computing reattaching point " + dirs[i]):
                     frame = pd.read_hdf(InFolder + dirs[i])
+                    grouped = frame.groupby(['x', 'y'])
+                    frame = grouped.mean().reset_index()
                     xy = dividing_line(frame, loc=loc)
                     xarr[j] = np.max(xy[:, 0])
                     j = j + 1
@@ -560,6 +564,8 @@ def shock_foot(InFolder, OutFolder, timepoints, yval, var, skip=1):
         if i % skip == 0:
             with timer("Computing shock foot location " + dirs[i]):
                 frame = pd.read_hdf(InFolder + dirs[i])
+                grouped = frame.groupby(['x', 'y'])
+                frame = grouped.mean().reset_index()
                 NewFrame = frame.loc[frame["y"] == yval]
                 temp = NewFrame.loc[NewFrame["u"] >= var, "x"]
                 xarr[j] = temp.head(1)
@@ -600,6 +606,8 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1):
         if i % skip == 0:
             with timer("Shock position at " + dirs[i]):
                 frame = pd.read_hdf(InFolder + dirs[i])
+                grouped = frame.groupby(['x', 'y'])
+                frame = grouped.mean().reset_index()
                 gradp = griddata(
                         (frame["x"], frame["y"]),
                         frame["|gradp|"],
@@ -654,6 +662,8 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1):
 
 # Save shock isoline
 def shock_line(dataframe, path):
+    grouped = dataframe.groupby(['x', 'y'])
+    dataframe = grouped.mean().reset_index()
     x0 = np.unique(dataframe["x"])
     x1 = x0[x0 > 10.0]
     x1 = x1[x1 <= 30.0]
@@ -696,6 +706,8 @@ def shock_line(dataframe, path):
 
 def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
     # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
+    grouped = dataframe.groupby(['x', 'y'])
+    dataframe = grouped.mean().reset_index()
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
     if 'u' not in dataframe.columns:
         dataframe['u'] = dataframe['<u>']
@@ -727,6 +739,8 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
 
 
 def dividing_line(dataframe, path=None, loc=-0.015625):
+    grouped = dataframe.groupby(['x', 'y'])
+    dataframe = grouped.mean().reset_index()
     NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
     if 'u' not in NewFrame.columns:
@@ -745,10 +759,11 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
         xy = isoline.vertices
         nolist.append(np.shape(xy)[0])
         if np.any(xy[:, 1] == -0.015625):  # pick the bubble line
-            if (np.min(xy[:, 1]) < -2.0) & (np.min(xy[:, 0]) < 1.0):
+            if loc == -0.015625:
+                if (np.min(xy[:, 1]) < -2.0) & (np.min(xy[:, 0]) < 1.0):
+                    ind = i
+            else:
                 ind = i
-        elif np.any(xy[:, 1] == loc):
-            ind = i
         xylist.append(xy)
         xycor = np.vstack((xycor, xy))
     try:
@@ -774,6 +789,8 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
 
 def boundary_edge(dataframe, path, jump1=None, jump2=None):  # jump = reattachment location
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
+    grouped = dataframe.groupby(['x', 'y'])
+    dataframe = grouped.mean().reset_index()
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
     if 'u' not in dataframe.columns:
         dataframe.loc[:, 'u'] = dataframe['<u>']
@@ -825,11 +842,20 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
         if i % skip == 0:
             with timer("Bubble area at " + dirs[i]):
                 dataframe = pd.read_hdf(InFolder + dirs[i])
-                xy = dividing_line(dataframe, loc=loc)
-                area[j] = trapz(xy[:, 1] + step, xy[:, 0])
-                ind = np.argmax(xy[:, 1])
-                if xy[ind, 1] < cutoff:
-                    area[j] = area[j] + 0.5 * xy[ind, 0] * (3 + xy[ind, 1])
+                grouped = dataframe.groupby(['x', 'y'])
+                dataframe = grouped.mean().reset_index()
+                xy_org = dividing_line(dataframe, loc=loc)
+                if (np.max(xy_org[:, 1]) < cutoff):
+                    ind = np.argmax(xy_org[:, 1])
+                    xy = xy_org[ind:, :]
+                    area[j] = trapz(xy[:, 1] + step, xy[:, 0])
+                    area[j] = area[j] + 0.5 * xy[0, 0] * (0 - xy[0, 1])
+                else:
+                    xy = xy_org
+                    area[j] = trapz(xy[:, 1] + step, xy[:, 0])
+                #ind = np.argmax(xy_new[:, 1])
+                #if xy[ind, 1] < cutoff:
+                #    area[j] = area[j] + 0.5 * xy[ind, 0] * (0 - xy[ind, 1])
             j = j + 1
     area_arr = np.vstack((timezone, area)).T
     np.savetxt(
