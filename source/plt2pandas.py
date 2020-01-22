@@ -59,7 +59,7 @@ def ReadPlt(FoldPath, VarList):
 
 
 def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
-                    SpanAve=None, SavePath=None, OutFile=None, skip=0):
+                    SpanAve=None, SavePath=None, OutFile=None, skip=0, opt=2):
     if FileName is None:
         files = sorted(os.listdir(FoldPath))
         FileName = [os.path.join(FoldPath, name) for name in files]
@@ -134,6 +134,12 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         grouped = df.groupby(['x', 'y', 'z'])
         df = grouped.mean().reset_index()
 #        df = df.loc[df['z'] == 0.0].reset_index(drop=True)
+    if opt == 2:
+        df['x'] = df['x'].astype(float)
+        df['y'] = df['y'].astype(float)
+        df['z'] = df['z'].astype(float)
+        df = df.query("x>={0} & x<={1} & y<={2}".format(
+                       SubZone[0][0], SubZone[0][1], SubZone[1][1]))
     if SavePath is not None and OutFile is not None:
         st = "%08.2f" % SolTime
         df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
