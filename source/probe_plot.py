@@ -45,7 +45,7 @@ numsize = 10
 probe = lf()
 fa = 1.7 * 1.7 * 1.4
 var = 'p'
-timezone = np.arange(975, 1064.00 + 0.25, 0.25)
+timezone = np.arange(951.0, 1200.75 + 0.25, 0.25)
 xloc = [-40.0, -30.0, -20.0, -10.0, -1.0]
 yloc = 0.0
 zloc = 0.0
@@ -207,11 +207,11 @@ plt.show()
     critical aerodynamic parameters (reattachment, shock, bubble)
 """
 # %% Calculate singnal of Xr, Xsl, Xsf, Xb
-InFolder = path + 'Slice/TP_2D_S_10/'
-timezone = np.arange(975, 1064.00 + 0.25, 0.25)
+InFolder = path + 'Slice/S_10/'
+timezone = np.arange(1200, 1250.75 + 0.25, 0.25)
 skip = 1
 # -- reattachement location
-reatt = va.reattach_loc(InFolder, pathI, timezone, loc=-0.5, skip=skip, opt=2)
+reatt = va.reattach_loc(InFolder, pathI, timezone, loc=-0.5, skip=skip, opt=1)
 # -- shock location outside the boundary layer
 va.shock_loc(InFolder, pathI, timezone, skip=skip)
 # -- shock foot within the boudnary layer
@@ -220,7 +220,7 @@ va.shock_foot(InFolder, pathI, timezone, -1.875, 0.64, skip=skip)  # 0.82 for la
 va.bubble_area(InFolder, pathI, timezone, skip=skip)
 dt = 0.25
 fs = 4.0
-x1x2 = [950, 1100]
+x1x2 = [950, 1200]
 # %%############################################################################
 """
     Temporal evolution & Power spectral density
@@ -231,7 +231,7 @@ fa = 1.7*1.7*1.4
 probe = np.loadtxt(pathI + "ProbeKH.dat", skiprows=1)
 func = interp1d(probe[:, 1], probe[:, 7])
 Xk = func(timezone)  # probe[:, 8]
-fig, ax = plt.subplots(figsize=(6.4, 3.0))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
 ax.plot(timezone, Xk*fa, "k-")
@@ -246,10 +246,10 @@ plt.tick_params(labelsize=numsize)
 plt.savefig(pathF + "Xk.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 # -- FWPSD
-fig, ax = plt.subplots(figsize=(3.2, 3.2))
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
-ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
+ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 Fre, FPSD = va.fw_psd(Xk*fa, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
@@ -263,7 +263,7 @@ plt.show()
 # -- temporal evolution
 bubble = np.loadtxt(pathI + "BubbleArea.dat", skiprows=1)
 Xb = bubble[:, 1]
-fig, ax = plt.subplots(figsize=(6.4, 3.0))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 ax.plot(bubble[:, 0], Xb, "k-")
 ax.set_xlim(x1x2)
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
@@ -277,10 +277,10 @@ plt.savefig(pathF + "Xb.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # -- FWPSD
-fig, ax = plt.subplots(figsize=(3.2, 3.2))
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
-ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
+ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 Fre, FPSD = va.fw_psd(Xb, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
@@ -300,29 +300,29 @@ angle = np.arctan(delta_x / (shock2[:, 1] - shock1[:, 1])) / np.pi * 180
 shockloc = shock2[:, 1] - 8.0 / np.tan(angle/180*np.pi)  # outside the BL
 Xl = shockloc
 Xf = foot[:, 1]
-Xs = Xf  # shockloc
+Xs = Xf # angle #  Xl  # shockloc
 # %% temporal evolution
-fig, ax = plt.subplots(figsize=(6.4, 3.0))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 ax.plot(shock1[:, 0], Xs, "k-")
 ax.set_xlim(x1x2)
 ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-# ax.set_ylabel(r"$x_l/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$\alpha(^{\circ})$", fontsize=textsize)
+ax.set_ylabel(r"$x_l/\delta_0$", fontsize=textsize)
+# ax.set_ylabel(r"$\alpha(^{\circ})$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 xmean = np.mean(Xs)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF + "Shockloc.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Shockfoot.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 # print("Corelation: ", va.correlate(Xs, Xk))
 
 # -- FWPSD
-fig, ax = plt.subplots(figsize=(3.2, 3.2))
-ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
-ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
+ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 Fre, FPSD = va.fw_psd(Xs, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
@@ -335,7 +335,7 @@ plt.show()
 # -- temporal evolution
 reatt = np.loadtxt(pathI+"Reattach.dat", skiprows=1)
 Xr = reatt[:, 1]
-fig, ax = plt.subplots(figsize=(6.4, 2.0))
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
 ax.plot(reatt[:, 0], Xr, "k-")
@@ -351,10 +351,10 @@ plt.savefig(pathF + "Xr.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # -- FWPSD
-fig, ax = plt.subplots(figsize=(3.2, 3.2))
-ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
-ax.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
+ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 Fre, FPSD = va.fw_psd(Xr, dt, 1/dt, opt=1)
 ax.semilogx(Fre, FPSD, "k", linewidth=1.0)
