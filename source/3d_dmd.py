@@ -35,21 +35,39 @@ var0 = 'u'
 var1 = 'v'
 var2 = 'w'
 var3 = 'p'
-col = [var0, var1, var2, var3]
+var4 = 'T'
+col = [var0, var1, var2, var3, var4]
 
 # %% load first snapshot data
-InFolder = "/home/scratch/whu/3D_DMD/snapshots/"
-path = "/home/scratch/whu/3D_DMD/Post/"
-path2 = "/home/scratch/whu/3D_DMD/"
+path = "/home/scratch/whu/BFS_M1.7TS/"
+p2p.create_folder(path)
+pathP = path + "probes/"
+pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
+pathD = path + "Domain/"
+pathPOD = path + "POD/"
+path3D = path + "3D_DMD/"
+pathH = path + "hdf5/"
 timepoints = np.arange(900.0, 1149.5 + 0.5, 0.5)
-dirs = sorted(os.listdir(InFolder))
+dirs = sorted(os.listdir(pathH))
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
 # obtain the basic information of the snapshots
-DataFrame = pd.read_hdf(InFolder + dirs[0])
-xval = DataFrame['x']  # NewFrame['x']
-yval = DataFrame['y']   # NewFrame['y']
-zval = DataFrame['z']
+DataFrame = pd.read_hdf(pathH + dirs[0])
+
+DataFrame['walldist'] = DataFrame['y']
+DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
+grouped = DataFrame.groupby(['x', 'y', 'z'])
+DataFrame = grouped.mean().reset_index()
+NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0")
+ind = NewFrame.index.values
+xval = DataFrame['x'][ind] # NewFrame['x']
+yval = DataFrame['y'][ind] # NewFrame['y']
+zval = DataFrame['z'][ind]
+
 x1 = -5.0
 x2 = 25.0
 y1 = -3.0
@@ -60,18 +78,32 @@ o = np.size(col)
 varset = {var0: [0, m],
           var1: [m, 2*m],
           var2: [2*m, 3*m],
-          var3: [3 * m, 4 * m]}
+          var3: [3 * m, 4 * m],
+          var4: [4 * m, 5 * m]}
+
+"""
+------------------------------------------------------------------------------
+structure of snapshots
+t1  t2  ... tn
+u1  u2  ... un
+v1  v2  ... vn
+w1  w2  ... wn
+------------------------------------------------------------------------------
+"""
 
 # %% Load all the snapshots
+print("loading data")
 FirstFrame = DataFrame[col].values
-Snapshots = FirstFrame.ravel(order='F')
+Snapshots = FirstFrame[ind].ravel(order='F')
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
-        TempFrame = pd.read_hdf(InFolder + dirs[i+1])
+        TempFrame = pd.read_hdf(pathH + dirs[i + 1])
+        grouped = TempFrame.groupby(['x', 'y', 'z'])
+        TempFrame = grouped.mean().reset_index()
         if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
             sys.exit('The input snapshots does not match!!!')
         NextFrame = TempFrame[col].values
-        Snapshots = np.vstack((Snapshots, NextFrame.ravel(order='F')))
+        Snapshots = np.vstack((Snapshots, NextFrame[ind].ravel(order='F')))
         DataFrame += TempFrame
 Snapshots = Snapshots.T
 # obtain the dimensional information:
@@ -84,6 +116,12 @@ m = int(m/o)
 # obtain mean flow 
 meanflow = DataFrame/np.size(dirs)
 del TempFrame, DataFrame
+print("data loaded")
+
+# %%##########################################################################
+"""
+    Compute
+"""
 # %% DMD 
 dt = 0.5
 bfs = dmd.DMD(Snapshots, dt=dt)
@@ -108,28 +146,33 @@ re_coeff = bfs2.amplitudes
 # with open(path2+"bfs.bin", "rb") as f:  # load object
 #     bfs0 = dill.load(f)
 # %% Save results for plotting
-meanflow.to_hdf(path2 + 'Meanflow.h5', 'w', format='fixed')
-np.save(path2 + 'eigval', bfs.eigval)
-np.save(path2 + 'modes', bfs.modes)
-np.save(path2 + 'omega', bfs.omega)
-np.save(path2 + 'beta', bfs.beta)
-np.save(path2 + 'amplitudes', bfs.amplitudes)
+meanflow.to_hdf(path3D + 'Meanflow.h5', 'w', format='fixed')
+np.save(path3D + 'eigval', bfs.eigval)
+np.save(path3D + 'modes1', bfs.modes[:,:200])
+np.save(path3D + 'modes2', bfs.modes[:,200:400])
+np.save(path3D + 'modes3', bfs.modes[:,400:600])
+np.save(path3D + 'modes4', bfs.modes[:,600:800])
+np.save(path3D + 'modes5', bfs.modes[:,800:])
+np.save(path3D + 'omega', bfs.omega)
+np.save(path3D + 'beta', bfs.beta)
+np.save(path3D + 'amplitudes', bfs.amplitudes)
 
 # discard the bad DMD modes
 percent = 0.998
 bfs2 = bfs.reduce(percent)  # 0.95
-np.save(path2 + 'Re_modes', bfs2.modes)
-np.save(path2 + 'Re_freq', bfs2.omega/2/np.pi)
-np.save(path2 + 'Re_beta', bfs2.beta)
-np.save(path2 + 'Re_amplitudes', bfs2.amplitudes)
-np.save(path2 + 'Re_index', bfs2.ind)
+np.save(path3D + 'Re_modes', bfs2.modes)
+np.save(path3D + 'Re_freq', bfs2.omega/2/np.pi)
+np.save(path3D + 'Re_beta', bfs2.beta)
+np.save(path3D + 'Re_amplitudes', bfs2.amplitudes)
+np.save(path3D + 'Re_index', bfs2.ind)
 
-np.savez(path2 + 'sparse.npz',
+np.savez(path3D + 'sparse.npz',
          Nz=bfs1.sparse.Nz,
          gamma=bfs1.sparse.gamma,
          nonzero=bfs1.sparse.nonzero)
 
 # %% Eigvalue Spectrum
+eigval = bfs.eigval
 var = var0
 sp = 0
 r = np.size(eigval)
@@ -138,8 +181,9 @@ matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 matplotlib.rc('font', size=textsize)
 fig1, ax1 = plt.subplots(figsize=(4.5, 4.5))
-unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
-                         label='unit circle', linewidth=7.0, alpha=0.5)
+unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-',
+                         fill=False, label='unit circle',
+                         linewidth=7.0, alpha=0.5)
 ax1.add_artist(unit_circle)
 ax1.scatter(eigval.real, eigval.imag, marker='o',
             facecolor='none', edgecolors='k', s=18)
@@ -154,14 +198,15 @@ ax1.set_xlabel(r'$\Re(\mu_i)$')
 ax1.set_ylabel(r'$\Im(\mu_i)$')
 ax1.grid(b=True, which='both', linestyle=':')
 plt.gca().set_aspect('equal', adjustable='box')
-plt.savefig(path+var+'DMDEigSpectrum.svg', bbox_inches='tight')
+plt.savefig(path3D+var+'DMDEigSpectrum.svg', bbox_inches='tight')
 # plt.show()
 
 # %% Mode frequency specturm
+re_index = bfs2.ind
 matplotlib.rc('font', size=textsize)
 fig2, ax2 = plt.subplots(figsize=(7.5, 4.5))
 psi = np.abs(re_coeff)/np.max(np.abs(re_coeff))
-ind1 = re_freq > 0.0 
+ind1 = re_freq > 0.0
 freq1 = re_freq[ind1]
 psi1 = np.abs(re_coeff[ind1])/np.max(np.abs(re_coeff[ind1]))
 ax2.set_xscale("log")
@@ -179,6 +224,7 @@ plt.savefig(path+var+'DMDFreqSpectrum.svg', bbox_inches='tight')
 # plt.show()
 
 # %% save dataframe of reconstructing flow
+"""
 base = meanflow[col].values
 base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
 ind = 0
@@ -205,7 +251,7 @@ for ii in range(np.size(phase)):
         p2p.mul_zone2tec(path3, filename, FileID, df, time=ii)
         p2p.tec2plt(path3, filename, filename)
 
-        
+"""        
 # %% convert data to tecplot
 # for i in range(np.shape(FileID)[0]):
 #     filename = "test" + '{:04}'.format(i)
