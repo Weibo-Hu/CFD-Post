@@ -7,11 +7,11 @@ Created on Thu Jun 28 17:39:31 2018
 """
 # %%
 import numpy as np
-import cupy as cp
 import matplotlib.pyplot as plt
 from scipy.interpolate import splprep, splev
 import matplotlib
-import pandas as pd
+# import pandas as pd
+import modin.pandas as pd
 import plt2pandas as p2p
 import variable_analysis as va
 from line_field import LineField as lf
@@ -31,6 +31,7 @@ plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
 path = "/media/weibo/IM1/BFS_M1.7Tur/"
+p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -38,6 +39,7 @@ pathS = path + "SpanAve/"
 pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathV = path + "Vortex/"
+pathSL = path + "Slice/"
 matplotlib.rcParams["xtick.direction"] = "out"
 matplotlib.rcParams["ytick.direction"] = "out"
 textsize = 13
@@ -134,7 +136,7 @@ cbaxes.tick_params(labelsize=numsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, extendrect='False',
                     orientation="horizontal", ticks=rg2)
 cbar.set_label(
-    r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontdict=font
+    r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontsize=textsize
 )
 # Add shock wave
 shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
@@ -180,10 +182,103 @@ v = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.v, (xbox, ybox))
 plt.savefig(pathF + "MeanFlow.svg", bbox_inches="tight")
 plt.show()
 
+
 # %%############################################################################
 """
-    Root Mean Square of velocity from the statistical flow
+    instantaneous spanwise-average flow field
 """
+# %% Plot contour of the instantaneous flow field with isolines
+# MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
+InstFlow = pd.read_hdf(pathSL + 'Z_03a/TP_2D_Z_03_01295.00.h5')
+var = 'w'
+var1 = 'vorticity_3'
+u = griddata((InstFlow.x, InstFlow.y), InstFlow[var], (x, y))
+gradp = griddata((InstFlow.x, InstFlow.y), InstFlow[var1], (x, y))
+print("u=", np.max(InstFlow.u))
+print("u=", np.min(InstFlow.u))
+u[corner] = np.nan
+cval1 = -0.3
+cval2 = 0.3
+fig, ax = plt.subplots(figsize=(6.0, 2.3))
+matplotlib.rc("font", size=textsize)
+rg1 = np.linspace(cval1, cval2, 41)
+cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
+ax.set_xlim(0.0, 20.0)
+ax.set_ylim(-3.0, 4.0)
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+ax.set_title(r"$t u_\infty /\delta_0=1080$", fontsize=textsize-1, pad=0.1)
+ax.grid(b=True, which="both", linestyle=":")
+plt.gca().set_aspect("equal", adjustable="box")
+# Add colorbar
+rg2 = np.linspace(cval1, cval2, 3)
+cbaxes = fig.add_axes([0.17, 0.75, 0.20, 0.07])  # x, y, width, height
+cbaxes.tick_params(labelsize=numsize)
+cbar = plt.colorbar(cbar, cax=cbaxes, extendrect='False',
+                    orientation="horizontal", ticks=rg2)
+cbar.set_label(
+    r"$u/u_{\infty}$", rotation=0, fontsize=textsize
+)
+
+# Add dividing line
+cbar = ax.contour(x, y, u, levels=[0.0], colors='k', linewidths=1.0)
+# Add shock wave, gradp = 0.1, alpha=0.8
+cbar = ax.contour(x, y, gradp, levels=[0.1], colors='w',
+                  alpha=0.8, linewidths=1.0, linestyles=':')
+
+plt.savefig(pathF + "InstFlow1.svg", bbox_inches="tight")
+plt.show()
+
+
+# %%############################################################################
+"""
+    instantaneous flow field
+"""
+# %% Plot contour of the instantaneous flow field with isolines
+# MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
+InstFlow = pd.read_hdf(pathSL + 'Z_03a/TP_2D_Z_03_01295.00.h5')
+var = 'w'
+var1 = 'vorticity_3'
+u = griddata((InstFlow.x, InstFlow.y), InstFlow[var], (x, y))
+gradp = griddata((InstFlow.x, InstFlow.y), InstFlow[var1], (x, y))
+print("u=", np.max(InstFlow.u))
+print("u=", np.min(InstFlow.u))
+u[corner] = np.nan
+cval1 = -0.3
+cval2 = 0.3
+fig, ax = plt.subplots(figsize=(3.5, 2.0))
+matplotlib.rc("font", size=textsize)
+rg1 = np.linspace(cval1, cval2, 41)
+cbar = ax.contourf(x, y, u, cmap="coolwarm", levels=rg1, extend='both')  # rainbow_r
+ax.set_xlim(0.0, 6.0)
+ax.set_ylim(-3.0, 0.0)
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+ax.set_title(r"$t u_\infty /\delta_0=1295$", fontsize=textsize-1, pad=0.1)
+ax.grid(b=True, which="both", linestyle=":")
+plt.gca().set_aspect("equal", adjustable="box")
+# Add colorbar
+rg2 = np.linspace(cval1, cval2, 3)
+cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.02, pad=0.05)
+cbar.ax.tick_params(labelsize=numsize)
+cbar.set_label(
+    r"$w/u_{\infty}$", rotation=0, fontsize=textsize-1, labelpad=-28, y=1.18
+)
+
+# Add isolines
+cbar = ax.contour(x, y, gradp, levels=[-3.6], colors='k',
+                  alpha=1.0, linewidths=1.0, linestyles='-')
+
+# plt.savefig(pathF + "Shedding1.svg", bbox_inches="tight")
+plt.show()
+
+
+# %%############################################################################
+# 
+# Root Mean Square of velocity from the statistical flow
+# 
 # %% Plot rms contour of the mean flow field
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner = (x < 0.0) & (y < 0.0)
@@ -197,10 +292,10 @@ uu[corner] = np.nan
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc("font", size=textsize)
 cb1 = 0.0
-cb2 = 0.16
+cb2 = 0.18
 rg1 = np.linspace(cb1, cb2, 21)
 cbar = ax.contourf(
-    x, y, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1, extend='both'
+    x, y, np.sqrt(np.abs(uu)), cmap="jet", levels=rg1, extend='both'
 )  # rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-3.0, 10.0)
@@ -236,24 +331,24 @@ cbar.set_label(
 )
 # Add shock wave
 shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
-ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
+ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.0)
 # Add sonic line
 sonic = np.loadtxt(pathM + "SonicLine.dat", skiprows=1)
-ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.5)
+ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.2)
 # Add boundary layer
 boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
-ax.plot(boundary[:, 0], boundary[:, 1], "k", linewidth=1.5)
+ax.plot(boundary[:, 0], boundary[:, 1], "k", linewidth=1.0)
 # Add dividing line(separation line)
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
-ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.5)
+ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.2)
 
 plt.savefig(pathF + "MeanFlowRMSVV.svg", bbox_inches="tight")
 plt.show()
 
 # %%############################################################################
-"""
-    Vorticity contour
-"""
+###
+### Vorticity contour
+###
 # %% Load Data for time-averaged results
 path4 = "/media/weibo/Data1/BFS_M1.7L/Slice/"
 MeanFlow = DataPost()
@@ -268,7 +363,7 @@ MeanFlowZ5 = MeanFlowZ4.loc[MeanFlowZ4["y"] > 3.0]
 MeanFlowZ0 = pd.concat((MeanFlowZ0, MeanFlowZ5), sort=False)
 MeanFlowZ0.to_hdf(pathF + "MeanFlowZ0.h5", "w", format="fixed")
 
-#%% Load data
+# %% Load data
 fluc_flow = tf()
 fluc_flow.load_3data(
         path, FileList=path+"/ZFluctuation_900.0.h5", NameList='h5'
@@ -434,9 +529,9 @@ plt.show()
 plt.savefig(pathF + "vorticity3_x=0.1.svg", bbox_inches="tight", pad_inches=0.1)
 
 # %%############################################################################
-"""
-    velocity contour and streamlines
-"""
+###
+### velocity contour and streamlines
+###
 # %% Plot contour and streamline of spanwise-averaged flow (Zoom in)
 path = "/media/weibo/Data1/BFS_M1.7L_0505/SpanAve/7/"
 path1 = "/media/weibo/Data1/BFS_M1.7L_0505/probes/"
@@ -507,120 +602,49 @@ plt.savefig(
 plt.show()
 
 # %%############################################################################
-"""
-    vorticity enstrophy along streamwise
-"""
-#%% Load data and calculate enstrophy in every direction
-xloc = np.arange(0.125, 30.0 + 0.125, 0.125)
-tp_time = np.arange(900, 1000 + 5.0, 5.0)
-y = np.linspace(-3.0, 0.0, 151)
-z = np.linspace(-8.0, 8.0, 161)
-ens, ens1, ens2, ens3 = np.zeros((4, np.size(xloc)))
-nms = ['x', 'enstrophy', 'enstrophy_x', 'enstrophy_y', 'enstrophy_z']
-flow = tf()
-dirs = glob(pathV + '*.h5')
-for j in range(np.size(dirs)):
-    flow.load_3data(pathV, FileList=dirs[j], NameList='h5')
-    file = os.path.basename(dirs[j])
-    file = os.path.splitext(file)[0]
-    # flow.copy_meanval()
-    for i in range(np.size(xloc)):
-        df = flow.TriData
-        xslc = df.loc[df['x']==xloc[i]]
-        ens[i] = fv.enstrophy(xslc, type='x', mode=None, rg1=y, rg2=z, opt=2)
-        ens1[i] = fv.enstrophy(xslc, type='x', mode='x', rg1=y, rg2=z, opt=2)
-        ens2[i] = fv.enstrophy(xslc, type='x', mode='y', rg1=y, rg2=z, opt=2)
-        ens3[i] = fv.enstrophy(xslc, type='x', mode='z', rg1=y, rg2=z, opt=2)
-    print("finish " + dirs[j])
-    res = np.vstack((xloc, ens, ens1, ens2, ens3))
-    enstrophy = pd.DataFrame(data=res.T, columns=nms)
-    enstrophy.to_csv(pathV + 'Enstrophy_z' + file + '.dat',
-                         index=False, float_format='%1.8e', sep=' ') 
-
-# %% plot enstrophy along streamwise
+#
+# vorticity enstrophy along streamwise
+#
+# %% Load data and calculate enstrophy in every direction
 dirs = glob(pathV + 'Enstrophy_*dat')
 tab_new = pd.read_csv(dirs[0], sep=' ', index_col=False, skipinitialspace=True)
 for j in range(np.size(dirs)-1):
     tab_dat = pd.read_csv(dirs[j+1], sep=' ',
                           index_col=False, skipinitialspace=True)
     tab_new = tab_new.add(tab_dat, fill_value=0)
-#%%
+# %%
+x1 = 4.0
+x2 = 7.5
 enstro = tab_new/np.size(dirs)
 # enstro = enstro.iloc[1:,:]
 me = np.max(enstro['enstrophy'])
-fig3, ax3 = plt.subplots(figsize=(6.4, 2.8))
-ax3.plot(enstro['x'], enstro['enstrophy']/me, "k", linewidth=1.5)
-ax3.plot(enstro['x'], enstro['enstrophy_x']/me, "r", linewidth=1.5)
-ax3.plot(enstro['x'], enstro['enstrophy_y']/me, "k:", linewidth=1.5)
-ax3.plot(enstro['x'], enstro['enstrophy_z']/me, "b", linewidth=1.5)
+fig3, ax3 = plt.subplots(figsize=(6.4, 2.6))
+ax3.plot(enstro['x'], enstro['enstrophy']/me, "k", linewidth=1.2)
+ax3.plot(enstro['x'], enstro['enstrophy_x']/me, "r", linewidth=1.2)
+ax3.plot(enstro['x'], enstro['enstrophy_y']/me, "g", linewidth=1.2)
+ax3.plot(enstro['x'], enstro['enstrophy_z']/me, "b", linewidth=1.2)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax3.set_ylabel(r"$\epsilon/\epsilon_{max}$", fontsize=textsize)
-ax3.set_xlim([0.0, 30.0])
+ax3.set_ylabel(r"$\mathcal{E}/\mathcal{E}_\mathrm{max}$", fontsize=textsize)
+ax3.set_xlim([0.0, 25.0])
 ax3.set_ylim([0.0, 1.2])
-ax3.axvline(x=2.5, color="gray", linestyle="--", linewidth=1.2)
-ax3.axvline(x=5.5, color="gray", linestyle="--", linewidth=1.2)
-ax3.axvline(x=8.25, color="gray", linestyle="--", linewidth=1.2)
-ax3.axvline(x=12.0, color="gray", linestyle="--", linewidth=1.2)
-lab = [r"$\epsilon$", r"$\epsilon_x$", r"$\epsilon_y$", r"$\epsilon_z$"]
-ax3.legend(lab, ncol=2, fontsize=numsize)  # loc="lower right", 
+ax3.axvline(x=x1, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=x2, color="gray", linestyle="--", linewidth=1.0)
+lab = [r"$\mathcal{E}$", r"$\mathcal{E}_x$",
+       r"$\mathcal{E}_y$", r"$\mathcal{E}_z$"]
+ax3.legend(lab, ncol=2, fontsize=numsize)  # loc="lower right"
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + "enstrophy.svg", dpi=300)
+plt.savefig(pathF + "enstrophy.pdf", dpi=300)
 plt.show()
 
 # %%############################################################################
-"""
-    vorticity transportation equation analysis
-"""
-# %% vortex dynamics
-# z-direction
-files = path+"/TP_912.h5" # glob(pathT + '*h5') 
-flow = tf()
-flow.load_3data(
-        path, FileList=files, NameList='h5'
-)
-xloc = np.arange(0.0, 30.0 + 0.125, 0.125)
-y = np.linspace(-3.0, 0.0, 151)
-z = np.linspace(-8.0, 8.0, 161)
-tilt1, tilt2, stretch, dilate, torque = np.zeros((5, np.size(xloc)))
-
-#%% Load data and calculate vorticity term in every direction
-xloc = np.arange(0.125, 30.0 + 0.125, 0.125)
-tp_time = np.arange(900, 1000 + 5.0, 5.0)
-y = np.linspace(-3.0, 0.0, 151)
-z = np.linspace(-8.0, 8.0, 161)
-tilt1, tilt2, stret, dilate, torque = np.zeros((5, np.size(xloc), 2))
-nms = ['x', 'tilt1_p', 'tilt1_n', 'tilt2_p', 'tilt2_n', 'stretch_p', \
-       'stretch_n', 'dilate_p', 'dilate_n', 'torque_p', 'torque_n']
-flow = tf()
-dirs = glob(pathV + '*.h5')
-for j in range(np.size(dirs)):
-    flow.load_3data(pathV, FileList=dirs[j], NameList='h5')
-    file = os.path.basename(dirs[j])
-    file = os.path.splitext(file)[0]
-    for i in range(np.size(xloc)):
-        df = flow.TriData
-        df1 = df.loc[df['y']==xloc[i]]
-        xslc = fv.vortex_dyna(df1, type='y', opt=2)
-        tilt1[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt1'],
-                                     range1=y, range2=z, opt=3)
-        tilt2[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['tilt2'],
-                                     range1=y, range2=z, opt=3)
-        stret[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['stretch'],
-                                       range1=y, range2=z, opt=3)
-        dilate[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['dilate'],
-                                      range1=y, range2=z, opt=3)
-        torque[i, :] = fv.integral_db(xslc['y'], xslc['z'], xslc['bar_tor'],
-                                      range1=y, range2=z, opt=3)
-    print("finish " + dirs[j])
-    res = np.hstack((xloc.reshape(-1, 1), tilt1, tilt2, stret, dilate, torque))
-    ens_z = pd.DataFrame(data=res, columns=nms)
-    ens_z.to_csv(pathV + 'vortex_y' + file + '.dat',
-                     index=False, float_format='%1.8e', sep=' ')
-# %% plot vortex dynamics components
-dirs = glob(pathV + 'vortex_x_*dat')
+#
+# vorticity transportation equation analysis
+#
+# %% vortex dynamics in every direction
+dirs = glob(pathV + 'vortex_z_*dat')
 tab_new = pd.read_csv(dirs[0], sep=' ', index_col=False, skipinitialspace=True)
 for j in range(np.size(dirs)-1):
     tab_dat = pd.read_csv(dirs[j+1], sep=' ',
@@ -637,14 +661,14 @@ vortex3 = tab_new / np.size(dirs)
 # vortex3 = vortex3.iloc[1:,:]
 def full_term(df, ax):
     sc = np.amax(np.abs(df.iloc[:, 1:].values))
-    ax.plot(df['x'], df['tilt1_p']/sc, "k", linewidth=1.5)
-    ax.plot(df['x'], df['tilt2_p']/sc, "b", linewidth=1.5)
-    ax.plot(df['x'], df['stretch_p']/sc, "r", linewidth=1.5)
-    ax.plot(df['x'], df['dilate_p']/sc, "g", linewidth=1.5)
-    ax.plot(df['x'], df['tilt1_n']/sc, "k-", linewidth=1.5)
-    ax.plot(df['x'], df['tilt2_n']/sc, "b-", linewidth=1.5)
-    ax.plot(df['x'], df['stretch_n']/sc, "r-", linewidth=1.5)
-    ax.plot(df['x'], df['dilate_n'] / sc, "g-", linewidth=1.5)
+    ax.plot(df['x'], df['tilt1_p']/sc, "k", linewidth=1.2)
+    ax.plot(df['x'], df['tilt2_p']/sc, "b", linewidth=1.2)
+    ax.plot(df['x'], df['stretch_p']/sc, "r", linewidth=1.2)
+    ax.plot(df['x'], df['dilate_p']/sc, "g", linewidth=1.2)
+    ax.plot(df['x'], df['tilt1_n']/sc, "k-", linewidth=1.2)
+    ax.plot(df['x'], df['tilt2_n']/sc, "b-", linewidth=1.2)
+    ax.plot(df['x'], df['stretch_n']/sc, "r-", linewidth=1.2)
+    ax.plot(df['x'], df['dilate_n'] / sc, "g-", linewidth=1.2)
 
 
 def partial_term(df, ax):
@@ -654,30 +678,30 @@ def partial_term(df, ax):
     dilat = df['dilate_p']+df['dilate_n']
     torqu = df['torque_p']+df['torque_n']
     sc = np.max([tilt1, tilt2, stret, dilat, torqu])
-    ax3.plot(vortex3['x'], tilt1/sc, "k", linewidth=1.5)
-    ax3.plot(vortex3['x'], tilt2/sc, "b", linewidth=1.5)
-    ax3.plot(vortex3['x'], stret/sc, "r", linewidth=1.5)
-    ax3.plot(vortex3['x'], dilat/sc, "g", linewidth=1.5)
+    ax3.plot(vortex3['x'], tilt1/sc, "k", linewidth=1.2)
+    ax3.plot(vortex3['x'], tilt2/sc, "b", linewidth=1.2)
+    ax3.plot(vortex3['x'], stret/sc, "r", linewidth=1.2)
+    ax3.plot(vortex3['x'], dilat/sc, "g", linewidth=1.2)
     # ax3.plot(vortex3['x'], torqu/sc, "C7:", linewidth=1.5)
 
 
 # %% plot streamwise vorticity balance
-fig3, ax3 = plt.subplots(figsize=(6.4, 2.8))
-full_term(vortex3, ax3)
+fig3, ax3 = plt.subplots(figsize=(6.4, 2.6))
+partial_term(vortex3, ax3)
 # partial_term(vortex3, ax3)
 ax3.legend(lab, ncol=2, loc="upper right", fontsize=numsize)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax3.set_ylabel("Term", fontsize=textsize)
-ax3.set_xlim([0.0, 30.0])
+ax3.set_ylabel("Term", fontdict=font, fontsize=textsize)
+ax3.set_xlim([0.0, 25.0])
 # ax3.set_ylim([0.0, 1.2])
-# ax3.axvline(x=5.7, color="gray", linestyle="--", linewidth=1.2)
-# ax3.axvline(x=11.2, color="gray", linestyle="--", linewidth=1.2)
+ax3.axvline(x=x1, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=x2, color="gray", linestyle="--", linewidth=1.0)
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + "vortex_dynamics_x.svg", dpi=300)
+plt.savefig(pathF + "vortex_dynamics_z.pdf", dpi=300)
 plt.show()
 
 # %% Control volume analysis
@@ -723,9 +747,9 @@ plt.savefig(pathF + "vortex_term_zt4_0950.svg", bbox_inches="tight")
 plt.show()
 
 # %%############################################################################
-"""
-    Numerical schiliren (gradient of density)
-"""
+#
+# Numerical schiliren (gradient of density)
+#
 # %% Numerical schiliren in X-Y plane
 flow = pf()
 file = path + 'snapshots/' + 'TP_2D_Z_03_996.szplt' # 'TP_2D_Z_03_01000.00.h5'  #  
