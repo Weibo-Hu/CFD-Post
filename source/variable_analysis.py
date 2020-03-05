@@ -59,11 +59,16 @@ def alpha3(WallPre):
 # Obtain nondimensinal dynamic viscosity
 def viscosity(Re_delta, T, law='POW', T_inf=273):
     # nondimensional T
-    if(law=='POW'):
+    if(law == 'POW'):
         mu = 1.0 / Re_delta * np.power(T, 0.75)
-    else:  # Sutherland's law, mu_ref = mu_inf
+    elif(law == 'Suther'):  # Sutherland's law, mu_ref = mu_inf
         S = 110.4 / T_inf
         mu = 1.0 * Re_delta * (1 + S) / (T + S) * np.power(T, 3/2)
+    elif(law == 'dim'):
+        mu_ref = 0.00001716
+        T_ref = 273.15
+        S = 110.4
+        mu = mu_ref * np.power(T / T_ref, 1.5) * (T_ref + S) / (T + S)
     return mu
 
 
@@ -102,7 +107,7 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
         return(theta, u_d, rho_d)
 
 
-# shape factor of boundary layer    
+# shape factor of boundary layer
 def shape_factor(y, u, rho, u_d=None):
     delta_star = bl_thickness(y, u, u_d=u_d, rho=rho, opt='displacement')[0]
     theta = bl_thickness(y, u, u_d=u_d, rho=rho, opt='momentum')[0]
@@ -183,7 +188,7 @@ def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
             )  # time space must be equal
     # POD, fast fourier transform and remove the half
     if opt == 2:
-        Var_fft = np.fft.rfft(Var) # [1:]  # remove value at 0 frequency
+        Var_fft = np.fft.rfft(Var)  # [1:]  # remove value at 0 frequency
         Var_psd = np.abs(Var_fft) ** 2 / (Freq_samp * TotalNo)
         num = np.size(Var_fft)
         Freq = np.linspace(0.0, Freq_samp / 2, num)
@@ -399,15 +404,15 @@ def u_tau(frame, option='mean'):
         # delta_u = frame['u_m'].values[1] - frame['u_m'].values[0]
         rho_wall = frame['<rho>'].values[1]
         mu_wall = frame['<mu>'].values[1]
-        delta_u = frame['<u>'].values[1] # - frame['<u>'].values[0]
+        delta_u = frame['<u>'].values[1]  # - frame['<u>'].values[0]
         u_value = frame['<u>'].values
     else:
         rho_wall = frame['rho'].values[1]
         mu_wall = frame['mu'].values[1]
-        delta_u = frame['u'].values[1] # - frame['u'].values[0]
+        delta_u = frame['u'].values[1]  # - frame['u'].values[0]
         u_value = frame['u'].values
     walldist2 = frame['walldist'].values[1]
-    
+
 #    if(frame['walldist'].values[1] > 0.005):
 #        print('Interpolate for u_wall')
 #        func = interp1d(frame['walldist'].values, u_value, kind='cubic')
@@ -609,10 +614,10 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1):
                 grouped = frame.groupby(['x', 'y'])
                 frame = grouped.mean().reset_index()
                 gradp = griddata(
-                        (frame["x"], frame["y"]),
-                        frame["|gradp|"],
-                        (xini, yini)
-                        )
+                    (frame["x"], frame["y"]),
+                    frame["|gradp|"],
+                    (xini, yini)
+                )
                 gradp[corner] = np.nan
                 cs = ax1.contour(xini, yini, gradp, levels=[0.06],
                                  linewidths=1.2, colors="gray")
@@ -676,7 +681,7 @@ def shock_line(dataframe, path):
     gradp[corner] = np.nan
     fig, ax = plt.subplots(figsize=(10, 4))
     cs = ax.contour(
-         xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
+        xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray"
     )
     plt.close()
     header = "x, y"
@@ -797,11 +802,11 @@ def boundary_edge(dataframe, path, jump1=None, jump2=None):  # jump = reattachme
         # dataframe['u'] = dataframe['<u>']
 
     u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
-    if (jump1==None):
+    if (jump1 == None):
         expand = 0.0  # reattchament location
     else:
         expand = jump1
-    if (jump2==None):
+    if (jump2 == None):
         shock = 10.375  # reattchament location
     else:
         shock = jump2
@@ -854,7 +859,7 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
                     xy = xy_org
                     area[j] = trapz(xy[:, 1] + step, xy[:, 0])
                 #ind = np.argmax(xy_new[:, 1])
-                #if xy[ind, 1] < cutoff:
+                # if xy[ind, 1] < cutoff:
                 #    area[j] = area[j] + 0.5 * xy[ind, 0] * (0 - xy[ind, 1])
             j = j + 1
     area_arr = np.vstack((timezone, area)).T
@@ -1046,7 +1051,7 @@ def integral_db(x, y, val, range1=None, range2=None, opt=2):
         # print("finish integral over x-axis")
         res1 = np.trapz(Iy[:, 0], range2)
         res2 = np.trapz(Iy[:, 1], range2)
-        results = (res1, res2)          
+        results = (res1, res2)
     else:
         pass
     return results
@@ -1119,6 +1124,54 @@ def vortex_dyna(df, type='z', opt=1):
     df = df.assign(dilate=dilatation)
     df = df.assign(bar_tor=torque)
     return df
+
+
+# calculate g(r,s) for the mixing layer
+def grs(r, s, bs):
+    Const = 0.14
+    eq1 = (1 - r) * (1 + np.sqrt(s))
+    eq2 = 1 + r * np.sqrt(s)
+    eq3 = (1 - r) * Const + 0.5 * r
+    ans = 0.5 * bs * eq1 * eq3 / eq2
+    return ans
+
+
+# calculate thickness of the mixing layer
+def mixing(r, s, Cd, phi, opt=1):
+    if opt == 1:
+        eq1 = (1 - r) * (1 + np.sqrt(s))
+        eq2 = 1 / (1 + r * np.sqrt(s))
+    elif opt == 2:
+        a1 = (1 - r) / (1 + r * np.sqrt(s))
+        b1 = 0.5 * (1 + np.sqrt(s))
+        eq1 = a1 * b1
+        a2 = (1 - np.sqrt(s)) / (1 + np.sqrt(s))
+        b2 = 1 + 1.29 * (1 + r) / (1 - r)
+        eq2 = 1 - a2 / b2
+    ans = Cd * phi * eq1 * eq2
+    return ans
+
+
+def stat2tot(Ma, Ts, opt, mode=1):
+    gamma = 1.4
+    aa = 1 + 0.5 * (gamma - 1) * Ma**2
+    if opt == 't':
+        if mode == 1:
+            Tt = Ts * aa
+        else:
+            Tt = Ts / aa
+    elif opt == 'p':
+        if mode == 1:
+            Tt = Ts * np.power(aa, gamma/(gamma - 1))
+        else:
+            Tt = Ts / np.power(aa, gamma/(gamma - 1))
+    elif opt == 'rho':
+        if mode == 1:
+            Tt = Ts * np.power(aa, 1/(gamma - 1))
+        else:
+            Tt = Ts / np.power(aa, 1/(gamma - 1))
+    return Tt
+
 
 
 if __name__ == "__main__":
