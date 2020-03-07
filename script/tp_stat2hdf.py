@@ -10,8 +10,10 @@ Created on Thu Jun 20 14:48:11 2019
 
 # %% Load necessary module
 import plt2pandas as p2p
+import variable_analysis as va
 import numpy as np
 import pandas as pd
+# import modin.pandas as pd
 from glob import glob
 
 # %%
@@ -23,6 +25,7 @@ pathM = path + 'MeanFlow/'
 pathT = path + 'TimeAve/'
 dirs = glob(pathTP + '*plt')
 equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
+varlist, equ = va.mean_var(opt='gradient')
 
 num = np.size(dirs)
 a1 = int(num / 4)
@@ -33,13 +36,14 @@ ind = [[0, a1],
        [a2, a3],
        [a3, num]]
 for i in range(4):
+    print('finish part ' + str(i))
     FileList = dirs[ind[i][0]:ind[i][1]]
     df = p2p.ReadAllINCAResults(pathTP,
-                                pathT,
+                                pathM,
                                 FileName=FileList,
                                 Equ=equ,
-                                OutFile='MeanFlow' + str(i))
-dir1 = glob(pathT + 'MeanFlow*')
+                                OutFile='MeanFlow_' + str(i))
+dir1 = glob(pathM + 'MeanFlow_*')
 df0 = pd.read_hdf(dir1[0])
 df1 = pd.read_hdf(dir1[1])
 df2 = pd.read_hdf(dir1[2])
