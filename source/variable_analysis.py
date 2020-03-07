@@ -27,6 +27,83 @@ from timer import timer
 import os
 
 
+def basic_var(opt):
+    varlist = [
+        'x',
+        'y',
+        'z',
+        'u',
+        'v',
+        'w',
+        'p',
+        'rho',
+        'T',
+        '|gradp|'
+    ]
+    equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)']
+    if opt == 'vorticity':
+        varlist.extend([
+            'vorticity_1', 
+            'vorticity_2',
+            'vorticity_3',
+            'Q-criterion',
+            'L2-criterion'
+        ])
+    elif opt == 'walldist':
+        varlist.append('walldist')
+    return(varlist, equ)
+
+
+def mean_var(opt):
+    varlist = [
+        'x',
+        'y',
+        'z',
+        '<u>',
+        '<v>',
+        '<w>',
+        '<p>',
+        '<rho>',
+        '<T>',
+        '|grad(<p>)|'
+    ]
+    equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
+    if opt == 'vorticity':
+        varlist.extend([
+            '<vorticity_1>', 
+            '<vorticity_2>',
+            '<vorticity_3>',
+            '<Q-criterion>',
+            '<lambda_2>'
+        ])
+    elif opt == 'walldist':
+        varlist.append('walldist')
+    elif opt == 'gradient':
+        varlist.extend([
+            'dudx',
+            'dudy',
+            'dudz',
+            'dvdx',
+            'dvdy',
+            'dvdz',
+            'dwdx',
+            'dwdy',
+            'dwdz'
+        ])
+        equ.extend([
+            '{dudx}=ddx({<u>})',
+            '{dudy}=ddy({<u>})',
+            '{dudz}=ddz({<u>})',
+            '{dvdx}=ddx({<v>})',
+            '{dvdy}=ddy({<v>})',
+            '{dvdz}=ddz({<v>})',
+            '{dwdx}=ddx({<w>})',
+            '{dwdy}=ddy({<w>})',
+            '{dwdz}=ddz({<w>})'
+        ])
+    return(varlist, equ)
+
+    
 # Obtain intermittency factor from an undisturbed and specific wall pressure
 def intermittency(sigma, Pressure0, WallPre, TimeZone):
     # AvePre    = np.mean(WallPre)
@@ -75,7 +152,7 @@ def viscosity(Re_delta, T, law='POW', T_inf=273):
 # Obtain BL thickness, momentum thickness, displacement thickness
 def bl_thickness(y, u, u_d=None, rho=None, opt=None):
     ind = np.argsort(y)  # sort y from small to large
-    bc = int(np.rint(np.size(y) * 0.9))
+    bc = int(np.rint(np.size(y) * 0.95))
     y1 = y[ind][:bc]  # remove the part near the farfield boundary conditions
     u1 = u[ind][:bc]  # remove the part near the farfield boundary conditions
     if u_d is None:
@@ -115,7 +192,7 @@ def shape_factor(y, u, rho, u_d=None):
     return (shape)
 
 
-# radius of flow curvature
+# radius of curve curvature
 def radius(x, y):
     y1 = fv.sec_ord_fdd(x, y)
     y2 = fv.sec_ord_fdd(x, y1)
@@ -126,9 +203,10 @@ def radius(x, y):
 
 
 # Obtain G\"ortler number
-def gortler(Re_inf, x, y, theta, scale=0.001):
+def gortler(Re_inf, x, y, theta, scale=0.001, radi=None):
     Re_theta = Re_inf*theta*scale
-    radi = radius(x, y)
+    if radi is None:
+        radi = radius(x, y)
     gortler = Re_theta*np.sqrt(theta/radi)
     return gortler
 
@@ -139,6 +217,23 @@ def gortler_tur(theta, delta_star, radi):
     a2 = np.sqrt(theta / np.abs(radi))
     gortler = a1 * a2 * np.sign(radi)
     return gortler
+
+
+def curvature_r(df, opt='mean'):
+    if opt == 'mean':
+        u = df['<u>']
+        v = df['<v>']
+    elif opt == 'inst':
+        u = df['u']
+        v = df['v']
+    dudx = df['dudx']
+    dudy = df['dudy']
+    dvdx = df['dvdx']
+    dvdy = df['dvdy']
+    numerator = u**2 * dvdx - v**2 * dudy + u*v*(dvdy - dudx)
+    denominator = np.power(u**2+v**2, 3.0/2.0)
+    radius = denominator / numerator
+    return radius
 
 
 # Obtain skin friction coefficency
@@ -1152,21 +1247,21 @@ def mixing(r, s, Cd, phi, opt=1):
     return ans
 
 
-def stat2tot(Ma, Ts, opt, mode=1):
+def stat2tot(Ma, Ts, opt, mode='total'):
     gamma = 1.4
     aa = 1 + 0.5 * (gamma - 1) * Ma**2
     if opt == 't':
-        if mode == 1:
+        if mode == 'total':
             Tt = Ts * aa
         else:
             Tt = Ts / aa
     elif opt == 'p':
-        if mode == 1:
+        if mode == 'total':
             Tt = Ts * np.power(aa, gamma/(gamma - 1))
         else:
             Tt = Ts / np.power(aa, gamma/(gamma - 1))
     elif opt == 'rho':
-        if mode == 1:
+        if mode == 'total':
             Tt = Ts * np.power(aa, 1/(gamma - 1))
         else:
             Tt = Ts / np.power(aa, 1/(gamma - 1))
