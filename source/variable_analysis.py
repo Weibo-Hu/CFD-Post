@@ -17,6 +17,7 @@ import matplotlib
 import warnings
 import pandas as pd
 import variable_analysis as fv
+from scipy import interpolate
 from scipy.interpolate import griddata  # interp1d
 from scipy.integrate import trapz, dblquad  # simps,
 # import scipy.optimize
@@ -193,13 +194,27 @@ def shape_factor(y, u, rho, u_d=None):
 
 
 # radius of curve curvature
-def radius(x, y):
+def radius(x, y, opt='external'):
     y1 = fv.sec_ord_fdd(x, y)
     y2 = fv.sec_ord_fdd(x, y1)
     a1 = 1+(y1)**2
     a2 = np.abs(y2)
-    radi = np.power(a1, 1.5)/a2
+    curva = curvature(x, y, opt=opt)
+    radi = 1/curva
     return radi
+
+
+def curvature(x, y, opt='external'):
+    if opt == 'internal':
+        dydx = np.gradient(y, x)
+        ddyddx = np.gradient(dydx, x)
+    if opt == 'external':
+        dydx = fv.sec_ord_fdd(x, y)  # y1, dydx; y2, ddyddx
+        ddyddx = fv.sec_ord_fdd(x, dydx)
+    a1 = 1+(dydx)**2
+    a2 = ddyddx
+    curv = a2 / np.power(a1, 1.5)
+    return curv
 
 
 # Obtain G\"ortler number
@@ -211,11 +226,14 @@ def gortler(Re_inf, x, y, theta, scale=0.001, radi=None):
     return gortler
 
 
-def gortler_tur(theta, delta_star, radi):
+def gortler_tur(theta, delta_star, radi, opt='radius'):
     # radi = Radius(x, y)
     a1 = theta / 0.018 / delta_star
-    a2 = np.sqrt(theta / np.abs(radi))
-    gortler = a1 * a2 * np.sign(radi)
+    if opt=='radius':
+        a2 = np.sqrt(theta / np.abs(radi))
+    elif opt=='curvature':
+        a2 = np.sqrt(theta * np.abs(radi))
+    gortler = a1 * a2  # * np.sign(radi)
     return gortler
 
 
@@ -232,8 +250,8 @@ def curvature_r(df, opt='mean'):
     dvdy = df['dvdy']
     numerator = u**2 * dvdx - v**2 * dudy + u*v*(dvdy - dudx)
     denominator = np.power(u**2+v**2, 3.0/2.0)
-    radius = denominator / numerator
-    return radius
+    curvature = numerator / denominator 
+    return curvature
 
 
 # Obtain skin friction coefficency
@@ -966,6 +984,64 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
         header="area",
     )
     return area
+
+
+def streamline(InFolder, df, seeds):
+    xa1 = np.arange(-40.0, 0.0 + 0.03125, 0.03125)
+    ya1 = np.arange(0.0, 3.0 + 0.03125, 0.03125)
+    xa2 = np.arange(0.0, 40.0 + 0.03125, 0.03125)
+    ya2 = np.arange(-3.0, 5.0 + 0.03125, 0.03125)
+    xb1, yb1 = np.meshgrid(xa1, ya1)
+    xb2, yb2 = np.meshgrid(xa2, ya2)
+    u1 = griddata((df.x, df.y), df.u, (xb1, yb1))
+    v1 = griddata((df.x, df.y), df.v, (xb1, yb1))
+    u2 = griddata((df.x, df.y), df.u, (xb2, yb2))
+    v2 = griddata((df.x, df.y), df.v, (xb2, yb2))
+
+    fig, ax = plt.subplots(figsize=(6.4, 2.3))
+    for j in range(np.shape(seeds)[1]):
+        point = np.reshape(seeds[:,j], (1, 2))
+        # upstream the step
+        stream1 = ax.streamplot(
+            xb1,
+            yb1,
+            u1,
+            v1,
+            color="k",
+            density=[3.0, 2.0],
+            arrowsize=0.7,
+            start_points=point,
+            maxlength=30.0,
+            linewidth=1.0,
+        )
+        seg = stream1.lines.get_segments()
+        strm1 = np.asarray([i[0] for i in seg])   
+        # downstream the step
+        stream2 = ax.streamplot(
+            xb2,
+            yb2,
+            u2,
+            v2,
+            color="g",
+            density=[3.0, 2.0],
+            arrowsize=0.7,
+            start_points=point,
+            maxlength=30.0,
+            linewidth=0.8,
+        )
+        seg = stream2.lines.get_segments()
+        strm2 = np.asarray([i[0] for i in seg])
+        # save data
+        frame = pd.DataFrame(data=np.vstack((strm1, strm2)),
+                             columns=['x', 'y'])
+        frame.drop_duplicates(subset=['x'], keep='first', inplace=True)
+        frame.to_csv(InFolder + 'streamline' + str(j+1) + '.dat',
+                     index=False, float_format='%1.8e', sep=' ')
+        ax.plot(strm1[:,0], strm1[:,1], 'b:')
+        ax.plot(strm2[:,0], strm2[:,1], 'r--')
+        plt.savefig(InFolder + "streamline.svg", bbox_inches="tight")
+
+    return frame
 
 
 def correlate(x, y, method="Sample"):
