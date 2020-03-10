@@ -18,6 +18,7 @@ import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
 from scipy import interpolate
+from scipy import signal
 import matplotlib
 import plt2pandas as p2p
 import matplotlib.ticker as ticker
@@ -178,10 +179,11 @@ print("Cf_min=", np.min(df3['Cf']))
 # %% plot skin friction
 fig, ax = plt.subplots(figsize=(6.4, 2.4))
 matplotlib.rc("font", size=textsize)
-cx1 = -0.005
-cx2 = 0.007
+cx1 = -5
+cx2 = 7
+fa = 1000
 rg1 = np.linspace(cx1, cx2, 21)
-cbar = ax.contourf(x, z, friction, cmap="jet", levels=rg1, extend='both')  # rainbow_r
+cbar = ax.contourf(x, z, friction*fa, cmap="jet", levels=rg1, extend='both')  # rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-8.0, 8.0)
 ax.tick_params(labelsize=numsize)
@@ -194,21 +196,26 @@ rg2 = np.linspace(cx1, cx2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.016, pad=0.03)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.set_label(
-    r"$C_f$", rotation=0, fontsize=textsize-1, labelpad=-35, y=1.1
+    r"$C_f \times 10^3$", rotation=0, fontsize=numsize, labelpad=-20, y=1.12
 )
 ax.axvline(x=8.9, color="k", linestyle="--", linewidth=1.2)
 # cbar.formatter.set_powerlimits((-2, 2))
 # cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 # cbar.update_ticks()
-plt.savefig(pathF + "skinfriction.pdf", bbox_inches="tight")
+plt.savefig(pathF + "skinfriction.svg", bbox_inches="tight")
 plt.show()
 
-# %% 
+
+"""
+calculate and save boundary layer thickness
+"""
+# %% calculate boundary layer thickness
 StepHeight = 3.0
 MeanFlow = pf()
 MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 MeanFlow.copy_meanval()
+# %%
 dfx = MeanFlow.PlanarData
 xloc = np.linspace(-10.0, 30.0, 1601)
 xloc = np.delete(xloc, np.argwhere(xloc==0.0))
@@ -230,19 +237,60 @@ for i in range(num):
                                             opt='displacement')[0]
             theta[i] = va.bl_thickness(y0, u0, rho=rho0, opt='momentum')[0]
     elif xnew[i] > 0.0:
-        delta[i] = va.bl_thickness(y0, u0, u_d=0.97)[0]
-        delta_star[i] = va.bl_thickness(y0, u0, rho=rho0, u_d=0.98,
+        delta[i] = va.bl_thickness(y0, u0, u_d=0.99)[0]
+        delta_star[i] = va.bl_thickness(y0, u0, rho=rho0, u_d=0.99,
                                         opt='displacement')[0]
-        theta[i] = va.bl_thickness(y0, u0, rho=rho0, u_d=0.98,
+        theta[i] = va.bl_thickness(y0, u0, rho=rho0, u_d=0.99,
                                    opt='momentum')[0]
-# %%
+# %% save boundary layer thickness
 names = ['x', 'delta', 'displace', 'momentum']
 res = np.vstack((xnew, delta, delta_star, theta))
 frame = pd.DataFrame(data=res.T, columns=names)
-frame.to_csv(pathT + 'thickness.dat', index=False,
+frame.drop_duplicates()
+frame.to_csv(pathM + 'thickness.dat', index=False,
              float_format='%1.8e', sep=' ')
+# %% fit boundary layer thickness
+frame = pd.read_csv(pathM + 'thickness.dat', sep=' ')
+frame1 = frame.loc[frame['x'] <=0.0]
+frame2 = frame.loc[frame['x'] > 0.0]
+fit_frame1 = frame1.values
+fit_frame2 = frame2.values
+b, a = signal.butter(6, 0.04)  # 3-order low pass butter worth filter with 2*ts/sample
+# %% save fit boundary layer thickness data
+new_d1 = signal.filtfilt(b, a, frame1['delta'])  # displace # delta
+new_d2 = signal.filtfilt(b, a, frame2['delta'])
+fig, ax = plt.subplots()
+ax.plot(frame['x'], frame['delta'], 'r:')
+ax.plot(frame['x'], frame['displace'], 'b:')
+ax.plot(frame['x'], frame['momentum'], 'g:')
+ax.plot(frame1['x'], new_d1, 'k--')
+ax.plot(frame2['x'], new_d2, 'k--')
+ax.set_ylim(-3.0, 5.0)
+plt.show()
+fit_frame1[:,1] = new_d1
+fit_frame2[:,1] = new_d2
 
 # %%
+res = np.vstack((fit_frame1, fit_frame2))
+fit_frame = pd.DataFrame(data=res, columns=names)
+fit_frame.to_csv(pathM + 'fit_thickness.dat', index=False,
+             float_format='%1.8e', sep=' ')
+
+# %% validate the fit data of boundary layer thickness
+# // TODO find a better way to calculate boundary layer thickness
+thick = pd.read_csv(pathM + 'fit_thickness.dat', sep=' ')
+thick.drop_duplicates()
+fig, ax = plt.subplots()
+ax.plot(thick['x'], thick['delta'], 'k--')
+ax.plot(thick['x'], thick['displace'], 'b')# delta_star
+ax.plot(thick['x'], thick['momentum'], 'g') # theta
+plt.savefig(pathF + "boundary_layer.svg", bbox_inches="tight")
+plt.show()
+
+"""
+calculate and plot for contours of Gortler number
+"""
+# %% calculate gortler
 df = MeanFlow.PlanarData
 curvature = va.curvature_r(df, opt='mean')
 thick = pd.read_csv(pathT + 'thickness.dat', sep=' ')
@@ -282,4 +330,84 @@ cbar.set_label(
     r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontsize=textsize
 )
 plt.savefig(pathF + "gortler.svg", bbox_inches="tight")
+plt.show()
+
+
+"""
+calculate and plot for lines of Gortler number
+"""
+# %% extract streamlines
+points = np.array(
+    [
+        [0, 0, 0, 0, 0],
+        [0.125, 0.25, 0.5625, 0.78125, 1]
+    ]
+)
+va.streamline(pathM, MeanFlow.PlanarData, points)
+stream = pd.read_csv(pathM + 'streamline3.dat', sep=' ')
+
+# %% calculate and fit curvature radius, method 1
+stream = pd.read_csv(pathM + 'streamline1.dat', sep=' ')
+stream.drop_duplicates(subset=['x'], keep='first', inplace=True)
+curva1 = va.curvature(stream['x'], stream['y'], opt='internal')
+# filter data
+# b, a = signal.butter(3, 0.1) 
+# new_r1 = signal.filtfilt(b, a, curva1)
+
+# calculate gortler number
+thick = pd.read_csv(pathM + 'fit_thickness.dat', sep=' ')
+theta0 = np.interp(stream['x'], thick['x'], thick['momentum'])
+star0 = np.interp(stream['x'], thick['x'], thick['displace'])
+gort1 = va.gortler_tur(theta0, star0, curva1, opt='curvature')
+strm1 = stream['x']
+# %% calculate and fit curvature radius, method 2
+#df = MeanFlow.PlanarData
+#curvature = va.curvature_r(df, opt='mean')
+#xx, yy = np.meshgrid(stream['x'], stream['y'])
+#curva = griddata((df.x, df.y), curvature, (xx, yy))
+#curva1 = curva[0, :]
+
+# %% plot gortler number
+fig = plt.figure(figsize=(6.4, 2.6))
+matplotlib.rc("font", size=textsize)
+ax2 = fig.add_subplot(121)
+matplotlib.rc("font", size=textsize)
+ax2.plot(strm1, curva1, "k", linewidth=1.2)
+# ax2.plot(strm3, curva3, "g", linewidth=1.2)
+# ax2.plot(strm5, curva5, "b", linewidth=1.2)
+ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax2.set_ylabel(r"$\delta_0 / R$", fontsize=textsize)
+ax2.set_xlim([-10.0, 30.0])
+ax2.set_ylim([-0.4, 0.2])
+ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=8.9, color="gray", linestyle="--", linewidth=1.0)
+ax2.grid(b=True, which="both", linestyle=":")
+ax2.yaxis.offsetText.set_fontsize(numsize)
+ax2.annotate("(a)", xy=(-0.2, 1.0), xycoords='axes fraction',
+             fontsize=numsize)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathF+'curvature3.svg', bbox_inches='tight', pad_inches=0.1)
+plt.show()
+
+# fig3, ax3 = plt.subplots(figsize=(5, 2.5))
+ax3 = fig.add_subplot(122)
+ax3.plot(strm1, gort1, "k", linewidth=1.2)
+# ax3.plot(strm3, gort3, "g", linewidth=1.5)
+# ax3.plot(strm5, gort5, "b", linewidth=1.5)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_ylabel(r"$G_t$", fontsize=textsize)
+ax3.set_xlim([-10.0, 30.0])
+ax3.set_ylim([-0.2, 3.0])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax3.axhline(y=0.58, color='gray', linestyle='-.', linewidth=1.0)
+ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=8.9, color="gray", linestyle="--", linewidth=1.0)
+ax3.grid(b=True, which="both", linestyle=":")
+ax3.annotate("(b)", xy=(-0.15, 1.0), xycoords='axes fraction',
+             fontsize=numsize)
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + "gortler1.svg", dpi=300)
 plt.show()
