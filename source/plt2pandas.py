@@ -28,7 +28,7 @@ def progress(count, total, status=''):
     sys.stdout.write('%s %s%s ...%s\r' % (bar, percents, '%', status))
     sys.stdout.flush()
 
-def ReadPlt(FoldPath, VarList):
+def ReadPlt(FoldPath, VarList=None):
     FileList = os.listdir(FoldPath)
     #clear dataset first
     for j in range(np.size(FileList)):
@@ -38,6 +38,8 @@ def ReadPlt(FoldPath, VarList):
         zone = dataset.zone
         #zones = dataset.zones()
         zonename = zone(j).name
+        if VarList is None:
+            VarList = [v.name for v in dataset.variables()]
         #print(zonename)
         for i in range(np.size(VarList)):
             var  = dataset.variable(VarList[i])
@@ -48,7 +50,10 @@ def ReadPlt(FoldPath, VarList):
                 Var_index = var.values(zonename).as_numpy_array()
                 VarCol = np.column_stack((VarCol, Var_index))
         if j == 0:
-            SolTime = dataset.solution_times
+            if (np.size(dataset.solution_times) == 0):
+                SolTime = 0.0
+            else:
+                SolTime = dataset.solution_times[0]
             #print(SolTime)
             ZoneRow = VarCol
         else:
@@ -647,9 +652,9 @@ def create_folder(path):
     exists = os.path.exists(path + 'probes')
     if not exists:
         os.mkdir(path + 'probes')
-    exists = os.path.exists(path + 'SpanAve')
+    exists = os.path.exists(path + 'Slice')
     if not exists:
-        os.mkdir(path + 'SpanAve')
+        os.mkdir(path + 'Slice')
     exists = os.path.exists(path + 'TimeAve')
     if not exists:
         os.mkdir(path + 'TimeAve')
@@ -662,7 +667,7 @@ def create_folder(path):
     pathF = path + 'Figures/'
     pathP = path + "probes/"
     pathM = path + "MeanFlow/"
-    pathS = path + "SpanAve/"
+    pathS = path + "Slice/"
     pathT = path + "TimeAve/"
     pathI = path + "Instant/"
     return(pathF, pathP, pathM, pathS, pathT, pathI)
