@@ -47,7 +47,10 @@ class TriField(PlanarField):
                                         SpanAve=None)
         elif NameList == 'h5':
             if np.size(FileList) == 1:
-                df = pd.read_hdf(infile)
+                if isinstance(infile, list):
+                    df = pd.read_hdf(infile[0])
+                else:
+                    df = pd.read_hdf(infile)
             else:
                 num = np.size(FileList)
                 df = pd.concat([pd.read_hdf(FileList[i]) for i in range(num)])
