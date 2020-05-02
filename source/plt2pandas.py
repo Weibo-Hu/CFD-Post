@@ -99,10 +99,12 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         y2 = np.max(yvar)
         z1 = np.min(zvar)
         z2 = np.max(zvar)
-        if((SubZone[0][0] < x2 and x1 < SubZone[0][1])
-            and (SubZone[1][0] < y2 and y1 < SubZone[1][1])
-            and (SubZone[2][0] < z2 and z1 < SubZone[2][1])):
+        if SubZone is not None:
+            withinzone = ((SubZone[0][0] < x2 and x1 < SubZone[0][1])
+                     and (SubZone[1][0] < y2 and y1 < SubZone[1][1])
+                     and (SubZone[2][0] < z2 and z1 < SubZone[2][1]))
 
+        if(SubZone is None or withinzone==True):
             for i in range(np.size(VarList)):
                 varval = zone.values(VarList[i]).as_numpy_array()
                 # this method does much repeated work,
@@ -143,8 +145,9 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
         df['x'] = df['x'].astype(float)
         df['y'] = df['y'].astype(float)
         df['z'] = df['z'].astype(float)
-        df = df.query("x>={0} & x<={1} & y<={2}".format(
-                       SubZone[0][0], SubZone[0][1], SubZone[1][1]))
+        if SubZone is not None:
+            df = df.query("x>={0} & x<={1} & y<={2}".format(
+                          SubZone[0][0], SubZone[0][1], SubZone[1][1]))
     if SavePath is not None and OutFile is not None:
         st = "%08.2f" % SolTime
         df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
