@@ -31,7 +31,7 @@ from scipy.interpolate import griddata
 
 
 # %% data path settings
-path = "/media/weibo/IM1/BFS_M1.7Tur/"
+path = "/media/weibo/VID2/BFS_M1.7L/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -153,20 +153,23 @@ save wall plane data and plot
 """
 # %% plot Cf in x-z plane
 time_ave = tf()
-filename = glob(pathT + 'MeanFlow_*')
+filename = glob(path + 'TP_data_912.h5')
 time_ave.load_3data(pathT, FileList=filename, NameList='h5')
-df1 = time_ave.TriData.query("x>0")
-df1a = df1.loc[df1['walldist']==np.min(df1['walldist'])*2]  # on the wall=0.5*dy
-df2 = time_ave.TriData.query("x<=0 & y>=0")
-df2a = df2.loc[df2['walldist']==np.min(df2['walldist'])*2]  # on the wall=0.5*dy
+time_ave.add_walldist(3.0)
+# filename = glob(pathT + 'MeanFlow_*')
+# time_ave.load_3data(pathT, FileList=filename, NameList='h5')
+df1 = time_ave.TriData.query("x>0 & walldist>0")
+df1a = df1.loc[df1['walldist']==np.min(df1['walldist'])]  # np.min(df1['walldist'])*2 
+df2 = time_ave.TriData.query("x<=0 & y>=0 & walldist>0")
+df2a = df2.loc[df2['walldist']==np.min(df2['walldist'])]  # on the wall=0.5*dy
 df = pd.concat([df1a, df2a])
 df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
 del time_ave
 # %% skin friction
 Re = 13718
-df = pd.read_hdf(pathT + 'WallValue.h5')
-mu = va.viscosity(Re, df['<T>'], law='POW')
-Cf = va.skinfriction(mu, df['<u>'], df['walldist'])
+# df = pd.read_hdf(pathT + 'WallValue.h5')
+mu = va.viscosity(Re, df['T'], law='POW')  # df['<T>'],
+Cf = va.skinfriction(mu, df['u'], df['walldist'])  # df['<u>']
 df['Cf'] = Cf
 df3 = df.query("Cf < 0.009")
 xx = np.unique(df['x'])  # np.linspace(-20.0, 40.0, 1201)
@@ -179,8 +182,8 @@ print("Cf_min=", np.min(df3['Cf']))
 # %% plot skin friction
 fig, ax = plt.subplots(figsize=(6.4, 2.4))
 matplotlib.rc("font", size=textsize)
-cx1 = -5
-cx2 = 7
+cx1 = -8
+cx2 = 8
 fa = 1000
 rg1 = np.linspace(cx1, cx2, 21)
 cbar = ax.contourf(x, z, friction*fa, cmap="jet", levels=rg1, extend='both')  # rainbow_r
@@ -198,7 +201,7 @@ cbar.ax.tick_params(labelsize=numsize)
 cbar.set_label(
     r"$C_f \times 10^3$", rotation=0, fontsize=numsize, labelpad=-20, y=1.12
 )
-ax.axvline(x=8.9, color="k", linestyle="--", linewidth=1.2)
+ax.axvline(x=10.9, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 # cbar.formatter.set_powerlimits((-2, 2))
 # cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 # cbar.update_ticks()
@@ -256,9 +259,9 @@ frame2 = frame.loc[frame['x'] > 0.0]
 fit_frame1 = frame1.values
 fit_frame2 = frame2.values
 b, a = signal.butter(6, 0.04)  # 3-order low pass butter worth filter with 2*ts/sample
-# %% save fit boundary layer thickness data
-new_d1 = signal.filtfilt(b, a, frame1['delta'])  # displace # delta
-new_d2 = signal.filtfilt(b, a, frame2['delta'])
+# %% repeat 3 times, save fit boundary layer thickness data
+new_d1 = signal.filtfilt(b, a, frame1['momentum']) # delta # displace # momentum 
+new_d2 = signal.filtfilt(b, a, frame2['momentum'])
 fig, ax = plt.subplots()
 ax.plot(frame['x'], frame['delta'], 'r:')
 ax.plot(frame['x'], frame['displace'], 'b:')
@@ -267,8 +270,8 @@ ax.plot(frame1['x'], new_d1, 'k--')
 ax.plot(frame2['x'], new_d2, 'k--')
 ax.set_ylim(-3.0, 5.0)
 plt.show()
-fit_frame1[:,1] = new_d1
-fit_frame2[:,1] = new_d2
+fit_frame1[:,3] = new_d1
+fit_frame2[:,3] = new_d2
 
 # %%
 res = np.vstack((fit_frame1, fit_frame2))
@@ -284,6 +287,7 @@ fig, ax = plt.subplots()
 ax.plot(thick['x'], thick['delta'], 'k--')
 ax.plot(thick['x'], thick['displace'], 'b')# delta_star
 ax.plot(thick['x'], thick['momentum'], 'g') # theta
+ax.legend(['delta', 'delta*', 'momentum'])
 plt.savefig(pathF + "boundary_layer.svg", bbox_inches="tight")
 plt.show()
 
@@ -293,7 +297,7 @@ calculate and plot for contours of Gortler number
 # %% calculate gortler
 df = MeanFlow.PlanarData
 curvature = va.curvature_r(df, opt='mean')
-thick = pd.read_csv(pathT + 'thickness.dat', sep=' ')
+thick = pd.read_csv(pathM + 'thickness.dat', sep=' ')
 x1 = np.linspace(-10.0, 30.0, 801)
 y1 = np.linspace(-3.0, 10.0, 209)
 x2, y2 = np.meshgrid(x1, y1)
@@ -339,17 +343,30 @@ calculate and plot for lines of Gortler number
 # %% extract streamlines
 points = np.array(
     [
-        [0, 0, 0, 0, 0],
-        [0.125, 0.25, 0.5625, 0.78125, 1]
+        [0, 0, 0, 0, 0, 0],
+        [0, 0.125, 0.25, 0.5625, 0.78125, 1]
     ]
 )
+# %%
 va.streamline(pathM, MeanFlow.PlanarData, points)
-stream = pd.read_csv(pathM + 'streamline3.dat', sep=' ')
 
 # %% calculate and fit curvature radius, method 1
 stream = pd.read_csv(pathM + 'streamline1.dat', sep=' ')
 stream.drop_duplicates(subset=['x'], keep='first', inplace=True)
+stream1 = pd.read_csv(pathM + 'streamline3.dat', sep=' ')
+stream1.drop_duplicates(subset=['x'], keep='first', inplace=True)
 curva1 = va.curvature(stream['x'], stream['y'], opt='internal')
+fig, ax = plt.subplots(figsize=(6.6, 2.8))
+matplotlib.rc("font", size=textsize)
+plt.plot(stream['x'], stream['y'], 'g--',  linewidth=1.2)
+plt.plot(stream1['x'], stream1['y'], 'g--',  linewidth=1.2)
+ax.set_xlim(-5.0, 20.0)
+ax.set_ylim(-3.0, 2.0)
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
+plt.savefig(pathF+'streamline.svg', bbox_inches='tight')
+plt.show()
 # filter data
 # b, a = signal.butter(3, 0.1) 
 # new_r1 = signal.filtfilt(b, a, curva1)
@@ -381,13 +398,13 @@ ax2.set_xlim([-10.0, 30.0])
 ax2.set_ylim([-0.4, 0.2])
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax2.axvline(x=8.9, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.2, 1.0), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF+'curvature3.svg', bbox_inches='tight', pad_inches=0.1)
+plt.savefig(pathF+'curvature1.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # fig3, ax3 = plt.subplots(figsize=(5, 2.5))
@@ -403,7 +420,7 @@ ax3.set_ylim([-0.2, 3.0])
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axhline(y=0.58, color='gray', linestyle='-.', linewidth=1.0)
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=8.9, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=10.9, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
 ax3.annotate("(b)", xy=(-0.15, 1.0), xycoords='axes fraction',
              fontsize=numsize)

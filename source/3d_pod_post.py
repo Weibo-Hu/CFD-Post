@@ -36,13 +36,13 @@ var3 = 'p'
 var4 = 'T'
 col = [var0, var1, var2, var3, var4]
 
-# %%############################################################################
+# %%###########################################################################
 """
     Load data
 """
 # %% load first snapshot data
 # path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
-path = "/media/weibo/IM1/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -75,7 +75,8 @@ o = np.size(col)
 varset = {var0: [0, m],
           var1: [m, 2*m],
           var2: [2*m, 3*m],
-          var3: [3 * m, 4 * m]}
+          var3: [3 * m, 4 * m]
+          var4: [4 * m, 5 * m]}
 
 """
 ------------------------------------------------------------------------------
@@ -112,7 +113,7 @@ m = int(m/o)
 meanflow = DataFrame/np.size(dirs)
 del TempFrame, DataFrame
 print("data loaded")
-# %%############################################################################
+# %%###########################################################################
 """
     Compute
 """
@@ -135,7 +136,7 @@ np.save(path3P + 'coeff', coeff)
 """
 ### load exist POD results
 """
-# %% 
+# %%  load data
 eigval = np.load(path3P + 'eigval.npy')
 eigvec = np.load(path3P + 'eigvec.npy')
 coeff = np.load(path3P + 'coeff.npy')
@@ -147,9 +148,10 @@ o = np.size(col)
 
 # %% Eigvalue Spectrum
 EFrac, ECumu, N_modes = pod.pod_eigspectrum(80, eigval)
-np.savetxt(path3P + 'EnergyFraction700.dat', EFrac, fmt='%1.7e', delimiter='\t')
+np.savetxt(path3P + 'EnergyFraction700.dat', 
+           EFrac, fmt='%1.7e', delimiter='\t')
 
-# %%############################################################################
+# %%###########################################################################
 """
 ### Plot
 """
@@ -195,7 +197,7 @@ names = ['x', 'y', 'z', var0, var1, var2, var3,
          'T', 'u`', 'v`', 'w`', 'p`', 'T`']
 
 # %% save dataframe of mode flow into tecplot
-mode_id = np.arange(1, 20, 1)
+mode_id = np.arange(100, 500, 20)
 xval = np.arange(np.min(meanflow['x']), np.max(meanflow['x']) + 0.25, 0.25)
 yval = np.arange(np.min(meanflow['y']), np.max(meanflow['y']) + 0.125, 0.125)
 zval = np.arange(np.min(meanflow['z']), np.max(meanflow['z']) + 0.125, 0.125)  
@@ -208,41 +210,40 @@ for ind in mode_id:
     df = pd.DataFrame(data, columns=names)
     filename = "POD_Mode" + str(ind)
     with timer("save plt"):
-        
-        df1 = df.query("x<=0.0 & y>=0.0 & y<=1.0")
-        filename1 = filename + "A"
-        p2p.frame2tec3d(df1, path3P, filename1, zname=1, stime=ind)
-        p2p.tec2plt(path3P, filename1, filename1)
+      
+        # df1 = df.query("x<=0.0 & y>=0.0 & y<=1.0")
+        # filename1 = filename + "A"
+        # p2p.frame2tec3d(df1, path3P, filename1, zname=1, stime=ind)
+        # p2p.tec2plt(path3P, filename1, filename1)
      
-        df2 = df.query("x>=0.0 & y<=0.0")
-        filename2 = filename + "B"
-        p2p.frame2tec3d(df2, path3P, filename2, zname=1, stime=ind)
-        p2p.tec2plt(path3P, filename2, filename2)
+        # df2 = df.query("x>=0.0 & y<=0.0")
+        # filename2 = filename + "B"
+        # p2p.frame2tec3d(df2, path3P, filename2, zname=1, stime=ind)
+        # p2p.tec2plt(path3P, filename2, filename2)
         
-        df0 = df[df.x.isin(xval)]
-        df0 = df0[df0.y.isin(yval)]
-        df0 = df0[df0.z.isin(zval)]
+        # df0 = df[df.x.isin(xval)]
+        # df0 = df0[df0.y.isin(yval)]
+        # df0 = df0[df0.z.isin(zval)]
         
-        df3 = df0.query("x<=0.0 & y>=1.0 & y<=2.0")
-        filename3 = filename + "C"
-        p2p.frame2tec3d(df3, path3P, filename3, zname=1, stime=ind)
-        p2p.tec2plt(path3P, filename3, filename3)    
+        # df3 = df0.query("x<=0.0 & y>=1.0 & y<=2.0")
+        # filename3 = filename + "C"
+        # p2p.frame2tec3d(df3, path3P, filename3, zname=1, stime=ind)
+        # p2p.tec2plt(path3P, filename3, filename3)    
         
-        df4 = df0.query("x>=0.0 & y>=0.0 & y<=2.0")
-        filename4 = filename + "D"
-        p2p.frame2tec3d(df4, path3P, filename4, zname=1, stime=ind)
-        p2p.tec2plt(path3P, filename4, filename4)   
+        # df4 = df0.query("x>=0.0 & y>=0.0 & y<=2.0")
+        # filename4 = filename + "D"
+        # p2p.frame2tec3d(df4, path3P, filename4, zname=1, stime=ind)
+        # p2p.tec2plt(path3P, filename4, filename4)   
         
-        df5 = df0.query("y>=2.0")
-        df5 = df5[df5.x.isin(xval[::4])]  # 1.0
-        df5 = df5[df5.y.isin(yval[::4])]  # 0.5
-        df5 = df5[df5.z.isin(zval[::8])]  # 1.0
-        filename5 = filename + "E"
-        p2p.frame2tec3d(df5, path3P, filename5, zname=1, stime=ind)
-        p2p.tec2plt(path3P, filename5, filename5)   
+        # df5 = df0.query("y>=2.0")
+        # df5 = df5[df5.x.isin(xval[::4])]  # 1.0
+        # df5 = df5[df5.y.isin(yval[::4])]  # 0.5
+        # df5 = df5[df5.z.isin(zval[::8])]  # 1.0
+        # filename5 = filename + "E"
+        # p2p.frame2tec3d(df5, path3P, filename5, zname=1, stime=ind)
+        # p2p.tec2plt(path3P, filename5, filename5)   
 
-# %%  
-"""      
+
         df1 = df.query("x<=0.0 & y>=0.0")
         filename1 = filename + "A"
         p2p.frame2tec3d(df1, path3P, filename1, zname=1, stime=ind)
@@ -251,9 +252,8 @@ for ind in mode_id:
         filename2 = filename + "B"
         p2p.frame2tec3d(df2, path3P, filename2, zname=2, stime=ind)
         p2p.tec2plt(path3P, filename2, filename2)
-        
-"""
-# %%############################################################################
+
+# %%###########################################################################
 """
     POD convergence
 """

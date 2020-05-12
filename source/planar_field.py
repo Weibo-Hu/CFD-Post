@@ -111,6 +111,8 @@ class PlanarField(LineField):
                                      VarList=NameList,
                                      FileName=infile)
         df = df.drop_duplicates(keep='last')
+        grouped = df.groupby(['x', 'y', 'z'])
+        df = grouped.mean().reset_index()
         self._data_field = df
 
     def load_meanflow(self, path, FileList=None, OutFile=None):
@@ -175,17 +177,21 @@ class PlanarField(LineField):
                                         SpanAve=True,
                                         Equ=equ,
                                         OutFile='MeanFlow' + str(i))
-            return (df)
+            return(df)
 
     def yprofile(self, var_name, var_val):
         df1 = self.PlanarData.loc[self.PlanarData[var_name] == var_val]
-        df2 = PlanarField.uniq1d(df1, 'y')
+        
+        # df2 = df1.drop_duplicates(subset=['y'], keep='first', inplace=True)   
+        grouped = df1.groupby(['y'])
+        df2 = grouped.mean().reset_index()
+        # df1 = PlanarField.uniq1d(df1, 'y')
         df3 = df2.sort_values(by=['y'], ascending=True)
-        return (df3)
+        return(df3)
 
     def add_walldist(self, StepHeight):
-        self.PlanarData['walldist'] = self.PlanarData['y']
-        self.PlanarData.loc[self.PlanarData['x'] > 0.0, 'walldist'] \
+        self._data_field['walldist'] = self._data_field['y']
+        self._data_field.loc[self._data_field['x'] > 0.0, 'walldist'] \
             += StepHeight
 
     def copy_meanval(self):

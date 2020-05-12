@@ -21,8 +21,8 @@ import variable_analysis as fv
 from triaxial_field import TriField as tf
 
 
-path = "/media/weibo/VID2/BFS_M1.7TS/"
-pathV = path + "Vortex/"
+path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
+pathV = path + "Vortex/" + "done/"
 
 flow = tf()
 dirs = glob(pathV + '*.h5')
@@ -38,7 +38,7 @@ nms1 = ['x', 'tilt1_p', 'tilt1_n', 'tilt2_p', 'tilt2_n', 'stretch_p',
         'stretch_n', 'dilate_p', 'dilate_n', 'torque_p', 'torque_n']
 
 enstro = False
-x_out = False
+x_out = True
 y_out = True
 z_out = True
 if enstro:
@@ -55,14 +55,14 @@ for j in range(np.size(dirs)):
         df = flow.TriData
         xslc = df.loc[df['x'] == xloc[i]]
         if enstro:
-            ens[i]  = fv.enstrophy(xslc, type='x', mode=None,
-                                   rg1=y, rg2=z, opt=2)
-            ens1[i] = fv.enstrophy(xslc, type='x', mode='x',
-                                   rg1=y, rg2=z, opt=2)
-            ens2[i] = fv.enstrophy(xslc, type='x', mode='y',
-                                   rg1=y, rg2=z, opt=2)
-            ens3[i] = fv.enstrophy(xslc, type='x', mode='z',
-                                   rg1=y, rg2=z, opt=2)
+            ens[i]  = fv.enstrophy(xslc, type='x', mode=None, opt=2)
+            #                       rg1=y, rg2=z, opt=2)
+            ens1[i] = fv.enstrophy(xslc, type='x', mode='x', opt=2)
+            #                       rg1=y, rg2=z, opt=2)
+            ens2[i] = fv.enstrophy(xslc, type='x', mode='y', opt=2)
+            #                       rg1=y, rg2=z, opt=2)
+            ens3[i] = fv.enstrophy(xslc, type='x', mode='z', opt=2)
+            #                       rg1=y, rg2=z, opt=2)
         # votex term
         if x_out:
             df1 = fv.vortex_dyna(xslc, type='x', opt=2)

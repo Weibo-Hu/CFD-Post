@@ -16,7 +16,7 @@ from glob import glob
 
 # %% Extract 3D flow domain
 path = "/media/weibo/IM1/BFS_M1.7Tur/"
-pathin = path + "TP_data_02087427/"
+pathin = path + "TP_data_01800196/"
 pathout = path
 VarList = [
     'x',
@@ -32,13 +32,49 @@ VarList = [
     'vorticity_3',
     'L2-criterion',
     'T',
+    '|gradp|',
+    'ux',
+    'uy',
+    'uz',
+    'vx',
+    'vy',
+    'vz',
+    'wx',
+    'wy',
+    'wz',
+    'rhox',
+    'rhoy',
+    'rhoz',
+    'px',
+    'py',
+    'pz'
+]
+
+equ = [
+    '{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)',
+    '{ux} = ddx({u})',
+    '{uy} = ddy({u})',
+    '{uz} = ddz({u})',
+    '{vx} = ddx({v})',
+    '{vy} = ddy({v})',
+    '{vz} = ddz({v})',
+    '{wx} = ddx({w})',
+    '{wy} = ddy({w})',
+    '{wz} = ddz({w})',
+    '{rhox} = ddx({rho})',
+    '{rhoy} = ddy({rho})',
+    '{rhoz} = ddz({rho})',
+    '{px} = ddx({p})',
+    '{py} = ddy({p})',
+    '{pz} = ddz({p})',
 ]
 
 start = time.time()
 
-volume = [(-100.0, 80.0), (0.0, 40.0), (-8, 8)]
-dxyz = [0.25, 0.125, 0.125]
-df0, stime = p2p.ReadINCAResults(pathin, VarList, SubZone=volume)
+volume = [(-10.0, 30.0), (-3.0, 2.0), (-8, 8)]
+df0, stime = p2p.ReadINCAResults(pathin, VarList, SubZone=volume, Equ=equ)
+# %%
+dxyz = [0.125, 0.0625, 0.0625]
 xval = np.arange(volume[0][0], volume[0][1] + dxyz[0], dxyz[0])
 yval = np.arange(volume[1][0], volume[1][1] + dxyz[1], dxyz[1])
 zval = np.arange(volume[2][0], volume[2][1] + dxyz[2], dxyz[2])

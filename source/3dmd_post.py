@@ -40,7 +40,8 @@ col = [var0, var1, var2, var3, var4]
 path = "/media/weibo/IM1/BFS_M1.7Tur/"
 path3D = path + '3D_DMD/'
 pathH = path + 'hdf5/'
-timepoints = np.arange(951.0, 1350.5 + 0.5, 0.5)
+pathM = path + 'MeanFlow/'
+timepoints = np.arange(951.0, 1450.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(pathH))
 # if np.size(dirs) != np.size(timepoints):
 #     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
@@ -50,7 +51,7 @@ DataFrame['walldist'] = DataFrame['y']
 DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
 grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
-NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0")
+NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0") # 20
 ind = NewFrame.index.values
 xval = DataFrame['x'][ind]  # NewFrame['x']
 yval = DataFrame['y'][ind]   # NewFrame['y']
@@ -67,7 +68,7 @@ varset = {var0: [0, m],
           var2: [2*m, 3*m],
           var3: [3 * m, 4 * m],
           var4: [4 * m, 5 * m]}
-
+dt = 0.5
 # %% Load & rename data
 eigval = np.load(path3D + 'eigval.npy')  # bfs.eigval
 omega = np.load(path3D + 'omega.npy')  # bfs.omega
@@ -93,7 +94,7 @@ meanflow['walldist'] = meanflow['y']
 meanflow.loc[meanflow['x'] >= 0.0, 'walldist'] += 3.0
 grouped = meanflow.groupby(['x', 'y', 'z'])
 meanflow = grouped.mean().reset_index()
-meanflow = meanflow.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0")
+meanflow = meanflow.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0")  # 20
 # %% spdmd selection
 sp = 2
 r = np.size(eigval)
@@ -101,12 +102,12 @@ sp_ind = np.arange(r)[nonzero[:, sp]]
 
 # %% Eigvalue Spectrum
 sp_ind = None
-filtval = 0.99
+filtval = 0
 var = var0
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 matplotlib.rc('font', size=textsize)
-fig1, ax1 = plt.subplots(figsize=(4.5, 4.5))
+fig1, ax1 = plt.subplots(figsize=(2.8, 3.0))
 unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
                          label='unit circle', linewidth=7.0, alpha=0.5)
 ax1.add_artist(unit_circle)
@@ -121,8 +122,8 @@ limit = np.max(np.absolute(eigval))+0.1
 ax1.set_xlim((-limit, limit))
 ax1.set_ylim((-limit, limit))
 ax1.tick_params(labelsize=numsize)
-ax1.set_xlabel(r'$\Re(\mu_i)$')
-ax1.set_ylabel(r'$\Im(\mu_i)$')
+ax1.set_xlabel(r'$\Re(\mu_k)$')
+ax1.set_ylabel(r'$\Im(\mu_k)$')
 ax1.grid(b=True, which='both', linestyle=':')
 plt.gca().set_aspect('equal', adjustable='box')
 plt.savefig(path3D+var+'DMDEigSpectrum.svg', bbox_inches='tight')
@@ -130,14 +131,18 @@ plt.show()
 
 # %% Mode frequency specturm
 reduction = 0
+filtval = 0.94
 matplotlib.rc('font', size=textsize)
-fig2, ax2 = plt.subplots(figsize=(7.5, 4.5))
+plt.rcParams['xtick.top'] = True
+plt.rcParams['ytick.right'] = True
+fig2, ax2 = plt.subplots(figsize=(4.0, 3.0))
 if reduction == 0:
     freq = omega/2/np.pi
     psi = np.abs(amplitudes)/np.max(np.abs(amplitudes))
     ind1 = (freq > 0.0) & (freq < 1.0) & (np.abs(eigval) > filtval)
     freq1 = freq[ind1]
     psi1 = np.abs(amplitudes[ind1])/np.max(np.abs(amplitudes[ind1]))
+    beta1 = np.real(np.log(eigval[ind1])/dt)
     ind2 = nonzero[:, sp]
 else:
     psi = np.abs(re_coeff)/np.max(np.abs(re_coeff))
@@ -146,7 +151,8 @@ else:
     psi1 = np.abs(re_coeff[ind1])/np.max(np.abs(re_coeff[ind1]))
     ind2 = nonzero[re_index, sp]
 ax2.set_xscale("log")
-ax2.vlines(freq1, [0], psi1, color='k', linewidth=1.0)
+colors = plt.cm.Greys_r(beta1/np.min(beta1))
+ax2.vlines(freq1, [0], psi1, color=colors, linewidth=1.0)
 if sp_ind is not None:
     ind3 = ind2[ind1]
     ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
@@ -154,19 +160,25 @@ if sp_ind is not None:
 ax2.set_ylim(bottom=0.0)
 ax2.tick_params(labelsize=numsize, pad=6)
 ax2.set_xlabel(r'$f \delta_0/u_\infty$')
-ax2.set_ylabel(r'$|\psi_i|$')
-ax2.grid(b=True, which='both', linestyle=':')
+ax2.set_ylabel(r'$|\psi_k|$')
+ax2.grid(b=True, which='both', linestyle=':', alpha=0.0)
 plt.savefig(path3D+var+'DMDFreqSpectrum.svg', bbox_inches='tight')
 plt.show()
 print("the selected frequency:", freq[sparse['nonzero'][:, sp]])
 
+savenm = ['freq', 'psi', 'beta']
+savevr = np.vstack((freq1, psi1, beta1))
+frame = pd.DataFrame(data=savevr.T, columns=savenm)
+frame.sort_values(by=['freq'], inplace=True)
+frame.to_csv(path3D + 'ModeInfo.dat', index=False,
+             float_format='%1.8e', sep=' ')
 # %% save dataframe of reconstructing flow
 base = meanflow[col].values
 base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
 # ind = 0 
-num = np.where(np.round(freq, 4) == 0.2068) # 0.3017
+num = np.where(np.round(freq, 4) == 0.2033) # 0.3017 # 0.08224 # 0.2033 # 0.2134
 print("The frequency is", freq[num])
-phase = np.linspace(0, 2*np.pi, 8, endpoint=False)
+phase = np.linspace(0, 2*np.pi, 4, endpoint=False)
 # modeflow1 = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
 #             @ bfs.Vand[num, :].reshape(1, -1)
 modeflow = modes[:, num].reshape(-1, 1) * amplitudes[num] \
@@ -193,6 +205,158 @@ for ii in range(np.size(phase)):
         filename2 = filename + "B"
         p2p.frame2tec3d(df2, path3D, filename2, zname=2, stime=ii)
         p2p.tec2plt(path3D, filename2, filename2)
+
+
+"""
+plot 2D slice contour 
+
+"""
+# %% generate data
+num = np.where(np.round(freq, 4) == 0.0229) # 0.3017
+base = meanflow[col].values
+base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
+print("The frequency is", freq[num])
+phase = 0.5 * np.pi
+modeflow = modes[:, num].reshape(-1, 1) * amplitudes[num] * np.exp(phase)
+fluc = modeflow.reshape((m, o), order='F')
+newflow = fluc.real
+xarr = xval.values.reshape(-1, 1)  # row to column
+yarr = yval.values.reshape(-1, 1)
+zarr = zval.values.reshape(-1, 1)
+names = ['x', 'y', 'z', var0, var1, var2, var3, var4,
+         'u`', 'v`', 'w`', 'p`', 'T`']
+data = np.hstack((xarr, yarr, zarr, base, newflow))
+df = pd.DataFrame(data, columns=names)
+
+# %% in X-Y plane
+var = 'p'
+amp = 1.0  # for fluctuations
+fa = 0.0   # for mean value
+sliceflow = df.loc[df['z']==0]
+xarr = sliceflow['x']
+yarr = sliceflow['y']
+x, y = np.meshgrid(np.unique(xarr), np.unique(yarr))
+if var == 'u':
+    varval = sliceflow[var] * fa + sliceflow['u`'] * amp
+    grouped = df.groupby(['x', 'y'])
+    df2 = grouped.mean().reset_index()
+    varval = df2['u`']
+if var == 'p':
+    # varval = sliceflow[var] * fa + sliceflow['p`'] * amp
+    grouped = df.groupby(['x', 'y'])
+    df2 = grouped.mean().reset_index()
+    varval = df2['p`']
+if var == 'rho':
+    varval = (sliceflow['p'] * fa + sliceflow['p`'] * amp) / \
+             (sliceflow['T'] * fa + sliceflow['T`'] * amp) 
+print("Limit value: ", np.min(varval), np.max(varval))
+u = griddata((xarr, yarr), varval, (x, y))
+corner = (x < 0.0) & (y < 0.0)
+u[corner] = np.nan
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
+matplotlib.rc('font', size=textsize)
+fig, ax = plt.subplots(figsize=(6.6, 2.8))
+c1 = -0.1 # -0.13 #-0.024
+c2 = -c1 # 0.010 #0.018
+lev1 = np.linspace(c1, c2, 21)
+lev2 = np.linspace(c1, c2, 6)
+cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r', extend='both') 
+#cbar = ax.contourf(x, y, u,
+#                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
+ax.set_xlim(-5.0, 20.0)
+ax.set_ylim(-3.0, 2.0)
+ax.tick_params(labelsize=numsize)
+cbar.cmap.set_under('#053061')
+cbar.cmap.set_over('#67001f')
+ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
+# add colorbar
+rg2 = np.linspace(c1, c2, 3)
+cbaxes = fig.add_axes([0.18, 0.76, 0.30, 0.07])  # x, y, width, height
+cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
+                     extendrect='False', ticks=rg2)
+cbar1.formatter.set_powerlimits((-2, 2))
+cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
+cbar1.update_ticks()
+cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, 
+                x=1.16, labelpad=-26, fontsize=textsize)
+cbaxes.tick_params(labelsize=numsize)
+# Add shock wave
+shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], color='#32cd32ff', linewidth=1.2)
+# Add sonic line
+sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
+ax.plot(sonic[:, 0], sonic[:, 1], color='#32cd32ff',
+        linestyle='--', linewidth=1.5)
+# Add boundary layer
+boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
+ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
+# Add dividing line(separation line)
+dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
+ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
+# ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
+filename = path3D + var + str(np.round(freq[num], 3)) + 'DMDModeXY1.svg'
+plt.savefig(filename, bbox_inches='tight')
+plt.show()
+
+# %%
+"""
+plot 2D slice contour in X-Y plane
+
+"""
+var = 'u'
+amp = 1.0  # for fluctuations
+fa = 1.0   # for mean value
+sliceflow = df.loc[df['y']==-2.875]
+xarr = sliceflow['x']
+zarr = sliceflow['z']
+x, z = np.meshgrid(np.unique(xarr), np.unique(zarr))
+if var == 'u':
+    varval = sliceflow[var] * fa + sliceflow['u`'] * amp
+if var == 'p':
+    # varval = sliceflow[var] * fa + sliceflow['p`'] * amp
+    grouped = df.groupby(['x', 'y'])
+    df2 = grouped.mean().reset_index()
+    varval = df2['p`']
+if var == 'rho':
+    varval = (sliceflow['p'] * fa + sliceflow['p`'] * amp) / \
+             (sliceflow['T'] * fa + sliceflow['T`'] * amp) 
+print("Limit value: ", np.min(varval), np.max(varval))
+u = griddata((xarr, zarr), varval, (x, z))
+#corner = (x < 0.0) & (y < 0.0)
+#u[corner] = np.nan
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
+matplotlib.rc('font', size=textsize)
+fig, ax = plt.subplots(figsize=(6.6, 2.8))
+c1 = -0.3 #-0.024
+c2 = 0.6 # -c1 # 0.010 #0.018
+lev1 = np.linspace(c1, c2, 21)
+lev2 = np.linspace(c1, c2, 6)
+cbar = ax.contourf(x, z, u, levels=lev1, cmap='jet', extend='both') 
+#cbar = ax.contourf(x, y, u,
+#                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
+ax.set_xlim(0.0, 20.0)
+ax.set_yticks(np.linspace(-8.0, 8.0, 5))
+ax.tick_params(labelsize=numsize)
+cbar.cmap.set_under('#053061')
+cbar.cmap.set_over('#67001f')
+ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$z/\delta_0$', fontsize=textsize)
+# add colorbar
+rg2 = np.linspace(c1, c2, 3)
+cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.016, pad=0.03)
+cbar.ax.tick_params(labelsize=numsize)
+cbar.set_label(
+    r'$\Re(\phi_{})$'.format(var), rotation=0,
+    fontsize=numsize, labelpad=-26, y=1.12
+)
+ax.axvline(x=8.9, color="k", linestyle="--", linewidth=1.2)
+filename = path3D + var + str(np.round(freq[num], 3)) + 'DMDModeXZ.svg'
+plt.savefig(filename, bbox_inches='tight')
+plt.show()
+
 
 # %%      
 def dmd_plt(df, path, ind):

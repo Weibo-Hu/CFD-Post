@@ -152,10 +152,20 @@ def viscosity(Re_delta, T, law='POW', T_inf=273):
 
 # Obtain BL thickness, momentum thickness, displacement thickness
 def bl_thickness(y, u, u_d=None, rho=None, opt=None):
-    ind = np.argsort(y)  # sort y from small to large
+    if isinstance(y, np.ndarray):
+        pass
+    else:
+        y = y.values
+    if isinstance(u, np.ndarray):
+        pass
+    else:
+        u = u.values
+    # ind = np.argsort(y)  # sort y from small to large
+    if np.any(np.diff(y) <= 0):
+        sys.exit('The boundary layer is not sorted in y-direction!!!')
     bc = int(np.rint(np.size(y) * 0.95))
-    y1 = y[ind][:bc]  # remove the part near the farfield boundary conditions
-    u1 = u[ind][:bc]  # remove the part near the farfield boundary conditions
+    y1 = y[:bc]  # remove the part near the farfield boundary conditions
+    u1 = u[:bc]  # remove the part near the farfield boundary conditions
     if u_d is None:
         bl = np.where(u1[:] >= 0.99)[0][0]
     else:
@@ -167,7 +177,7 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
     if opt is None:
         return(delta, u_d)
     elif opt == 'displacement':
-        rho1 = rho[ind][:bc]
+        rho1 = rho[:bc]
         rho_d = np.max(rho1)
         u_d = np.max(u1)
         a1 = rho1*u1/rho_d/u_d
@@ -175,7 +185,7 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
         delta_star = np.trapz(var, y1)
         return(delta_star, u_d, rho_d)
     elif opt == 'momentum':
-        rho1 = rho[ind][:bc]
+        rho1 = rho[:bc]
         rho_d = np.max(rho1)
         u_d = np.max(u1)
         a1 = 1-u1/u_d
@@ -355,7 +365,7 @@ def rms_map(orig, xyz, var):
 
 
 # Obtain cross-power sepectral density
-def cro_psd(Var1, Var2, dt, Freq_samp, opt=1):
+def cro_psd(Var1, Var2, dt, Freq_samp, opt=1, seg=8, overlap=4):
     TotalNo = np.size(Var1)
     if np.size(Var1) != np.size(Var2):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
@@ -380,9 +390,10 @@ def cro_psd(Var1, Var2, dt, Freq_samp, opt=1):
             TimeZone, TimeSpan, VarZone2
         )  # time space must be equal
     if opt == 1:
-        ns = TotalNo // 6
+        ns = TotalNo // seg
         Freq, Cpsd = signal.csd(
-            NVar1, NVar2, Freq_samp, nperseg=ns, nfft=TotalNo, noverlap=ns // 4
+            NVar1, NVar2, Freq_samp, nperseg=ns, 
+            nfft=TotalNo, noverlap=ns // overlap
         )
         Freq = Freq[1:]
         Cpsd = Cpsd[1:]
@@ -395,7 +406,7 @@ def cro_psd(Var1, Var2, dt, Freq_samp, opt=1):
     return (Freq, Cpsd)
 
 
-def coherence(Var1, Var2, dt, Freq_samp, opt=1):
+def coherence(Var1, Var2, dt, Freq_samp, opt=1, seg=8, overlap=4):
     TotalNo = np.size(Var1)
     if np.size(Var1) != np.size(Var2):
         warnings.warn("Check the size of input varable 1 & 2", UserWarning)
@@ -420,19 +431,19 @@ def coherence(Var1, Var2, dt, Freq_samp, opt=1):
             TimeZone, TimeSpan, VarZone2
         )  # time space must be equal
     if opt == 1:
-        ns = TotalNo // 8  # 6-4 # 8-2
+        ns = TotalNo // seg  # 6-4 # 8-2
         Freq, gamma = signal.coherence(
             NVar1,
             NVar2,
             fs=Freq_samp,
             nperseg=ns,
             nfft=TotalNo,
-            noverlap=ns // 2,
+            noverlap=ns // overlap,
         )
         Freq = Freq[1:]
         gamma = gamma[1:]
     if opt == 2:
-        Freq, cor = cro_psd(NVar1, NVar2, dt, Freq_samp)
+        Freq, cor = cro_psd(NVar1, NVar2, dt, Freq_samp, opt=1)
         psd1 = psd(NVar1, dt, Freq_samp)[1]
         psd2 = psd(NVar2, dt, Freq_samp)[1]
         gamma = abs(cor) ** 2 / psd1 / psd2
@@ -517,22 +528,25 @@ def u_tau(frame, option='mean'):
         # delta_u = frame['u_m'].values[1] - frame['u_m'].values[0]
         rho_wall = frame['<rho>'].values[1]
         mu_wall = frame['<mu>'].values[1]
-        delta_u = frame['<u>'].values[1]  # - frame['<u>'].values[0]
-        u_value = frame['<u>'].values
+        delta_u = frame['<u>'].values[1] # - frame['<u>'].values[0]
+        u_grad = np.gradient(frame['<u>'].values, frame['walldist'].values)
     else:
         rho_wall = frame['rho'].values[1]
         mu_wall = frame['mu'].values[1]
-        delta_u = frame['u'].values[1]  # - frame['u'].values[0]
-        u_value = frame['u'].values
+        delta_u = frame['u'].values[1] # - frame['u'].values[0]
+        u_grad = np.gradient(frame['u'].values, frame['walldist'].values)
     walldist2 = frame['walldist'].values[1]
-
+    
 #    if(frame['walldist'].values[1] > 0.005):
 #        print('Interpolate for u_wall')
-#        func = interp1d(frame['walldist'].values, u_value, kind='cubic')
+#        func = interp1d(frame['walldist'].values, frame['u'].values, kind='cubic')
 #        delta_u = func(0.004)
 #        walldist2 = 0.004
-
-    tau_wall = mu_wall * delta_u / walldist2
+    grad = False
+    if(grad==True):
+        tau_wall = mu_wall * u_grad[1]
+    else:
+        tau_wall = mu_wall * delta_u / walldist2
     shear_velocity = np.sqrt(np.abs(tau_wall / rho_wall))
     return (shear_velocity)
 
@@ -551,22 +565,22 @@ def direst_transform(frame, option='mean'):
 #       u = frame['u_m']
 #       rho = frame['rho_m']
 #       mu = frame['mu_m']
-        u = frame['<u>']
-        rho = frame['<rho>']
-        mu = frame['<mu>']
+        u = frame['<u>'].values
+        rho = frame['<rho>'].values
+        mu = frame['<mu>'].values
     else:
         walldist = frame['walldist'].values
-        u = frame['u']
-        rho = frame['rho']
-        mu = frame['mu']
+        u = frame['u'].values
+        rho = frame['rho'].values
+        mu = frame['mu'].values
 
     if (np.diff(walldist) < 0.0).any():
         sys.exit("the WallDist must be in ascending order!!!")
     if (walldist[0] != 0):
         sys.exit('Please reset wall distance from zero!!!')
     m = np.size(u)
-    rho_wall = rho[1]
-    mu_wall = mu[1]
+    rho_wall = rho[0]
+    mu_wall = mu[0]
     shear_velocity = u_tau(frame, option=option)
     u_van = np.zeros(m)
     dudy = sec_ord_fdd(walldist, u)
@@ -577,8 +591,8 @@ def direst_transform(frame, option='mean'):
     u_plus_van = u_van / shear_velocity
     y_plus = shear_velocity * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
-    y_plus[0] = 1
-    u_plus_van[0] = 1
+    y_plus = y_plus[1:] # y_plus[0] = 1 # 
+    u_plus_van = u_plus_van[1:] # u_plus_van[0] = 1 #
     UPlusVan = np.column_stack((y_plus, u_plus_van))
     return (UPlusVan)
 
@@ -986,7 +1000,7 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
     return area
 
 
-def streamline(InFolder, df, seeds):
+def streamline(InFolder, df, seeds, OutFile=None):
     xa1 = np.arange(-40.0, 0.0 + 0.03125, 0.03125)
     ya1 = np.arange(0.0, 3.0 + 0.03125, 0.03125)
     xa2 = np.arange(0.0, 40.0 + 0.03125, 0.03125)
@@ -1035,8 +1049,12 @@ def streamline(InFolder, df, seeds):
         frame = pd.DataFrame(data=np.vstack((strm1, strm2)),
                              columns=['x', 'y'])
         frame.drop_duplicates(subset=['x'], keep='first', inplace=True)
-        frame.to_csv(InFolder + 'streamline' + str(j+1) + '.dat',
-                     index=False, float_format='%1.8e', sep=' ')
+        if OutFile is None:
+            frame.to_csv(InFolder + 'streamline' + str(j+1) + '.dat',
+                         index=False, float_format='%1.8e', sep=' ')
+        else:
+            frame.to_csv(InFolder + OutFile + str(j+1) + '.dat',
+                         index=False, float_format='%1.8e', sep=' ')
         ax.plot(strm1[:,0], strm1[:,1], 'b:')
         ax.plot(strm2[:,0], strm2[:,1], 'r--')
         plt.savefig(InFolder + "streamline.svg", bbox_inches="tight")
@@ -1197,12 +1215,12 @@ def integral_db(x, y, val, range1=None, range2=None, opt=2):
         n2 = np.size(range2)
         min2 = np.min(range2)
         max2 = np.max(range2)
-    if opt == 1:
+    if opt == 1:  # use built-in functions
         def func(var1, var2):
             vorticity = griddata((x, y), val, (var1, var2))
             return vorticity
         results = dblquad(func, min1, max1, lambda x: min2, lambda y: max2)
-    elif opt == 2:
+    elif opt == 2:  # integral over x and then over y
         ms1, ms2 = np.meshgrid(range1, range2)
         val_intp = griddata((x, y), val, (ms1, ms2))
         Iy = np.zeros(n2)
@@ -1210,7 +1228,7 @@ def integral_db(x, y, val, range1=None, range2=None, opt=2):
             Iy[i] = np.trapz(val_intp[i, :], range1)
         # print("finish integral over x-axis")
         results = np.trapz(Iy, range2)
-    elif opt == 3:
+    elif opt == 3:  # separate positive and negative values
         ms1, ms2 = np.meshgrid(range1, range2)
         val_intp = griddata((x, y), val, (ms1, ms2))
         val_intp_p = np.where(val_intp > 0.0, val_intp, 0.0)  # posivive values

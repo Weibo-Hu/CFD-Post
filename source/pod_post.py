@@ -66,8 +66,8 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathD = path + "Domain/"
 pathPOD = path + "POD/"
-pathSS = path + 'Slice/TP_2D_S_10/'
-timepoints = np.arange(700, 999.5 + 0.5, 0.5)
+pathSS = path + 'Slice/TP_2D_Z_03/'
+timepoints = np.arange(700.0, 999.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(pathSS))
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
@@ -144,7 +144,7 @@ np.save(pathPOD + 'coeff', coeff)
 
 # Eigvalue Spectrum
 EFrac, ECumu, N_modes = pod.pod_eigspectrum(80, eigval)
-np.savetxt(path+'EnergyFraction600.dat', EFrac, fmt='%1.7e', delimiter='\t')
+np.savetxt(pathPOD+'EnergyFraction700.dat', EFrac, fmt='%1.7e', delimiter='\t')
 
 # %%############################################################################
 """
@@ -181,9 +181,9 @@ plt.show()
 
 
 # %% specific mode in space
-ind = 1
-var = var2
-fa = 1.7*1.7*1.4 # 1.0  #     
+ind = 20
+var = var0
+fa = 1.0 # 1.7*1.7*1.4 #     
 x, y = np.meshgrid(np.unique(xval), np.unique(yval))
 newflow = phi[:, ind - 1]*coeff[ind - 1, 0]
 modeflow = newflow[varset[var][0]:varset[var][1]]
@@ -193,7 +193,7 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(3.8, 1.6))
-c1 = -0.0025 # -0.01 # -0.006
+c1 = -0.0016 # -0.01 # -0.006
 c2 = -c1 #0.063
 
 lev1 = np.linspace(c1, c2, 11)

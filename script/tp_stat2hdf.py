@@ -17,7 +17,7 @@ import pandas as pd
 from glob import glob
 
 # %%
-path = '/media/weibo/IM1/BFS_M1.7Tur/'
+path = '/media/weibo/IM2/TestCases/FFS_1.7_long/'
 
 p2p.create_folder(path)
 pathTP = path + 'TP_stat/'
@@ -43,6 +43,7 @@ for i in range(4):
                                 FileName=FileList,
                                 Equ=equ,
                                 OutFile='MeanFlow_' + str(i))
+
 dir1 = glob(pathM + 'MeanFlow_*')
 df0 = pd.read_hdf(dir1[0])
 df1 = pd.read_hdf(dir1[1])

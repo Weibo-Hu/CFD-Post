@@ -25,7 +25,7 @@ from matplotlib import colors as mcolors
 
 
 # %% data path settings
-path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
+path = "/media/weibo/IM1/BFS_M1.7Tur/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -36,8 +36,8 @@ pathI = path + "Instant/"
 pathD = path + "Domain/"
 pathPOD = path + "POD/"
 pathDMD = path + "DMD/"
-pathSS = path + 'Slice/TP_2D_S_10/'
-timepoints = np.arange(700, 999.5 + 0.5, 0.5)
+pathSS = path + 'Slice/S_10a/'
+timepoints = np.arange(951.00, 1350.50 + 0.5, 0.5)
 
 # %% figures properties settings
 plt.close("All")
@@ -48,12 +48,13 @@ font = {
 }
 
 matplotlib.rc('font', **font)
-textsize = 13
+textsize = 12
 numsize = 10
 colors = dict(mcolors.BASE_COLORS, **mcolors.CSS4_COLORS)
 # %% load data
 dirs = glob(pathSS+'*.h5')
-dirs.sort( key=lambda f: int(''.join(filter(str.isdigit, f))) )
+# dirs.sort( key=lambda f: int(''.join(filter(str.isdigit, f))) )
+dirs = sorted(dirs)
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
 # preload
@@ -75,7 +76,8 @@ y2 = 5.0
 var0 = 'u'
 var1 = 'v'
 var2 = 'p'
-col = [var0, var1, var2]
+var3 = 'T'
+col = [var0, var1, var2, var3]
 fa = 1 #/(1.7*1.7*1.4)
 FirstFrame = DataFrame[col].values
 Snapshots = FirstFrame[ind].ravel(order='F')
@@ -103,7 +105,8 @@ meanflow = AveFlow.query("x>=-5.0 & x<=30.0 & y>=-3.0 & y<=5.0")
 # %% DMD 
 varset = { var0: [0, m],
            var1: [m, 2*m],
-           var2: [2*m, 3*m]
+           var2: [2*m, 3*m],
+           var3: [3*m, 4*m]
         }
 dt = 0.5
 bfs = dmd.DMD(Snapshots, dt=dt)
@@ -111,27 +114,27 @@ with timer("DMD computing"):
     bfs.compute()
 print("The residuals of DMD is ", bfs.residuals)
 eigval = bfs.eigval
-# save results
+# %% save results
 meanflow.to_hdf(pathDMD + 'MeanFlow.h5', 'w', format='fixed')
 
-np.save(pathD + 'eigval', bfs.eigval) # \mu
-np.save(pathD + 'modes', bfs.modes) # \phi
-np.save(pathD + 'lambda', bfs.frequencies) # \lambda
-np.save(pathD + 'omega', bfs.omega) # Imag(\lambda)
-np.save(pathD + 'beta', bfs.beta) # Real(\lambda)
-np.save(pathD + 'amplitudes', bfs.amplitudes) # \alpha
+np.save(pathDMD + 'eigval', bfs.eigval) # \mu
+np.save(pathDMD + 'modes', bfs.modes) # \phi
+np.save(pathDMD + 'lambda', bfs.frequencies) # \lambda
+np.save(pathDMD + 'omega', bfs.omega) # Imag(\lambda)
+np.save(pathDMD + 'beta', bfs.beta) # Real(\lambda)
+np.save(pathDMD + 'amplitudes', bfs.amplitudes) # \alpha
 
 # %% SPDMD
 bfs1 = sparse.SparseDMD(Snapshots, bfs, dt=dt)
-gamma = [300, 400, 500]
+gamma = [400, 450, 500]
 with timer("SPDMD computing"):
     bfs1.compute_sparse(gamma)
 print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
 
 # %% 
-sp = 0
+sp = 2
 bfs1.sparse.Nz[sp]
-bfs1.sparse.gamma[sp] 
+bfs1.sparse.gamma[sp]
 r = np.size(eigval)
 sp_ind = np.arange(r)[bfs1.sparse.nonzero[:, sp]]
 
@@ -141,20 +144,23 @@ np.savez(pathDMD + 'sparse.npz',
          nonzero=bfs1.sparse.nonzero)
 
 # %% Eigvalue Spectrum
+# sp_ind = None
+filtval = 0.99  # 0.0
 var = var0
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 matplotlib.rc('font', size=textsize)
 fig1, ax1 = plt.subplots(figsize=(2.8, 3.0))
 unit_circle = plt.Circle((0., 0.), 1., color='grey', linestyle='-', fill=False,
-                         label='unit circle', linewidth=7.0, alpha=0.5)
+                         label='unit circle', linewidth=3.0, alpha=0.5)
 ax1.add_artist(unit_circle)
-ind = np.where(np.abs(eigval) > 0.98)
+ind = np.where(np.abs(eigval) > filtval)
 ax1.scatter(eigval.real[ind], eigval.imag[ind], marker='o',
             facecolor='none', edgecolors='k', s=18)
-sp_eigval = eigval[sp_ind]
-ax1.scatter(sp_eigval.real, sp_eigval.imag, marker='o',
-            facecolor='gray', edgecolors='gray', s=18)
+if sp_ind is not None:
+    sp_eigval = eigval[sp_ind]
+    ax1.scatter(sp_eigval.real, sp_eigval.imag, marker='o',
+                facecolor='gray', edgecolors='gray', s=18)
 limit = np.max(np.absolute(eigval))+0.1
 ax1.set_xlim((-limit, limit))
 ax1.set_ylim((-limit, limit))
@@ -169,7 +175,7 @@ plt.show()
 
 # %% discard the bad DMD modes
 # bfs2 = bfs
-bfs2 = bfs.reduce(0.995)
+bfs2 = bfs.reduce(filtval)
 phi = bfs2.modes
 freq = bfs2.omega/2/np.pi
 beta = bfs2.beta
@@ -191,10 +197,11 @@ psi1 = np.abs(coeff[ind1]) / np.max(np.abs(coeff[ind1]))
 ax2.set_xscale("log")
 ax2.vlines(freq1, [0], psi1, color='k', linewidth=1.0)
 # ind2 = bfs1.sparse.nonzero[:, sp][index]  # & index
-ind2 = bfs1.sparse.nonzero[bfs2.ind, sp]
-ind3 = ind2[ind1]
-ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
-            facecolor='gray', edgecolors='gray', s=15)
+if sp_ind is not None:
+    ind2 = bfs1.sparse.nonzero[bfs2.ind, sp]
+    ind3 = ind2[ind1]
+    ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
+                facecolor='gray', edgecolors='gray', s=15)
 ax2.set_ylim(bottom=0.0)
 ax2.tick_params(labelsize=numsize, pad=6)
 ax2.set_xlabel(r'$f \delta_0/u_\infty$')
@@ -208,8 +215,8 @@ plt.show()
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 var = var2
-fa =  1.7*1.7*1.4 # 1.0 # 
-ind = 24
+fa =   1.7*1.7*1.4 # 1.0 # 
+ind = 0
 num = sp_ind[ind] # ind from small to large->freq from low to high
 freq1 = bfs.omega/2/np.pi
 name = str(round(freq1[num], 3)).replace('.', '_') #.split('.')[1] # str(ind)
@@ -274,7 +281,7 @@ corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
 matplotlib.rc('font', size=18)
 fig, ax = plt.subplots(figsize=(6.4, 2.8))
-c1 = -0.006 #-0.024
+c1 = -0.007 #-0.024
 c2 = -c1 # 0.012 #0.018
 lev1 = np.linspace(c1, c2, 11)
 lev2 = np.linspace(c1, c2, 6)

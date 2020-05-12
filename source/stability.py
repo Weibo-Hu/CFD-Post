@@ -15,7 +15,6 @@ import matplotlib
 import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, splev, splrep
 from scipy import signal
-from data_post import DataPost
 import variable_analysis as va
 from timer import timer
 import sys
@@ -31,7 +30,8 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/IM1/BFS_M1.7Tur/"
+path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
+p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -112,7 +112,7 @@ plt.savefig(
 varn = '<u`u`>'
 if varn == '<u`u`>':
     savenm = "MaxRMS_u.dat"
-else if varn =='<p`p`>':
+elif varn =='<p`p`>':
     savenm = "MaxRMS_p.dat"
 xnew = np.arange(-40.0, 40.0+0.125, 0.125)
 znew = np.zeros(np.size(xnew))
@@ -302,8 +302,8 @@ plt.savefig(
     distribution of amplitude & amplication factor along a line
 """
 # %% load time sequential snapshots
-sp = 'Z_03'
-InFolder = path + 'Slice/TP_2D_' + sp + '/'
+sp = 'S_010'
+InFolder = path + 'Slice/' + sp + '/'
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
 grouped = DataFrame.groupby(['x', 'y'])
@@ -313,7 +313,11 @@ Snapshots = DataFrame[['x', 'y', 'z', 'u', 'p']]
 
 fa = 1.7*1.7*1.4
 skip = 1
-timepoints = np.arange(951.0, 1200.75 + 0.25, 0.25)
+dt = 0.25  # 0.25
+freq_samp = 1/dt  # 4.0
+timepoints = np.arange(900, 1299.75 + dt, dt)
+if np.size(dirs) != np.size(timepoints):
+    sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
 with timer("Load Data"):
     for i in range(np.size(dirs)-1):
         if i % skip == 0:
@@ -328,15 +332,15 @@ with timer("Load Data"):
 # Snapshots.loc[var] = Snapshots.loc[var] * fa
 Snapshots.assign(var=Snapshots[var] * fa)
 m, n = np.shape(Snapshots)
-dt = 0.25
-freq_samp = 4.0
-
-
+# %% 1.500000  -0.500000
+probe = Snapshots.loc[(Snapshots['x']==6.87500) & (Snapshots['y']==-1.781250)]
+probe.insert(0, 'time', timepoints)
+probe.to_csv(pathI + 'probe_14.dat', index=False, sep=' ', float_format='%1.8e')
 # %% compute amplitude of variable along a line
-xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
-xynew = np.loadtxt(pathM + "MaxRMS.dat", skiprows=1)
-xynew = np.loadtxt(pathM + "WallGrid.dat", skiprows=1)
-ind = (xynew[:, 0] <= 30.0) & (xynew[:, 0] >= -10.0)
+# xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
+xynew = np.loadtxt(pathM + "MaxRMS_u.dat", skiprows=1)
+# xynew = np.loadtxt(pathM + "WallGrid.dat", skiprows=1)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ind = (xynew[:, 0] <= 30.0) & (xynew[:, 0] >= -10.0)   # -40.0
 xval = xynew[ind, 0]
 yval = xynew[ind, 1]
 amplit = np.zeros(np.size(xval))
@@ -429,24 +433,26 @@ plt.show()
 """
 # %% compute
 var = 'p'
+skip = 1
 samples = int(np.size(timepoints) / skip / 2 + 1)
 FPSD = np.zeros((samples, np.size(xval)))
 for i in range(np.size(xval)):
     xyz = [xval[i], yval[i], 0.0]
-    freq, FPSD[:, i] = va.fw_psd_map(Snapshots, xyz, var, dt, freq_samp, 
+    freq, FPSD[:, i] = va.fw_psd_map(Snapshots, xyz, var, dt, freq_samp,
                                      opt=1, seg=4, overlap=2)
-np.savetxt(pathSL + 'FWPSD_freq.dat', freq, delimiter=' ')
+np.savetxt(pathSL + 'FWPSD_freq_' + sp + '.dat', freq, delimiter=' ')
 np.savetxt(pathSL + 'FWPSD_x.dat', xval, delimiter=' ')
 np.savetxt(pathSL + var + '_FWPSD_psd_' + sp + '.dat', FPSD, delimiter=' ')
 
-freq = np.loadtxt(pathSL + 'FWPSD_freq.dat', delimiter=' ')
+freq = np.loadtxt(pathSL + 'FWPSD_freq_' + sp + '.dat', delimiter=' ')
+xval = np.loadtxt(pathSL + 'FWPSD_x.dat', delimiter=' ')
 FPSD = np.loadtxt(pathSL + var + '_FWPSD_psd_' + sp + '.dat', delimiter=' ')
 freq = freq[1:]
 FPSD = FPSD[1:, :]
 
 # %% Plot frequency-weighted PSD map along a line
-SumFPSD = np.min(FPSD, axis=0) # np.sum(FPSD, axis=0)
-FPSD1 = np.log(FPSD/SumFPSD) # np.log(FPSD) # 
+SumFPSD = np.min(FPSD, axis=0)  # np.sum(FPSD, axis=0)
+FPSD1 = np.log(FPSD/SumFPSD)  # np.log(FPSD) # 
 max_id = np.argmax(FPSD1, axis=0)
 max_freq = [freq[i] for i in max_id]
 matplotlib.rcParams['xtick.direction'] = 'out'
@@ -457,17 +463,17 @@ ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 print(np.max(FPSD1))
 print(np.min(FPSD1))
-cb1 = 0
-cb2 = 6
+cb1 =  0
+cb2 = 9
 lev = np.linspace(cb1, cb2, 41)
 cbar = ax.contourf(xval, freq, FPSD1, extend='both',
-                   cmap='coolwarm', levels=lev) # seismic # bwr
-ax.plot(xval, max_freq, 'C7-', linewidth=1.0)
-# every stage of the transition
+                   cmap='bwr', levels=lev)  # seismic # bwr # coolwarm
+ax.plot(xval, max_freq, 'C7:', linewidth=1.2)
+# every stage of the transition\
 ax.axvline(x=0.0, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
+# ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
-ax.set_xlim([-10.0, 30.0])
+ax.set_xlim([-5, 20.0])
 rg = np.linspace(cb1, cb2, 3)
 cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
@@ -483,11 +489,59 @@ plt.savefig(pathF + var + "_FWPSDMap_max_" + sp + ".svg",
             bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
+# %% Plot multiple frequency-weighted PSD curve along streamwise
+xr = 8.9
+def d2l(x):
+    return x * xr
+
+def l2d(x):
+    return x / xr
+
+fig, ax = plt.subplots(1, 7, figsize=(6.8, 2.4))
+fig.subplots_adjust(hspace=0.5, wspace=0.0)
+matplotlib.rc('font', size=numsize)
+title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
+matplotlib.rcParams['xtick.direction'] = 'in'
+matplotlib.rcParams['ytick.direction'] = 'in'
+xcoord = np.array([-2.0, 2.75, 3.0, 6.0, 6.375, 9.0, 10.0])
+# xcoord = np.array([-5, 1.0, 3.75, 4.875, 6.5, 8.875, 18.25])
+for i in range(np.size(xcoord)):
+    ind = np.where(xval[:] == xcoord[i])[0]
+    fpsd_x = FPSD[:, ind]
+    ax[i].plot(fpsd_x, freq, "k-", linewidth=1.0)
+    ax[i].set_yscale('log')
+    ax[i].xaxis.major.formatter.set_powerlimits((-2, 2))
+    ax[i].xaxis.offsetText.set_fontsize(numsize)
+    if i != 0:
+        ax[i].set_yticklabels('')
+        ax[i].set_title(r'${}$'.format(xcoord[i]), fontsize=numsize-2)
+        ax[i].patch.set_alpha(0.0)
+        # ax[i].spines['left'].set_visible(False)
+        ax[i].yaxis.set_ticks_position('none')
+        xticks = ax[i].xaxis.get_major_ticks()
+        xticks[0].label1.set_visible(False)
+    if i != np.size(xcoord) - 1:
+        ax[i].spines['right'].set_visible(False)
+    ax[i].set_xlim(left=0)
+    # ax[i].set_xticklabels('')
+    ax[i].tick_params(axis='both', which='major', labelsize=numsize)
+    # ax[i].grid(b=True, which="both", axis='both', linestyle=":")
+ax[0].set_title(r'$x/\delta_0={}$'.format(xcoord[0]), fontsize=numsize-2)
+ax[0].set_ylabel(r"$f \delta_0 /u_\infty$", fontsize=textsize)
+ax[3].set_xlabel(r'$f \mathcal{P}(f)$', fontsize=textsize, labelpad=15)
+ax2 = ax[-1].secondary_yaxis('right', functions=(d2l, l2d)) 
+ax2.set_ylabel(r"$f x_r /u_\infty$", fontsize=textsize)
+plt.tick_params(labelsize=numsize)
+plt.show()
+plt.savefig(
+    pathF + "MulFWPSD_" + sp + var + ".svg", bbox_inches="tight", pad_inches=0.1
+)
+
 # %%############################################################################
-"""
-    boundary layer profile of RMS
-"""
-# %% plot BL fluctuations profile
+# %
+# % boundary layer profile of RMS
+# %
+# % plot BL fluctuations profile
 varnm = '<u`u`>'
 fig, ax = plt.subplots(1, 7, figsize=(6.4, 2.5))
 fig.subplots_adjust(top=0.92, bottom=0.08, left=0.1, right=0.9, wspace=0.2)

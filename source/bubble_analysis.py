@@ -22,7 +22,7 @@ from line_field import LineField as lf
 from scipy.interpolate import griddata
 
 # %% data path settings
-path = "/media/weibo/VID2/BFS_M1.7TS/"
+path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"

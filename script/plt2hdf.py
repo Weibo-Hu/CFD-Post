@@ -13,9 +13,6 @@ import os
 from timer import timer
 import tecplot as tp
 import plt2pandas as p2p
-import numpy as np
-import pandas as pd
-import sys
 from glob import glob
 
 
@@ -32,40 +29,48 @@ VarList = [
     'vorticity_1',
     'vorticity_2',
     'vorticity_3',
-#    'Q-criterion',
+    'Q-criterion',
     'L2-criterion',
- #   '|grad(rho)|',
+    '|grad(rho)|',
     'T',
     '|gradp|',
-#    'ux',
-#    'uy',
-#    'uz',
-#    'vx',
-#    'vy',
-#    'vz',
-#    'wx',
-#    'wy',
-#    'wz',
-#    'rhox',
-#    'rhoy',
-#    'rhoz',
-#    'px',
-#    'py',
-#    'pz'
+    #    'ux',
+    #    'uy',
+    #    'uz',
+    #    'vx',
+    #    'vy',
+    #    'vz',
+    #    'wx',
+    #    'wy',
+    #    'wz',
+    #    'rhox',
+    #    'rhoy',
+    #    'rhoz',
+    #    'px',
+    #    'py',
+    #    'pz'
 ]
+sp = "S_010"
 equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)']
-FoldPath = "/media/weibo/IM1/BFS_M1.7Tur/Slice/backup/"
-OutFolder = "/media/weibo/IM1/BFS_M1.7Tur/Slice/"  # TS/Slice/TP_2D_S_10/"
-subzone = [(-10.0, 30.0), (-3.0, 10.0), (-1.0, 1.0)]
+# FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/" + sp + "/"
+FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/S_10/"
+OutFolder = "/media/weibo/VID2/BFS_M1.7TS_LA/Slice/" + sp + "/"
+# subzone = [(-10.0, 30.0), (-3.0, 30.0), (-8.0, 8.0)]
+if not os.path.exists(OutFolder):
+    os.mkdir(OutFolder)
+
+subzone = [(-40.0, 70.0), (-3.0, 10.0), (-8.0, 8.0)]  # for 2D snapshots
 dirs = os.scandir(FoldPath)
 for folder in dirs:
     file = FoldPath + folder.name
+    # file = FoldPath + folder.name + '/TP_2D_' + sp + '.szplt'
     # outfile = os.path.splitext(folder.name)[0]
-    outfile = 'TP_2D_Z_03'
+    outfile = 'TP_2D_' + sp
     with timer("Read " + folder.name + " data"):
         DataFrame, time = \
-        p2p.ReadINCAResults(FoldPath, VarList, FileName=file, SubZone=subzone,
-                            SavePath=OutFolder, OutFile=outfile, Equ=equ)
+            p2p.ReadINCAResults(FoldPath, VarList, SubZone=subzone,
+                                FileName=file, SavePath=OutFolder,
+                                OutFile=outfile, Equ=equ, opt=2)
 
 # p2p.ReadINCAResults(FoldPath, VarList, FileName=FoldPath + 'TP_912.plt',
 #                     Equ=equ, SavePath=OutFolder, OutFile='TP_912')
