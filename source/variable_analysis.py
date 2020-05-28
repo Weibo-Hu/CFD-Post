@@ -1000,51 +1000,66 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
     return area
 
 
-def streamline(InFolder, df, seeds, OutFile=None):
-    xa1 = np.arange(-40.0, 0.0 + 0.03125, 0.03125)
-    ya1 = np.arange(0.0, 3.0 + 0.03125, 0.03125)
-    xa2 = np.arange(0.0, 40.0 + 0.03125, 0.03125)
-    ya2 = np.arange(-3.0, 5.0 + 0.03125, 0.03125)
+def streamline(InFolder, df, seeds, OutFile=None,
+               partition=None, opt='both'):
+    if partition is None:
+        xa1 = np.arange(-40.0, 0.0 + 0.03125, 0.03125)
+        ya1 = np.arange(0.0, 3.0 + 0.03125, 0.03125)
+        xa2 = np.arange(0.0, 40.0 + 0.03125, 0.03125)
+        ya2 = np.arange(-3.0, 5.0 + 0.03125, 0.03125)
+    else:
+        if np.shape(partition) != (2, 3):
+            sys.exit("the shape of partition does not match (2,3)!")
+        xa1 = np.arange(partition[0,0], partition[0,1]+0.0625, 0.0625)
+        xa2 = np.arange(partition[0,1], partition[0,2]+0.0625, 0.0625)
+        ya1 = np.arange(partition[1,0], partition[1,1]+0.015625, 0.015625)
+        ya2 = np.arange(partition[1,1], partition[1,2]+0.015625, 0.015625)
+
     xb1, yb1 = np.meshgrid(xa1, ya1)
     xb2, yb2 = np.meshgrid(xa2, ya2)
     u1 = griddata((df.x, df.y), df.u, (xb1, yb1))
     v1 = griddata((df.x, df.y), df.v, (xb1, yb1))
     u2 = griddata((df.x, df.y), df.u, (xb2, yb2))
     v2 = griddata((df.x, df.y), df.v, (xb2, yb2))
-
+    strm1 = np.empty([0, 2])
+    strm2 = np.empty([0, 2])
     fig, ax = plt.subplots(figsize=(6.4, 2.3))
     for j in range(np.shape(seeds)[1]):
         point = np.reshape(seeds[:,j], (1, 2))
         # upstream the step
-        stream1 = ax.streamplot(
-            xb1,
-            yb1,
-            u1,
-            v1,
-            color="k",
-            density=[3.0, 2.0],
-            arrowsize=0.7,
-            start_points=point,
-            maxlength=30.0,
-            linewidth=1.0,
-        )
-        seg = stream1.lines.get_segments()
-        strm1 = np.asarray([i[0] for i in seg])   
+        if (opt == 'up') or (opt=='both'):
+            stream1 = ax.streamplot(
+                xb1,
+                yb1,
+                u1,
+                v1,
+                color="k",
+                density=[3.0, 2.0],
+                arrowsize=0.7,
+                start_points=point,
+                maxlength=30.0,
+                linewidth=1.0,
+            )
+            seg = stream1.lines.get_segments()
+            strm1 = np.asarray([i[0] for i in seg])  
+            ax.plot(strm1[:,0], strm1[:,1], 'b:') 
         # downstream the step
-        stream2 = ax.streamplot(
-            xb2,
-            yb2,
-            u2,
-            v2,
-            color="g",
-            density=[3.0, 2.0],
-            arrowsize=0.7,
-            start_points=point,
-            maxlength=30.0,
-            linewidth=0.8,
-        )
-        seg = stream2.lines.get_segments()
-        strm2 = np.asarray([i[0] for i in seg])
+        if (opt == 'down') or (opt=='both'):
+            stream2 = ax.streamplot(
+                xb2,
+                yb2,
+                u2,
+                v2,
+                color="g",
+                density=[3.0, 2.0],
+                arrowsize=0.7,
+                start_points=point,
+                maxlength=30.0,
+                linewidth=0.8,
+            )
+            seg = stream2.lines.get_segments()
+            strm2 = np.asarray([i[0] for i in seg])
+            ax.plot(strm2[:,0], strm2[:,1], 'r--')
         # save data
         frame = pd.DataFrame(data=np.vstack((strm1, strm2)),
                              columns=['x', 'y'])
@@ -1055,9 +1070,8 @@ def streamline(InFolder, df, seeds, OutFile=None):
         else:
             frame.to_csv(InFolder + OutFile + str(j+1) + '.dat',
                          index=False, float_format='%1.8e', sep=' ')
-        ax.plot(strm1[:,0], strm1[:,1], 'b:')
-        ax.plot(strm2[:,0], strm2[:,1], 'r--')
-        plt.savefig(InFolder + "streamline.svg", bbox_inches="tight")
+        plt.savefig(InFolder + 'streamline' + str(j+1) + '.svg',
+                    bbox_inches="tight")
 
     return frame
 
