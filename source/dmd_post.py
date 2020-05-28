@@ -14,9 +14,8 @@ from matplotlib import gridspec
 import numpy as np
 import pandas as pd
 from timer import timer
-from DMD import DMD
 from scipy.interpolate import griddata
-from sparse_dmd import dmd, sparse
+from sparse_dmd import dmd, sparse, dmd_orig
 import os
 from glob import glob
 import sys

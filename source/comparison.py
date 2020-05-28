@@ -26,7 +26,7 @@ path0 = "/media/weibo/VID2/BFS_M1.7L/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 path1 = "/media/weibo/VID2/BFS_M1.7TS_LA/"
 path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)
-path2 = "/media/weibo/VID2/BFS_M1.7TS1_HA/"
+path2 = "/media/weibo/VID2/BFS_M1.7TS2_MA/"
 path2F, path2P, path2M, path2S, path2T, path2I = p2p.create_folder(path2)
 path3 = "/media/weibo/IM1/BFS_M1.7Tur/"
 path3F, path3P, path3M, path3S, path3T, path3I = p2p.create_folder(path3)
@@ -152,7 +152,7 @@ ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.subplots_adjust(hspace=0.2)  # adjust space between subplots
-outfile = os.path.join(pathC, 'CfPrms.pdf')
+outfile = os.path.join(pathC, 'CfPrms.svg')
 plt.savefig(outfile, bbox_inches='tight', pad_inches=0.1)
 plt.show()
 

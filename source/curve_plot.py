@@ -21,8 +21,8 @@ import os
 from planar_field import PlanarField as pf
 
 
-# data path settings
-path = "/media/weibo/IM2/TestCases/FFS_1.7_long/"
+# %% data path settings
+path = "/media/weibo/IM2/FFS_M1.7TB/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -69,7 +69,7 @@ VarName = [
 
 timezone = np.arange(700, 999.75 + 0.25, 0.25)
 x1x2 = [700, 1000]
-StepHeight = 3.0
+StepHeight = -3.0
 MeanFlow = pf()
 #MeanFlow.load_data(path + 'inca_out/')
 MeanFlow.load_meanflow(path)
@@ -136,7 +136,7 @@ plt.savefig(
 # BLProf['walldist'] = BLProf['y']
 # BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
 # %% velocity profile, computation
-x0 = -40.0
+x0 = -30.0
 # results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)
@@ -160,7 +160,7 @@ CalUPlus = va.direst_transform(BLProf, option='mean')
 # results from theory by van Driest
 StdUPlus1, StdUPlus2 = va.std_wall_law()
 # results from known DNS
-Re_theta = 1000 # 1000  # 800 # 1400 #
+Re_theta = 800 # 1000  # 800 # 1400 #
 ExpUPlus = va.ref_wall_law(Re_theta)[0]
 # plot velocity profile
 fig = plt.figure(figsize=(6.4, 2.6))
@@ -186,6 +186,7 @@ ax.scatter(
 # spl = splrep(CalUPlus[:, 0], CalUPlus[:, 1], s=0.1)
 # uplus = splev(CalUPlus[:, 0], spl)
 # ax.plot(CalUPlus[:, 0], uplus, 'k', linewidth=1.5)
+# ax.scatter(CalUPlus[:, 0], CalUPlus[:, 1], s=15)
 ax.plot(CalUPlus[:, 0], CalUPlus[:, 1], "k", linewidth=1.5)
 #ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "r:", linewidth=1.5)
 ax.set_xscale("log")

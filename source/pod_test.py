@@ -3,6 +3,7 @@
 """
 Created on Thu Jun 21 20:48:31 2018
     This code for validating the POD.
+    An example for using POD.
 @author: weibo
 """
 import matplotlib.pyplot as plt

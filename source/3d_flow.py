@@ -93,7 +93,10 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
 plt.show()
     
-
+# %% dividing streamline
+points = np.array([[0.0], [3.0]])
+xyzone = np.array([[-100.0, 0.0, 40.0], [0.0, 3.0, 6.0]])
+va.streamline(pathM, MeanFlow.PlanarData, points, partition=xyzone, opt='up')
 # %% Mean flow isolines
 va.dividing_line(MeanFlow.PlanarData, pathM)
 # %% Save sonic line
