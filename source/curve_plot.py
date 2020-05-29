@@ -21,7 +21,7 @@ from planar_field import PlanarField as pf
 
 
 # %% data path settings
-path = "/media/weibo/IM2/FFS_M1.7TB/"
+path = "/home/weibohu/weibo/FFS_M1.7TB/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
