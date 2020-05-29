@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Wed Jul  4 15:22:31 2018
     This code for plotting line/curve figures
-
+z
 @author: weibo
 """
 # %% Load necessary module
@@ -201,9 +200,9 @@ ax.annotate("(a)", xy=(-0.16, 0.98),
 plt.tick_params(labelsize="medium")
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 # plt.tick_params(labelsize=numsize)
-plt.savefig(
-    pathF + 'WallLaw' + str(x0) + '.svg', bbox_inches='tight', pad_inches=0.1)
-plt.show()
+#plt.savefig(
+#    pathF + 'WallLaw' + str(x0) + '.svg', bbox_inches='tight', pad_inches=0.1)
+#plt.show()
 
 #  Reynolds stresses in Morkovin scaling
 # results from known DNS
