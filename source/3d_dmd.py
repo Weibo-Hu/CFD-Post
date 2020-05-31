@@ -127,24 +127,6 @@ dt = 0.5
 bfs = dmd.DMD(Snapshots, dt=dt)
 with timer("DMD computing"):
     bfs.compute()
-print("The residuals of DMD is ", bfs.residuals)
-# %% SPDMD
-bfs1 = sparse.SparseDMD(Snapshots, dt=dt)
-gamma = [500, 700, 900]
-with timer("SPDMD computing"):
-    bfs1.compute_sparse(gamma)
-print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
-nonzero = bfs1.sparse.nonzero
-# %% Discard the bad modes
-bfs2 = bfs.reduce(0.998)
-re_freq = bfs2.omega/2/np.pi
-re_beta = bfs2.beta
-re_coeff = bfs2.amplitudes
-
-# with open(path2+"dmd.bin", "wb") as f:  # save object to file 
-#     dill.dump(bfs, f)
-# with open(path2+"bfs.bin", "rb") as f:  # load object
-#     bfs0 = dill.load(f)
 # %% Save results for plotting
 meanflow.to_hdf(path3D + 'Meanflow.h5', 'w', format='fixed')
 np.save(path3D + 'eigval', bfs.eigval)
@@ -165,6 +147,18 @@ np.save(path3D + 'Re_freq', bfs2.omega/2/np.pi)
 np.save(path3D + 'Re_beta', bfs2.beta)
 np.save(path3D + 'Re_amplitudes', bfs2.amplitudes)
 np.save(path3D + 'Re_index', bfs2.ind)
+
+re_freq = bfs2.omega/2/np.pi
+re_beta = bfs2.beta
+re_coeff = bfs2.amplitudes
+print("The residuals of DMD is ", bfs.residuals)
+# %% SPDMD
+bfs1 = sparse.SparseDMD(Snapshots, dt=dt)
+gamma = [500, 700, 900]
+with timer("SPDMD computing"):
+    bfs1.compute_sparse(gamma)
+print("The nonzero amplitudes of each gamma:", bfs1.sparse.Nz)
+nonzero = bfs1.sparse.nonzero
 
 np.savez(path3D + 'sparse.npz',
          Nz=bfs1.sparse.Nz,
