@@ -6,6 +6,8 @@ Created on Sat Jul 4 13:30:50 2019
 # %% Load necessary module
 import os
 from timer import timer
+import tecplot as tp
+from glob import glob
 import plt2pandas as p2p
 import numpy as np
 import pandas as pd
@@ -38,7 +40,7 @@ col = [var0, var1, var2, var3, var4]
 
 # %% load first snapshot data and obtain basic information
 path = "/media/weibo/IM1/BFS_M1.7Tur/"
-path3D = path + '3D_DMD/'
+path3D = path + '3D_DMD_1200/'
 pathH = path + 'hdf5/'
 pathM = path + 'MeanFlow/'
 timepoints = np.arange(951.0, 1450.5 + 0.5, 0.5)
@@ -206,6 +208,12 @@ for ii in range(np.size(phase)):
         p2p.frame2tec3d(df2, path3D, filename2, zname=2, stime=ii)
         p2p.tec2plt(path3D, filename2, filename2)
 
+# %% dat file to plt file
+dirs = os.listdir(path3D + '0p085/')
+for jj in range(np.size(dirs)):
+    filename = os.path.splitext(dirs[jj])[0]
+    print(filename)
+    p2p.tec2plt(path3D + '0p085/', filename, filename)
 
 """
 plot 2D slice contour 
@@ -228,42 +236,56 @@ names = ['x', 'y', 'z', var0, var1, var2, var3, var4,
 data = np.hstack((xarr, yarr, zarr, base, newflow))
 df = pd.DataFrame(data, columns=names)
 
-# %% in X-Y plane
+# %% load data
+freq1 = 0.022  # freq[num]
+path1 = path3D + '0p022/'
+files = glob(path1 + '*DMD000?.plt')
+df = p2p.ReadAllINCAResults(path1, FileName=files)
+# %% in X-Y plane, preprocess
 var = 'p'
+avg = True
 amp = 1.0  # for fluctuations
 fa = 0.0   # for mean value
 sliceflow = df.loc[df['z']==0]
-xarr = sliceflow['x']
-yarr = sliceflow['y']
 x, y = np.meshgrid(np.unique(xarr), np.unique(yarr))
 if var == 'u':
     varval = sliceflow[var] * fa + sliceflow['u`'] * amp
     grouped = df.groupby(['x', 'y'])
     df2 = grouped.mean().reset_index()
-    varval = df2['u`']
+    # varval = df2['u`']
+
 if var == 'p':
-    # varval = sliceflow[var] * fa + sliceflow['p`'] * amp
+    varval = sliceflow[var] * fa + sliceflow['p`'] * amp
     grouped = df.groupby(['x', 'y'])
     df2 = grouped.mean().reset_index()
     varval = df2['p`']
+
 if var == 'rho':
-    varval = (sliceflow['p'] * fa + sliceflow['p`'] * amp) / \
-             (sliceflow['T'] * fa + sliceflow['T`'] * amp) 
+    p_t = sliceflow['p'] * fa + sliceflow['p`'] * amp
+    T_t = sliceflow['T'] * fa + sliceflow['T`'] * amp
+    varval = p_t / T_t
+
+if avg == True:
+    xarr = df2['x']
+    yarr = df2['y']
+else:
+    xarr = sliceflow['x']
+    yarr = sliceflow['y']
+
 print("Limit value: ", np.min(varval), np.max(varval))
 u = griddata((xarr, yarr), varval, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 u[corner] = np.nan
+# %% in X-Y plane, plot
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.8))
-c1 = -0.1 # -0.13 #-0.024
+c1 = -0.03 # -0.13 #-0.024
 c2 = -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r', extend='both') 
-#cbar = ax.contourf(x, y, u,
-#                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
 ax.set_xlim(-5.0, 20.0)
 ax.set_ylim(-3.0, 2.0)
 ax.tick_params(labelsize=numsize)
@@ -282,25 +304,31 @@ cbar1.update_ticks()
 cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, 
                 x=1.16, labelpad=-26, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
-# Add shock wave
+# add shock wave
 shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], color='#32cd32ff', linewidth=1.2)
+# add streamline1
+shock = np.loadtxt(pathM+'streamline1.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1.2)
+# add streamline1
+shock = np.loadtxt(pathM+'streamline3.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1.2)
 # Add sonic line
-sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
-ax.plot(sonic[:, 0], sonic[:, 1], color='#32cd32ff',
-        linestyle='--', linewidth=1.5)
-# Add boundary layer
-boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
-ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
+# sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
+# ax.plot(sonic[:, 0], sonic[:, 1], color='#32cd32ff',
+#        linestyle='--', linewidth=1.5)
+# add boundary layer
+# boundary = np.loadtxt(pathM+'BoundaryEdge.dat', skiprows=1)
+# ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
 # Add dividing line(separation line)
 dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
 # ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
-filename = path3D + var + str(np.round(freq[num], 3)) + 'DMDModeXY1.svg'
+filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeXY.svg'
 plt.savefig(filename, bbox_inches='tight')
 plt.show()
 
-# %%
+# %% plot in X-Z
 """
 plot 2D slice contour in X-Y plane
 
@@ -314,14 +342,14 @@ zarr = sliceflow['z']
 x, z = np.meshgrid(np.unique(xarr), np.unique(zarr))
 if var == 'u':
     varval = sliceflow[var] * fa + sliceflow['u`'] * amp
+
 if var == 'p':
-    # varval = sliceflow[var] * fa + sliceflow['p`'] * amp
-    grouped = df.groupby(['x', 'y'])
-    df2 = grouped.mean().reset_index()
-    varval = df2['p`']
+    varval = sliceflow[var] * fa + sliceflow['p`'] * amp
+
 if var == 'rho':
     varval = (sliceflow['p'] * fa + sliceflow['p`'] * amp) / \
              (sliceflow['T'] * fa + sliceflow['T`'] * amp) 
+
 print("Limit value: ", np.min(varval), np.max(varval))
 u = griddata((xarr, zarr), varval, (x, z))
 #corner = (x < 0.0) & (y < 0.0)
@@ -330,8 +358,8 @@ matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.8))
-c1 = -0.3 #-0.024
-c2 = 0.6 # -c1 # 0.010 #0.018
+c1 = -1.0 #-0.024
+c2 = 1.3 # -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, z, u, levels=lev1, cmap='jet', extend='both') 
@@ -353,10 +381,9 @@ cbar.set_label(
     fontsize=numsize, labelpad=-26, y=1.12
 )
 ax.axvline(x=8.9, color="k", linestyle="--", linewidth=1.2)
-filename = path3D + var + str(np.round(freq[num], 3)) + 'DMDModeXZ.svg'
+filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeXZ.svg'
 plt.savefig(filename, bbox_inches='tight')
 plt.show()
-
 
 # %%      
 def dmd_plt(df, path, ind):
