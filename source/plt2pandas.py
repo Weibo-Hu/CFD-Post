@@ -578,17 +578,6 @@ def mul_zone2tec_plt(path, filename, FileId, df, time=None, option=1):
     # tp.constant.FrameAction(3)
 
 
-# read INCA output directly without tecIO
-def tec2npy(Folder, InFile, OutFile):
-    with open(Folder + InFile, "rb") as infile:
-        title_line = infile.readline()
-        variables = infile.readline()
-        zone_name = infile.readline()
-        time = infile.readline()
-        i, j, k = infile.readline()
-
-
-
 def tec2plt(Folder, InFile, OutFile=None):
     dataset = tp.data.load_tecplot(
         Folder + InFile + '.dat', read_data_option=2)
