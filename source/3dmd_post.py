@@ -198,6 +198,7 @@ for ii in range(np.size(phase)):
     data = np.hstack((xarr, yarr, zarr, base, newflow))
     df = pd.DataFrame(data, columns=names)
     filename = str(np.round(freq[num], 3)) + "DMD" + '{:03}'.format(ii)
+    filename = filename.replace(".", "p")
     with timer('save plt of t=' + str(phase[ii])):
         df1 = df.query("x<=0.0 & y>=0.0")
         filename1 = filename + "A"

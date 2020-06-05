@@ -16,10 +16,6 @@ import sys
 import numpy as np
 from glob import glob
 
-path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"
-pathin = path + "0p022/"
-pathout = path + "0p022_ani/"
-
 def limit_val(dataset, var):
     minv = dataset.variable(var).min()
     maxv = dataset.variable(var).max()
@@ -27,56 +23,59 @@ def limit_val(dataset, var):
 
 def plt_isosurf(iso, cont, var, val):
     # create contour for isosurfaces for velocity
-    cont.colormap_name = 'Diverging - Blue/Red'
-    cont.variable = dataset.variable(var)
-    cont.levels.reset_levels(np.linspace(val/2*3, -val/2*3, 7))
-    cont.legend.show = False
+
     # create isosurfaces
     plot.show_isosurfaces = True
-    iso = plot.isosurface(0)
     iso.contour.flood_contour_group = cont
-    iso.definition_contour_group.variable = dataset.variable('u`')
+    iso.definition_contour_group.variable = dataset.variable(var)
     iso.isosurface_selection = IsoSurfaceSelection.TwoSpecificValues
     iso.isosurface_values = (val, -val)
     iso.effects.lighting_effect = LightingEffect.Gouraud
     iso.contour.show = True
     iso.contour.use_lighting_effect = True
+    iso.effects.use_translucency = True
+    iso.effects.surface_translucency = 20
+    
+    cont.variable = dataset.variable(var)
+    cont.levels.reset_levels(np.linspace(val/2*3, -val/2*3, 7))
+    cont.colormap_name = 'Diverging - Blue/Red'    
     cont.colormap_filter.distribution = ColorMapDistribution.Continuous
     cont.colormap_filter.continuous_min = val/2*3
     cont.colormap_filter.continuous_max = -val/2*3
-    iso.effects.use_translucency = True
-    iso.effects.surface_translucency = 30
+    cont.legend.show = False
+
 
 def plt_slice(slc, cont, var, val, label=True):
     # contour for slice
     plot.show_slices = True
-    cont = plot.contour(5)
+    slc.show = True
+    slc.orientation = SliceSurface.ZPlanes
+    slc.origin = (slc.origin[0], slc.origin[1], -8)
+    slc.contour.flood_contour_group = cont
+    slc.contour.show = True
+
+    cont.variable = dataset.variable(var)
+    cont.levels.reset_levels(np.linspace(val/2*3, -val/2*3, 7))
     cont.colormap_name = 'Diverging - Purple/Green'
     cont.colormap_filter.distribution = ColorMapDistribution.Continuous
     cont.colormap_filter.continuous_min = val/2*3
     cont.colormap_filter.continuous_max = -val/2*3
-    cont.levels.reset_levels(np.linspace(val/2*3, -val/2*3, 7))
-    cont.variable = dataset.variable(var)
     cont.legend.show = True
     cont.legend.vertical = False
+    cont.legend.number_font.size=2.8
     cont.legend.row_spacing=1.3
     cont.legend.number_font.typeface='Times New Roman'
     cont.legend.show_header=False
     cont.legend.box.box_type=tp.constant.TextBox.None_
     cont.labels.step=2
-    cont.legend.position=(28, 89.5)
-
-    slc.show = True
-    slc.orientation = SliceSurface.ZPlanes
-    slc.origin = (slc.origin[0], slc.origin[1], -8)
-    slc.contour.flood_contour_group = cont
+    cont.legend.position=(30, 91)
     
     if label == True:
         tp.macro.execute_command("""$!AttachText 
             AnchorPos
               {
-              X = 27
-              Y = 85.2
+              X = 29
+              Y = 86.5
               }
             TextShape
               {
@@ -126,52 +125,36 @@ def axis_lab():
         TextShape
           {
           SizeUnits = Frame
-          Height = 4.2
+          Height = 4.5
           }
         TextType = LaTeX
         Text = '$x/\\delta_0$'""")
     tp.macro.execute_command("""$!AttachText 
         AnchorPos
           {
-          X = 4.0
+          X = 5.0
           Y = 74
           }
         TextShape
           {
           SizeUnits = Frame
-          Height = 4.2
+          Height = 4.5
           }
         TextType = LaTeX
         Text = '$y/\\delta_0$'""")
     tp.macro.execute_command("""$!AttachText 
         AnchorPos
           {
-          X = 12.5
+          X = 13
           Y = 18
           }
         TextShape
           {
           SizeUnits = Frame
-          Height = 4.2
+          Height = 4.5
           }
         TextType = LaTeX
         Text = '$z/\\delta_0$'""")
-
-def figure_ind():
-    tp.macro.execute_command("""$!AttachText 
-        AnchorPos
-          {
-          X = 5.0
-          Y = 92
-          }
-        TextShape
-          {
-          FontFamily = 'Times New Roman'
-          IsBold = No
-          SizeUnits = Frame
-          Height = 3.6
-          }
-        Text = '(a)'""")
 
 def show_time():
     tp.macro.execute_command("""$!AttachText 
@@ -191,7 +174,7 @@ def show_time():
         AnchorPos
           {
           X = 88.0
-          Y = 91.1
+          Y = 91.2
           }
         TextShape
           {
@@ -254,14 +237,39 @@ def show_wall(plot):
     plot.fieldmap(3).surfaces.surfaces_to_plot = \
         SurfacesToPlot.BoundaryFaces
 
+def figure_ind():
+    tp.macro.execute_command("""$!AttachText 
+        AnchorPos
+          {
+          X = 5.0
+          Y = 92
+          }
+        TextShape
+          {
+          FontFamily = 'Times New Roman'
+          IsBold = No
+          SizeUnits = Frame
+          Height = 3.6
+          }
+        Text = '(a)'""")
 # %% load data 
-# tp.session.connect()
-file = '[0.022]DMD'
+path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"
+freq = "0p594"
+pathin = path + freq + "/"
+pathout = path + freq + "_ani/"
+file = '[' + freq + ']DMD'
+figout  = '' + file
+print(figout.replace(".", "p"))
 dirs = os.listdir(pathin)
 num = int(np.size(dirs)/2)
-val1 = -0.42  # for u
-val2 = -0.02  # for p
+# tp.session.connect()
 # num = 1
+val1 = -0.6 # for u
+val2 = -0.06  # for p
+txtfl = open(pathout + 'levels.dat', "w")
+txtfl.writelines('u` = ' + str(val1) + '\n')
+txtfl.writelines('p` = ' + str(val2) + '\n')
+txtfl.close()
 for ii in range(num):
     ind = '{:03}'.format(ii)
     filelist = [file+ind+'A.plt', file+ind+'B.plt']
@@ -276,9 +284,9 @@ for ii in range(num):
     # turn off orange zone bounding box
     tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
     # frame setting
-    frame.width = 12
-    frame.height = 7.2
-    frame.position = (-1.0, 0.8)
+    frame.width = 12.8
+    frame.height = 7.5
+    frame.position = (-1.0, 0.5)
     plot = frame.plot(PlotType.Cartesian3D)
     plot.axes.orientation_axis.show=False
     axes = plot.axes
@@ -287,7 +295,7 @@ for ii in range(num):
 
     # 3d view settings
     view = plot.view
-    view.magnification = 1.1
+    view.magnification = 1.0
     # view.fit_to_nice()
     view.rotation_origin = (10, 0.0, 0.0)
     view.psi = 45
@@ -295,40 +303,48 @@ for ii in range(num):
     view.alpha = -140
     view.position = (-46.5, 76, 94)
     # view.distance = 300
-    view.width = 36
+    view.width = 36.5
     
+    # limit values                                                                                                                          values
     limit_val(dataset, 'u`')
-    # create contour for isosurfaces for velocity
+    limit_val(dataset, 'p`')
+
+    # create isosurfaces and its contour
     cont = plot.contour(0)
-    # create isosurfaces
     iso = plot.isosurface(0)
     plt_isosurf(iso, cont, 'u`', val1)
 
-    # contour for slice
-    limit_val(dataset, 'p`')
+    # create slices and its contour
     cont1 = plot.contour(5)
     slices = plot.slice(0)
-    # plt_slice(slices, cont1, 'p`', val2)
+    plt_slice(slices, cont1, 'p`', val2)
 
-    # show_time()
-    figure_ind()
-    show_wall(plot)
+    # figure_ind()   # show figure index
+    show_time()  # show solution time
+    show_wall(plot)  # show the wall boundary
 
-    # export figs
-    tp.export.save_png(pathout + file + str(SolTime) + '.png', width=2048)
-    # tp.export.save_jpeg(pathout + file + str(SolTime) + '.jpg', width=2048, quality=100) 
+    # export figures
+    outfile = pathout + figout + '{:02}'.format(int(SolTime))
+    tp.export.save_png(outfile + '.png', width=2048)
+    # tp.export.save_jpeg(outfile + '.jpeg', width=4096, quality=100) 
     
 # %% generate animation
 # %% Convert plots to animation
-# import imageio
-# from glob import glob
-# from natsort import natsorted, ns
-# dirs = glob(pathout + '*.png')
-# dirs = natsorted(dirs, key=lambda y: y.lower())
-# flnm = path + file + 'Anima.mp4'
-# with imageio.get_writer(flnm, mode='I', fps=12, macro_block_size=None) as writer:   
-#     for ii in range(np.size(dirs)*6):
-#         ind = ii % 32  # mod, get reminder
-#         image = imageio.imread(dirs[ind])
-#         writer.append_data(image)
-
+import imageio
+from glob import glob
+import numpy as np
+from natsort import natsorted, ns
+path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"
+# freq = "0p085"
+pathout = path + freq + "_ani/"
+file = '[' + freq + ']DMD'
+dirs = glob(pathout + '[0p*.png')
+dirs = natsorted(dirs, key=lambda y: y.lower())
+flnm = path + file + '_Anima.mp4'
+with imageio.get_writer(flnm, mode='I', fps=12,
+                        macro_block_size=None) as writer:   
+    for ii in range(np.size(dirs)*6):
+        ind = ii % 32  # mod, get reminder
+        image = imageio.imread(dirs[ind])
+        writer.append_data(image)
+    writer.close()
