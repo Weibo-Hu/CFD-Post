@@ -213,15 +213,19 @@ def save_tec_index(df_data, df_zone_info, filename=None):
 
 def extract_zone(path, cube, skip=0, filename=None):
     # cube = [(-5.0, 25.0), (-3.0, 5.0), (-2.5, 2.5)]
-    init = os.scandir(path)
+    init = os.listdir(path)
     cols = ['x1', 'x2', 'y1', 'y2', 'z1',
             'z2', 'nx', 'ny', 'nz']
     name = np.empty(shape=[0, 1])
     boundary = np.empty(shape=[0, 9])
     skip = skip + 1
-    for folder in init:
-        file = path + folder.name
-        dataset = tp.data.load_tecplot(file, read_data_option=2)
+    ext = os.path.splitext(init[0])[1]
+    for ii in range(np.size(init)):
+        file = path + init[ii]
+        if ext == '.plt':
+            dataset = tp.data.load_tecplot(file, read_data_option=2)
+        if ext == '.szplt':
+            dataset = tp.data.load_tecplot_szl(file, read_data_option=2)
         zone = dataset.zone
         zonename = zone(0).name
         var_x = dataset.variable('x').values(zonename).as_numpy_array()
@@ -260,7 +264,7 @@ def extract_zone(path, cube, skip=0, filename=None):
                     nz = (nz + 1) // skip
                 else:
                     print("No skip in z direction")
-            name = np.append(name, folder.name)
+            name = np.append(name, init[ii])
             information = [x1, x2, y1, y2, z1, z2, nx, ny, nz]
             # print(information)
             boundary = np.vstack((boundary, information))
@@ -278,8 +282,13 @@ def extract_zone(path, cube, skip=0, filename=None):
         ind2 = np.append(ind2, id2)
     df['id1'] = ind1
     df['id2'] = ind2
+    df['nx'] = df['nx'].astype(int)
+    df['ny'] = df['ny'].astype(int)
+    df['nz'] = df['nz'].astype(int)
+    df['id1'] = df['id1'].astype(int)
+    df['id2'] = df['id2'].astype(int)
     if filename is not None:
-        df.to_csv(filename, index=False, sep=' ')
+        df.to_csv(filename, index=False, sep=' ', float_format='%.6f')
     return (df)
 
 
