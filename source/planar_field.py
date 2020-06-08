@@ -125,6 +125,7 @@ class PlanarField(LineField):
         else:
             equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
             # nfiles = np.size(os.listdir(path + 'TP_stat/'))
+            print('try to calculate data')
             with timer('load mean flow from tecplot data'):
                 if FileList is None:
                     df = p2p.ReadAllINCAResults(path + 'TP_stat/',
@@ -139,6 +140,7 @@ class PlanarField(LineField):
                                                 SpanAve=True,
                                                 Equ=equ,
                                                 OutFile='MeanFlow')
+            print('done with saving data')
         self._data_field = df
 
     def merge_meanflow(self, path):

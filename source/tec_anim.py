@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed May 11  22:39:40 2020
-    This code uses pytecplot to make videos
+Created on Wen May 11  22:39:40 2020
+    This code uses pytecplot to plot 3d plots
 
 @author: weibo
 """
@@ -10,44 +9,177 @@ Created on Wed May 11  22:39:40 2020
 import tecplot as tp
 from tecplot.constant import *
 from tecplot.exception import *
-import pandas as pd
+import tecplotlib as tl
 import os
 import sys
 import numpy as np
-from glob import glob
+import glob as glob
 
-path = "D:/ownCloud/5Presentation/May06-2020/0p023/"
+# %% instantaneous flow
+path = "/media/weibo/IM2/FFS_M1.7TB/"
+pathF = path + 'Figures/'
+pathin = path + "TP_data_01016064/"
+dirs = glob.glob(pathin + '*.szplt')
 
-
-# %% load data 
-filelist = ['[0.023]DMD000A.plt', '[0.023]DMD000B.plt']
-datafile = [os.path.join(path, name) for name in filelist]
-dataset = tp.data.load_tecplot(datafile, read_data_option=2)
-SolTime = dataset.solution_times[0]
-
-# %% frame operation
+tp.session.connect()
+dataset = tp.data.load_tecplot_szl(dirs, read_data_option=2)
 frame = tp.active_frame()
-frame.load_stylesheet(path + 'video.sty')
-# turn off orange zone bounding box
 tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
+
 # frame setting
-frame.width = 13.5
-frame.height = 8
-frame.position = (-1.2, 0.25)
-frame.plot().use_lighting_effect = False
+frame.width = 12.8
+frame.height = 6.75
+frame.position = (-1.0, 1.2)
+tp.macro.execute_command('$!FrameLayout ShowBorder = No')
+
 plot = frame.plot(PlotType.Cartesian3D)
+plot.axes.orientation_axis.show=False
+tl.show_ffs_wall(plot)
+# value blank
+plot.value_blanking.active=True
+plot.value_blanking.constraint(0).variable = dataset.variable('x')
+plot.value_blanking.constraint(0).comparison_operator=RelOp.LessThan
+plot.value_blanking.constraint(0).comparison_value=-30
+plot.value_blanking.constraint(0).active=True
+plot.value_blanking.constraint(1).variable = dataset.variable('x')
+plot.value_blanking.constraint(1).comparison_operator=RelOp.GreaterThan
+plot.value_blanking.constraint(1).comparison_value=10
+plot.value_blanking.constraint(1).active=True
+plot.value_blanking.constraint(2).variable = dataset.variable('y')
+plot.value_blanking.constraint(2).comparison_operator=RelOp.GreaterThan
+plot.value_blanking.constraint(2).comparison_value=8
+plot.value_blanking.constraint(2).active=True
+axes = plot.axes
+tl.axis_set_ffs(axes)
+xpos = [53.5, 13.5]
+ypos = [4.5, 65.6]
+zpos = [8.5, 14]
+tl.axis_lab(xpos, ypos, zpos)
 
 # 3d view settings
 view = plot.view
-view.magnification = 1.1
-# plot.view.fit_to_nice()
+view.magnification = 1.0
+# view.fit_to_nice()
 view.rotation_origin = (10, 0.0, 0.0)
 view.psi = 45
 view.theta = 145
 view.alpha = -140
-view.position = (-46, 76, 94)
+view.position = (-200.5, 274, 331.5)
 # view.distance = 300
-view.width = 38
-# export figs
-tp.export.save_png(path + 'test' + str(SolTime) + '.png', width=4096)
-tp.export.save_jpeg(path + 'test' + str(SolTime) + '.jpg', width=4096, quality=100) 
+view.width = 140
+    
+# limit values                                                                                                                          values
+tl.limit_val(dataset, 'u')
+tl.limit_val(dataset, 'p')
+
+# create isosurfaces and its contour
+var1 = 'L2-criterion'  # '<lambda_2>'
+val1 = -0.08
+var2 = 'u'
+plot.show_isosurfaces = True
+cont1 = plot.contour(0)
+cont2 = plot.contour(1)
+iso = plot.isosurface(0) 
+val2 = np.round(np.linspace(-0.2, 1.0, 13), 2)
+tl.plt_isosurfs(dataset, iso, cont1, var1, val1, cont2, var2, val2)
+tp.export.save_png(path + 'L2_ffs.png', width=2048)
+
+# %% load data 
+path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"
+freq = "0p0755"
+pathin = path + freq + "/"
+pathout = path + freq + "_ani/"
+file = '[' + freq + ']DMD'
+figout  = 'p' + file
+print(figout.replace(".", "p"))
+dirs = os.listdir(pathin)
+num = int(np.size(dirs)/2)
+# tp.session.connect()
+# num = 1
+val1 = -0.3 # for u
+val2 = -0.02  # for p
+txtfl = open(pathout + 'levels.dat', "w")
+txtfl.writelines('u` = ' + str(val1) + '\n')
+txtfl.writelines('p` = ' + str(val2) + '\n')
+txtfl.close()
+for ii in range(num):
+    ind = '{:03}'.format(ii)
+    filelist = [file+ind+'A.plt', file+ind+'B.plt']
+    print(filelist)
+    datafile = [os.path.join(pathin, name) for name in filelist]
+    dataset = tp.data.load_tecplot(datafile, read_data_option=2)
+    SolTime = dataset.solution_times[0]
+
+    # %% frame operation
+    frame = tp.active_frame()
+    # frame.load_stylesheet(path + 'video.sty')
+    # turn off orange zone bounding box
+    tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
+    # frame setting
+    frame.width = 12.8
+    frame.height = 7.5
+    frame.position = (-1.0, 0.5)
+    tp.macro.execute_command('$!FrameLayout ShowBorder = No')
+    plot = frame.plot(PlotType.Cartesian3D)
+    plot.axes.orientation_axis.show=False
+    axes = plot.axes
+    tl.axis_set(axes)
+    tl.axis_lab()
+
+    # 3d view settings
+    view = plot.view
+    view.magnification = 1.0
+    # view.fit_to_nice()
+    view.rotation_origin = (10, 0.0, 0.0)
+    view.psi = 45
+    view.theta = 145
+    view.alpha = -140
+    view.position = (-46.5, 76, 94)
+    # view.distance = 300
+    view.width = 36.5
+    
+    # limit values                                                                                                                          values
+    tl.limit_val(dataset, 'u`')
+    tl.limit_val(dataset, 'p`')
+
+    # create isosurfaces and its contour
+    plot.show_isosurfaces = True
+    cont = plot.contour(0)
+    iso = plot.isosurface(0) 
+    tl.plt_isosurf(dataset, iso, cont, 'p`', val2)
+
+    # create slices and its contour
+    plot.show_slices = False
+    cont1 = plot.contour(5)
+    slices = plot.slice(0)
+    # tl.plt_slice(dataset, slices, cont1, 'p`', val2)
+
+    # tl.figure_ind()   # show figure index
+    # tl.show_time()  # show solution time
+    tl.show_wall(plot)  # show the wall boundary
+
+    # export figures
+    outfile = pathout + figout + '{:02}'.format(int(SolTime))
+    tp.export.save_png(outfile + '.png', width=2048)
+    # tp.export.save_jpeg(outfile + '.jpeg', width=4096, quality=100) 
+    
+# %% generate animation
+# %% Convert plots to animation
+#import imageio
+#from glob import glob
+#import numpy as np
+#from natsort import natsorted, ns
+#path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"
+#freq = "0p0755"
+#pathout = path + freq + "_ani/"
+#file = '[' + freq + ']DMD'
+#dirs = glob(pathout + '[0p*.png')
+#dirs = natsorted(dirs, key=lambda y: y.lower())
+#flnm = path + file + '_Anima.mp4'
+#with imageio.get_writer(flnm, mode='I', fps=12,
+#                        macro_block_size=None) as writer:   
+#    for ii in range(np.size(dirs)*6):
+#        ind = ii % 32  # mod, get reminder
+#        image = imageio.imread(dirs[ind])
+#        writer.append_data(image)
+#    writer.close()

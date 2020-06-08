@@ -12,6 +12,8 @@
             "program": "${file}",
             "stopOnEntry": true,
             "pythonPath": "${config:python.interpreterPath}",
+            //"pythonPath": "${config:python.interpreterPath}",
+            //"pythonPath": "/home/weibo/APP/anaconda3/bin/python",
             "console": "integratedTerminal"
         },
 
