@@ -17,7 +17,8 @@ import glob as glob
 
 # %% instantaneous flow
 path = "/media/weibo/IM2/FFS_M1.7TB/"
-pathin = path + "TP_stat/"
+pathF = path + 'Figures/'
+pathin = path + "TP_data_01016064/"
 dirs = glob.glob(pathin + '*.szplt')
 
 tp.session.connect()
@@ -27,8 +28,8 @@ tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
 
 # frame setting
 frame.width = 12.8
-frame.height = 7.5
-frame.position = (-1.0, 0.5)
+frame.height = 6.75
+frame.position = (-1.0, 1.2)
 tp.macro.execute_command('$!FrameLayout ShowBorder = No')
 
 plot = frame.plot(PlotType.Cartesian3D)
@@ -63,24 +64,25 @@ view.rotation_origin = (10, 0.0, 0.0)
 view.psi = 45
 view.theta = 145
 view.alpha = -140
-view.position = (-200, 275, 331)
+view.position = (-200.5, 274, 331.5)
 # view.distance = 300
-view.width = 145
+view.width = 140
     
 # limit values                                                                                                                          values
-tl.limit_val(dataset, '<u>')
-tl.limit_val(dataset, '<p>')
+tl.limit_val(dataset, 'u')
+tl.limit_val(dataset, 'p')
 
 # create isosurfaces and its contour
-var1 = '<lambda_2>'
-val1 = -0.02
-var2 = '<u>'
+var1 = 'L2-criterion'  # '<lambda_2>'
+val1 = -0.08
+var2 = 'u'
 plot.show_isosurfaces = True
 cont1 = plot.contour(0)
 cont2 = plot.contour(1)
 iso = plot.isosurface(0) 
-val2 = np.linspace(-0.1, 0.9, 11)
+val2 = np.round(np.linspace(-0.2, 1.0, 13), 2)
 tl.plt_isosurfs(dataset, iso, cont1, var1, val1, cont2, var2, val2)
+tp.export.save_png(path + 'L2_ffs.png', width=2048)
 
 # %% load data 
 path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"

@@ -40,29 +40,6 @@ def plt_isosurf(dataset, iso, cont, var, val):
     cont.colormap_filter.continuous_max = -val/2*3
     cont.legend.show = False
 
-def plt_isosurfs(dataset, iso, cont1, var1, val1, cont2, var2, val2):
-    # create contour for isosurfaces for velocity
-    # create isosurfaces
-    iso.show = True
-    
-    cont1.variable = dataset.variable(var1)
-    iso.definition_contour_group = cont1
-    iso.isosurface_selection = IsoSurfaceSelection.OneSpecificValue
-    iso.isosurface_values = (val1, -val1)
-    iso.effects.lighting_effect = LightingEffect.Gouraud
-    iso.contour.show = True
-    iso.contour.use_lighting_effect = True
-    iso.effects.use_translucency = True
-    iso.effects.surface_translucency = 20
-
-    iso.contour.flood_contour_group = cont2    
-    cont2.variable = dataset.variable(var2)
-    cont2.levels.reset_levels(val2)
-    cont2.colormap_name = 'Small Rainbow'    
-    cont2.colormap_filter.distribution = ColorMapDistribution.Continuous
-    cont2.colormap_filter.continuous_min = np.min(val2)
-    cont2.colormap_filter.continuous_max = np.max(val2)
-    cont2.legend.show = False
 
 def plt_slice(dataset, slc, cont, var, val, label=True):
     slc.show = True
@@ -132,21 +109,72 @@ def axis_set(axes_obj):
     #axes_obj.x_axis.title.show_on_opposite_edge=True
     #axes_obj.x_axis.title.show_on_opposite_edge=False
 
+
+def plt_isosurfs(dataset, iso, cont1, var1, val1,
+                 cont2, var2, val2, label=True):
+    # create contour for isosurfaces for velocity
+    # create isosurfaces
+    iso.show = True
+    
+    cont1.variable = dataset.variable(var1)
+    iso.definition_contour_group = cont1
+    iso.isosurface_selection = IsoSurfaceSelection.OneSpecificValue
+    iso.isosurface_values = (val1, -val1)
+    iso.effects.lighting_effect = LightingEffect.Gouraud
+    iso.contour.show = True
+    iso.contour.use_lighting_effect = True
+    iso.effects.use_translucency = True
+    iso.effects.surface_translucency = 20
+
+    iso.contour.flood_contour_group = cont2    
+    cont2.variable = dataset.variable(var2)
+    cont2.levels.reset_levels(val2)
+    cont2.colormap_name = 'Small Rainbow'    
+    cont2.colormap_filter.distribution = ColorMapDistribution.Continuous
+    cont2.colormap_filter.continuous_min = np.min(val2)
+    cont2.colormap_filter.continuous_max = np.max(val2)   
+    cont2.legend.show = True
+    cont2.legend.vertical = False
+    cont2.legend.number_font.size=3.2
+    cont2.legend.row_spacing=1.6
+    cont2.legend.overlay_bar_grid=False
+    cont2.legend.number_font.typeface='Times New Roman'
+    cont2.legend.show_header=False
+    cont2.legend.box.box_type=tp.constant.TextBox.None_
+    cont2.labels.step=3
+    cont2.legend.position=(27, 88)
+    if label == True:
+        tp.macro.execute_command("""$!AttachText 
+            AnchorPos
+              {
+              X = 26
+              Y = 82.5
+              }
+            TextShape
+              {
+              SizeUnits = Frame
+              Height = 4.2
+              }
+            TextType = LaTeX
+            Text = '$u/u_{\\infty}$'""")
+
+
+
 def axis_set_ffs(axes_obj):
     axes_obj.grid_area.filled=False
     axes_obj.x_axis.show=True
     axes_obj.x_axis.min=-30
     axes_obj.x_axis.max=10
-    axes_obj.x_axis.tick_labels.font.size=2.5
-    axes_obj.x_axis.tick_labels.font.typeface='Times'
+    axes_obj.x_axis.tick_labels.font.size=2.3
+    axes_obj.x_axis.tick_labels.font.typeface='Times New Roman'
     axes_obj.x_axis.title.show=False
     
     axes_obj.preserve_scale=True
     axes_obj.y_axis.show=True
     axes_obj.y_axis.min=0
-    axes_obj.y_axis.max=8
-    axes_obj.y_axis.tick_labels.font.size=2.5
-    axes_obj.y_axis.tick_labels.font.typeface='Times'
+    axes_obj.y_axis.max=6
+    axes_obj.y_axis.tick_labels.font.size=2.3
+    axes_obj.y_axis.tick_labels.font.typeface='Times New Roman'
     axes_obj.y_axis.title.show=False
     axes_obj.y_axis.ticks.show_on_opposite_edge=True
     axes_obj.y_axis.tick_labels.show_on_opposite_edge=True
@@ -156,8 +184,8 @@ def axis_set_ffs(axes_obj):
     axes_obj.z_axis.show=True
     axes_obj.z_axis.min=-8
     axes_obj.z_axis.max=8
-    axes_obj.z_axis.tick_labels.font.size=2.5
-    axes_obj.z_axis.tick_labels.font.typeface='Times'
+    axes_obj.z_axis.tick_labels.font.size=2.3
+    axes_obj.z_axis.tick_labels.font.typeface='Times New Roman'
     axes_obj.z_axis.title.show=False
     #axes_obj.x_axis.title.show_on_opposite_edge=True
     #axes_obj.x_axis.title.show_on_opposite_edge=False
