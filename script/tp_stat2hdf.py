@@ -17,7 +17,7 @@ import pandas as pd
 from glob import glob
 
 # %%
-path = '/media/weibo/IM2/FFS_M1.7TB/'
+path = '/media/weibo/IM2/FFS_M1.7ZA/'
 
 p2p.create_folder(path)
 pathTP = path + 'TP_stat/'
@@ -46,10 +46,26 @@ for i in range(4):
 
 dir1 = glob(pathM + 'MeanFlow_*')
 df0 = pd.read_hdf(dir1[0])
+grouped = df0.groupby(['x', 'y'])
+mean0 = grouped.mean().reset_index()
+del df0
+
 df1 = pd.read_hdf(dir1[1])
+grouped = df1.groupby(['x', 'y'])
+mean1 = grouped.mean().reset_index()
+del df1
+
 df2 = pd.read_hdf(dir1[2])
+grouped = df2.groupby(['x', 'y'])
+mean2 = grouped.mean().reset_index()
+del df2
+
 df3 = pd.read_hdf(dir1[3])
-df = pd.concat([df0, df1, df2, df3], ignore_index=True)
+grouped = df3.groupby(['x', 'y'])
+mean3 = grouped.mean().reset_index()
+del df3
+
+df = pd.concat([mean0, mean1, mean2, mean3], ignore_index=True)
 # df = df.drop_duplicates(keep='last')
 # save time- and spanwise averaged flow field
 grouped = df.groupby(['x', 'y'])

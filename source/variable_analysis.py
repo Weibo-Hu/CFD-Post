@@ -836,6 +836,67 @@ def shock_line(dataframe, path):
     )
 
 
+# Save shock isoline
+def shock_line_ffs(dataframe, path, val=[0.06]):
+    if not isinstance(val, list):
+        print("input value must be an array!")
+        exit
+    grouped = dataframe.groupby(['x', 'y'])
+    dataframe = grouped.mean().reset_index()
+    x0 = np.unique(dataframe["x"])
+    y0 = np.unique(dataframe["y"])
+    x1 = x0[x0 > -70]
+    y1 = y0[y0 > 0.5]
+    xini, yini = np.meshgrid(x1, y1)
+    corner = (xini > 0.0) & (yini < 3.0)
+    gradp = griddata((dataframe["x"], dataframe["y"]), dataframe["|gradp|"],
+                     (xini, yini))
+    gradp[corner] = np.nan
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(
+        xini, yini, gradp, levels=val, linewidths=1.2, colors="gray"
+    )
+    ax.set_xlim([-30.0, 10.0])
+    ax.set_ylim([0.0, 10.0])
+    plt.close()
+    header = "x, y"
+    xycor1 = np.empty(shape=[0, 2])
+    xycor2 = np.empty(shape=[0, 2])
+    xylist = []
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        if np.max(xy[:, 0]) < 0.0:
+            xycor1 = np.vstack((xycor1, xy))
+        elif np.max(xy[:, 0]) > 0.0:
+            xycor2 = np.vstack((xycor2, xy))
+        xylist.append(xy)
+        # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
+    tck, yval = splprep(xycor1.T, s=1.0, per=1)
+    x_new, y_new = splev(yval, tck, der=0)
+    xy_fit = np.vstack((x_new, y_new))
+    np.savetxt(
+        path + "ShockLine1.dat",
+        xycor1,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header
+    )
+    np.savetxt(
+        path + "ShockLineFit.dat",
+        xy_fit.T,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header
+    )
+    np.savetxt(
+        path + "ShockLine2.dat",
+        xycor1,
+        fmt="%.8e",
+        delimiter="  ",
+        header=header
+    )
+
+
 def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
     # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     grouped = dataframe.groupby(['x', 'y'])
@@ -873,7 +934,7 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
 def dividing_line(dataframe, path=None, loc=-0.015625):
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
-    NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
+    NewFrame = dataframe.query("x>=-70.0 & x<=0.0 & y<=10.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
     if 'u' not in NewFrame.columns:
         NewFrame['u'] = NewFrame['<u>']
@@ -890,7 +951,7 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
     for i, isoline in enumerate(cs1.collections[0].get_paths()):
         xy = isoline.vertices
         nolist.append(np.shape(xy)[0])
-        if np.any(xy[:, 1] == -0.015625):  # pick the bubble line
+        if np.any(xy[:, 1] == loc):  # pick the bubble line
             if loc == -0.015625:
                 if (np.min(xy[:, 1]) < -2.0) & (np.min(xy[:, 0]) < 1.0):
                     ind = i
@@ -919,7 +980,7 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
     return xy
 
 
-def boundary_edge(dataframe, path, jump1=None, jump2=None):  # jump = reattachment location
+def boundary_edge(dataframe, path, jump1=0.0, jump2=10.375, val=0.97):  # jump = reattachment location
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
@@ -927,29 +988,27 @@ def boundary_edge(dataframe, path, jump1=None, jump2=None):  # jump = reattachme
     if 'u' not in dataframe.columns:
         dataframe.loc[:, 'u'] = dataframe['<u>']
         # dataframe['u'] = dataframe['<u>']
-
     u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
-    if (jump1 == None):
-        expand = 0.0  # reattchament location
-    else:
-        expand = jump1
-    if (jump2 == None):
-        shock = 10.375  # reattchament location
-    else:
-        shock = jump2
+    u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
     umax = u[-1, :]
-    rg1 = (x[1, :] < expand)  # in front of the shock
-    umax[rg1] = 1.0
-    rg2 = (x[1, :] >= shock)  # behind the shock
-    umax[rg2] = 0.98
+    umax[:] = 0.99
+    rg1 = (x[1, :] <= jump1) & (x[1, :] >= np.min(x)) # between two shocks 
+    uinterp = np.interp(x[1, rg1], [np.min(x), jump1], [0.99, val])
+    umax[rg1] = uinterp
+    rg2 = (x[1, :] > jump1) & (x[1, :] < 0.0)
+    umax[rg2] = val
+    rg3 = (x[1, :] >= 0.0) & (x[1, :] < jump2)
+    uinterp1 = np.interp(x[1, rg3], [0.0, jump2], [val, 0.988])
+    umax[rg3] = uinterp1
     u = u / (np.transpose(umax))
-    corner = (x < 0.0) & (y < 0.0)
+    corner = (x > 0.0) & (y < 3.0)
     u[corner] = np.nan
     header = 'x, y'
     fig, ax = plt.subplots(figsize=(10, 4))
     cs = ax.contour(
         x, y, u, levels=[0.99], linewidths=1.5, linestyles="--", colors="k"
     )
+    plt.show()
     xycor = np.empty(shape=[0, 2])
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices

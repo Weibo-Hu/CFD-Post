@@ -22,13 +22,13 @@ from planar_field import PlanarField as pf
 from triaxial_field import TriField as tf
 
 
-path0 = "/media/weibo/VID2/BFS_M1.7L/"
+path0 = "/media/weibo/IM2/FFS_M1.7ZA/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
-path1 = "/media/weibo/VID2/BFS_M1.7TS_LA/"
+path1 = "/media/weibo/IM2/FFS_M1.7LA/"
 path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)
-path2 = "/media/weibo/VID2/BFS_M1.7TS2_MA/"
+path2 = "/media/weibo/IM2/FFS_M1.7HA/"
 path2F, path2P, path2M, path2S, path2T, path2I = p2p.create_folder(path2)
-path3 = "/media/weibo/IM1/BFS_M1.7Tur/"
+path3 = "/media/weibo/IM2/FFS_M1.7TB/"
 path3F, path3P, path3M, path3S, path3T, path3I = p2p.create_folder(path3)
 pathC = path2 + 'Comparison/'
 
@@ -48,7 +48,7 @@ numsize = 10
 ###
 ###    load data
 ###
-StepHeight = 3.0
+StepHeight = -3.0
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
 MeanFlow0.add_walldist(StepHeight)
@@ -79,16 +79,19 @@ WallFlow3 = MeanFlow3.PlanarData.groupby("x", as_index=False).nth(1)
 xwall = WallFlow0["x"].values
 mu0 = va.viscosity(13718, WallFlow0["T"])
 Cf0 = va.skinfriction(mu0, WallFlow0["u"], WallFlow0["walldist"]).values
-ind0 = np.where(Cf0[:] < 0.005)
+ind0 = np.where(Cf0[:] < 0.01)
 mu1 = va.viscosity(13718, WallFlow1["T"])
 Cf1 = va.skinfriction(mu1, WallFlow1["u"], WallFlow1["walldist"]).values
-ind1 = np.where(Cf1[:] < 0.005)
+ind1 = np.where(Cf1[:] < 0.01)
 mu2 = va.viscosity(13718, WallFlow2["T"])
 Cf2 = va.skinfriction(mu2, WallFlow2["u"], WallFlow2["walldist"]).values
-ind2 = np.where(Cf2[:] < 0.005)
+ind2 = np.where(Cf2[:] < 0.01)
+
+xwall3 = WallFlow3['x'].values
 mu3 = va.viscosity(13718, WallFlow3["T"])
 Cf3 = va.skinfriction(mu3, WallFlow3["u"], WallFlow3["walldist"]).values
-ind3 = np.where(Cf3[:] < 0.005)
+ind3 = (Cf3 < 0.01) & (xwall3>=-60.0)
+# ind3 = np.where(Cf3[:] < 0.01)
 
 # %% Plot streamwise skin friction
 # fig2, ax2 = plt.subplots(figsize=(5, 2.5))
@@ -100,16 +103,16 @@ ax2.scatter(xwall[ind0][0::8], Cf0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
 ax2.plot(xwall[ind1], Cf1[ind1], "k", linewidth=1.1)
 ax2.plot(xwall[ind2], Cf2[ind2], "k--", linewidth=1.1)
-ax2.plot(xwall[ind3], Cf3[ind3], "k:", linewidth=1.5)
+ax2.plot(xwall3[ind3], Cf3[ind3], "k:", linewidth=1.5)
 # ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
-ax2.set_xlim([-40.0, 40.0])
+ax2.set_xlim([-100, 20.0])
 ax2.tick_params(axis='x',          # changes apply to the x-axis
                 which='both',      # both major and minor ticks are affected
                 bottom=True,      # ticks along the bottom edge are off
                 top=False,         # ticks along the top edge are off
                 labelbottom=False)  # labels along the bottom edge are off)
-ax2.set_ylim([-0.002, 0.006])
+ax2.set_ylim([-0.004, 0.006])
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
@@ -135,14 +138,14 @@ ax3.scatter(xwall[ind0][0::8], tke0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
 ax3.plot(xwall[ind1], tke1[ind1], "k", linewidth=1.1)
 ax3.plot(xwall[ind2], tke2[ind2], "k--", linewidth=1.1)
-ax3.plot(xwall[ind2], tke3[ind3], "k:", linewidth=1.5)
+ax3.plot(xwall3[ind3], tke3[ind3], "k:", linewidth=1.5)
 ax3.set_yscale('log')
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ylab = r"$p_{\mathrm{rms}}$"  # 
 # ylab=r"$2\sqrt{\langle p^{\prime}p^{\prime} \rangle}/\rho_\infty u^2_\infty$"
 ax3.set_ylabel(ylab, fontsize=textsize)
-ax3.set_xlim([-40.0, 40.0])
-ax3.set_ylim([0.00003, 0.05])
+ax3.set_xlim([-100.0, 20.0])
+ax3.set_ylim([0.00003, 0.1])
 # ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)

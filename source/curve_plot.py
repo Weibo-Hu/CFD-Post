@@ -21,7 +21,9 @@ from planar_field import PlanarField as pf
 
 
 # %% data path settings
-path = "/home/weibohu/weibo/FFS_M1.7TB/"
+# host = "/run/user/1000/gvfs/sftp:host=cartesius.surfsara.nl,user="
+# path = host + "weibohu/nfs/home6/weibohu/weibo/FFS_M1.7TB/"
+path = "/media/weibo/IM2/FFS_M1.7TB/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -94,13 +96,18 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-30, 2.0, 4.625, 6.25, 9.25, 10, 20, 30])
+xcoord = np.array([-120, -80, -60, -30, -10, 0, 10, 20])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df['walldist']
     q0 = df['u']
-    ax[i].plot(q0, y0, "k-")
-    ax[i].set_ylim([0, 3])
+    if xcoord[i] == 0.0:
+        ind = np.where(y0 >= 3.0)[0]
+        ax[i].plot(q0[ind], y0[ind], "k-")
+        ax[i].set_ylim([3, 7])
+    else:
+        ax[i].plot(q0, y0, "k-")
+        ax[i].set_ylim([0, 4])
     if i != 0:
         ax[i].set_yticklabels('')
         ax[i].set_title(r'${}$'.format(xcoord[i]), fontsize=numsize-2)
@@ -135,7 +142,7 @@ plt.savefig(
 # BLProf['walldist'] = BLProf['y']
 # BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
 # %% velocity profile, computation
-x0 = -30.0
+x0 = -50.0
 # results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)
@@ -159,7 +166,7 @@ CalUPlus = va.direst_transform(BLProf, option='mean')
 # results from theory by van Driest
 StdUPlus1, StdUPlus2 = va.std_wall_law()
 # results from known DNS
-Re_theta = 800 # 1000  # 800 # 1400 #
+Re_theta = 1000 # 1000  # 800 # 1400 #
 ExpUPlus = va.ref_wall_law(Re_theta)[0]
 # plot velocity profile
 fig = plt.figure(figsize=(6.4, 2.6))
@@ -288,14 +295,12 @@ plt.show()
     y+ along streamwise
 """
 # %% calculate yplus ahead/behind the step
-
-
 def yplus(MeanFlow, dy, wallval, opt):
     if opt == 1:
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData['x'] < 0.0]
     elif opt == 2:
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData['x'] > 0.0]
-    frame = TempFlow.loc[TempFlow['y'] == dy]
+    frame = TempFlow.loc[np.around(TempFlow['y'], 6) == np.around(dy, 6)]
     frame1 = TempFlow.loc[TempFlow['y'] == wallval]
     x = frame['x'].values
     rho = frame1['<rho>'].values
@@ -306,9 +311,8 @@ def yplus(MeanFlow, dy, wallval, opt):
     yplus = (dy - wallval) * u_tau * rho / mu
     return (x, yplus)
 
-
-x1, yplus1 = yplus(MeanFlow, 0.001953125, 0.0, opt=1)  # upsteam the step
-x2, yplus2 = yplus(MeanFlow, -2.997037172317505, -3.0, opt=2)  # downstream
+x1, yplus1 = yplus(MeanFlow, 0.0023002559, 0.0, opt=1)  # upsteam the step
+x2, yplus2 = yplus(MeanFlow, 3.001953125, 3.0, opt=2)  # downstream
 res = np.vstack((np.hstack((x1, x2)), np.hstack((yplus1, yplus2))))
 frame2 = pd.DataFrame(data=res.T, columns=['x', 'yplus'])
 frame2.to_csv(pathM + 'YPLUS.dat',
@@ -321,7 +325,7 @@ fig3, ax3 = plt.subplots(figsize=(6.4, 3.0))
 ax3.plot(yp['x'], yp['yplus'], "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\Delta y^{+}$", fontsize=textsize)
-ax3.set_xlim([-40.0, 70.0])
+ax3.set_xlim([-120.0, 40.0])
 ax3.set_ylim([0.0, 2.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
@@ -489,14 +493,14 @@ ax2 = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)
 xwall = WallFlow["x"].values
 ax2.plot(xwall[ind], Cf[ind], "k", linewidth=1.5)
-ax2.plot(xwall0[ind0], Cf0[ind0], "k:", linewidth=1.5)
-ax2.plot(xwall1[ind1], Cf1[ind1],
-         color='gray', linestyle=':', linewidth=1.2) # 
-ax2.plot(xwall2[ind2], Cf2[ind2],
-         color='gray', linestyle=':', linewidth=1.2) # 
+# ax2.plot(xwall0[ind0], Cf0[ind0], "k:", linewidth=1.5)
+# ax2.plot(xwall1[ind1], Cf1[ind1],
+#          color='gray', linestyle=':', linewidth=1.2) # 
+# ax2.plot(xwall2[ind2], Cf2[ind2],
+#          color='gray', linestyle=':', linewidth=1.2) # 
 ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
-ax2.set_xlim([-20.0, 40.0])
+ax2.set_xlim([-60.0, 20.0])
 ax2.set_ylim([-0.002, 0.006])
 ax2.set_yticks(np.arange(-0.002, 0.008, 0.002))
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
@@ -515,15 +519,15 @@ fa = 1.7 * 1.7 * 1.4
 # fig3, ax3 = plt.subplots(figsize=(5, 2.5))
 ax3 = fig.add_subplot(122)
 ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
-ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "k:", linewidth=1.5)
-ax3.plot(WallFlow1['x'], WallFlow1['p']*fa,
-         color='gray', linestyle=':', linewidth=1.2) # 
-ax3.plot(WallFlow2['x'], WallFlow2['p']*fa,
-         color='gray', linestyle=':', linewidth=1.2) # 
+# ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "k:", linewidth=1.5)
+# ax3.plot(WallFlow1['x'], WallFlow1['p']*fa,
+#          color='gray', linestyle=':', linewidth=1.2) # 
+# ax3.plot(WallFlow2['x'], WallFlow2['p']*fa,
+#          color='gray', linestyle=':', linewidth=1.2) # 
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
-ax3.set_xlim([-20.0, 40.0])
-ax3.set_ylim([0.25, 1.25])
+ax3.set_xlim([-60.0, 20.0])
+ax3.set_ylim([0.25, 1.6])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)

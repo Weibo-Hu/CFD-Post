@@ -238,22 +238,21 @@ data = np.hstack((xarr, yarr, zarr, base, newflow))
 df = pd.DataFrame(data, columns=names)
 
 # %% load data
-freq1 = 0.022  # freq[num]
-path1 = path3D + '0p022/'
+freq1 = 0.0755  # freq[num]
+path1 = path3D + '0p0755/'
 files = glob(path1 + '*DMD000?.plt')
 df = p2p.ReadAllINCAResults(path1, FileName=files)
 # %% in X-Y plane, preprocess
-var = 'p'
+var = 'u'
 avg = True
 amp = 1.0  # for fluctuations
 fa = 0.0   # for mean value
 sliceflow = df.loc[df['z']==0]
-x, y = np.meshgrid(np.unique(xarr), np.unique(yarr))
 if var == 'u':
     varval = sliceflow[var] * fa + sliceflow['u`'] * amp
     grouped = df.groupby(['x', 'y'])
     df2 = grouped.mean().reset_index()
-    # varval = df2['u`']
+    varval = df2['u`']
 
 if var == 'p':
     varval = sliceflow[var] * fa + sliceflow['p`'] * amp
@@ -272,7 +271,7 @@ if avg == True:
 else:
     xarr = sliceflow['x']
     yarr = sliceflow['y']
-
+x, y = np.meshgrid(np.unique(xarr), np.unique(yarr))
 print("Limit value: ", np.min(varval), np.max(varval))
 u = griddata((xarr, yarr), varval, (x, y))
 corner = (x < 0.0) & (y < 0.0)
@@ -282,7 +281,7 @@ matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.8))
-c1 = -0.03 # -0.13 #-0.024
+c1 = -0.09 # -0.13 #-0.024
 c2 = -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
@@ -325,7 +324,7 @@ ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1
 dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
 # ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
-filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeXY.svg'
+filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeXY_avg.svg'
 plt.savefig(filename, bbox_inches='tight')
 plt.show()
 

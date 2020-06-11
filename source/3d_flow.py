@@ -32,7 +32,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/IM1/BFS_M1.7Tur/"
+path = "/media/weibo/IM2/FFS_M1.7TB/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -60,7 +60,7 @@ MeanFlow.load_meanflow(path, FileList=pltlist)
 MeanFlow = pf()
 MeanFlow.load_meanflow(path)
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
-corner = (x < 0.0) & (y < 0.0)
+corner = (x > 0.0) & (y < 3.0)
 
 # %%############################################################################
 """
@@ -98,13 +98,13 @@ points = np.array([[0.0], [3.0]])
 xyzone = np.array([[-100.0, 0.0, 40.0], [0.0, 3.0, 6.0]])
 va.streamline(pathM, MeanFlow.PlanarData, points, partition=xyzone, opt='up')
 # %% Mean flow isolines
-va.dividing_line(MeanFlow.PlanarData, pathM)
+va.dividing_line(MeanFlow.PlanarData, pathM, loc=2.5)
 # %% Save sonic line
 va.sonic_line(MeanFlow.PlanarData, pathM, option='velocity', Ma_inf=1.7)
 # %% Save boundary layer
-va.boundary_edge(MeanFlow.PlanarData, pathM, jump2=8.75)
+va.boundary_edge(MeanFlow.PlanarData, pathM, jump1=-18.0, jump2=0.1, val=0.80)
 # %% Save shock line
-va.shock_line(MeanFlow.PlanarData, pathM)
+va.shock_line_ffs(MeanFlow.PlanarData, pathM, val=[0.06])
 # %% 
 plt.close("All")
 
@@ -120,14 +120,14 @@ rho = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 print("rho_max=", np.max(MeanFlow.rho_m))
 print("rho_min=", np.min(MeanFlow.rho_m))
 rho[corner] = np.nan
-cval1 = 0.28
-cval2 = 1.02
+cval1 = 0.2 # 0.3
+cval2 = 1.4 # 1.4
 fig, ax = plt.subplots(figsize=(6.4, 2.3))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(-20.0, 30.0)
-ax.set_ylim(-3.0, 10.0)
+ax.set_xlim(-25.0, 10.0)
+ax.set_ylim(0.0, 10.0)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
@@ -155,7 +155,7 @@ ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.5)
 boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
 ax.plot(boundary[:, 0], boundary[:, 1], "k", linewidth=1.5)
 # Add dividing line(separation line)
-dividing = np.loadtxt(pathM + "DividingLine.dat", skiprows=1)
+dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.5)
 # streamlines
 x1 = np.linspace(0.0, 12.0, 120)
@@ -181,7 +181,6 @@ v = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.v, (xbox, ybox))
 #    maxlength=30.0,
 #    linewidth=1.0,
 #)
-
 plt.savefig(pathF + "MeanFlow.svg", bbox_inches="tight")
 plt.show()
 

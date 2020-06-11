@@ -10,19 +10,25 @@ import tecplot as tp
 from tecplot.constant import *
 from tecplot.exception import *
 import tecplotlib as tl
+import plt2pandas as p2p
 import os
 import sys
 import numpy as np
 import glob as glob
 
 # %% instantaneous flow
-path = "/media/weibo/IM2/FFS_M1.7TB/"
+path = "/media/weibo/IM2/FFS_M1.7LA/"
+p2p.create_folder(path)
 pathF = path + 'Figures/'
-pathin = path + "TP_data_01016064/"
+pathin = path + "TP_data_01240981/"
 dirs = glob.glob(pathin + '*.szplt')
 
 tp.session.connect()
+# tp.session.stop()
 dataset = tp.data.load_tecplot_szl(dirs, read_data_option=2)
+soltime = int(dataset.solution_times[0])
+# with tp.session.suspend():
+tp.session.suspend_enter()
 frame = tp.active_frame()
 tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
 
@@ -47,7 +53,7 @@ plot.value_blanking.constraint(1).comparison_value=10
 plot.value_blanking.constraint(1).active=True
 plot.value_blanking.constraint(2).variable = dataset.variable('y')
 plot.value_blanking.constraint(2).comparison_operator=RelOp.GreaterThan
-plot.value_blanking.constraint(2).comparison_value=8
+plot.value_blanking.constraint(2).comparison_value=6
 plot.value_blanking.constraint(2).active=True
 axes = plot.axes
 tl.axis_set_ffs(axes)
@@ -66,7 +72,7 @@ view.theta = 145
 view.alpha = -140
 view.position = (-200.5, 274, 331.5)
 # view.distance = 300
-view.width = 140
+view.width = 140 # 140 # for TB; 205 # for ZA
     
 # limit values                                                                                                                          values
 tl.limit_val(dataset, 'u')
@@ -82,7 +88,15 @@ cont2 = plot.contour(1)
 iso = plot.isosurface(0) 
 val2 = np.round(np.linspace(-0.2, 1.0, 13), 2)
 tl.plt_isosurfs(dataset, iso, cont1, var1, val1, cont2, var2, val2)
-tp.export.save_png(path + 'L2_ffs.png', width=2048)
+
+var3 = '|grad(rho)|'
+val3 = np.linspace(0.0, 1.4, 29)
+plot.show_slices = True
+cont3 = plot.contour(3)
+slc = plot.slice(0)
+tl.plt_schlieren(dataset, slc, cont3, var3, val3, label=False)
+tp.session.suspend_exit()
+tp.export.save_png(pathF + 'L2_ffs.png', width=2048)
 
 # %% load data 
 path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"
@@ -124,6 +138,10 @@ for ii in range(num):
     plot.axes.orientation_axis.show=False
     axes = plot.axes
     tl.axis_set(axes)
+    xpos = [60, 12]
+    ypos = [4.0, 74]
+    zpos = [12.5, 18]
+    tl.axis_lab(xpos, ypos, zpos)
     tl.axis_lab()
 
     # 3d view settings

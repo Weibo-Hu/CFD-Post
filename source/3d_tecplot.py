@@ -17,7 +17,7 @@ import numpy as np
 from glob import glob
 
 # %% data path settings
-path = "/media/weibo/VID1/BFS_M1.7L/"
+path = "/media/weibo/IM2/BFS_M1.7Tur/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -25,7 +25,7 @@ pathS = path + "SpanAve/"
 pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathV = path + 'video/'
-pathD = path + 'DMD/'
+pathD = path + '3D_DMD_1200/'
 
 # %% load data
 # run this script with '-c' to connect to tecplot on port 7600
