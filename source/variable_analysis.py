@@ -511,7 +511,7 @@ def ref_wall_law(Re_theta):
     return (UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
 
 
-def u_tau(frame, option='mean'):
+def u_tau(frame, option='mean', grad=False):
     """
     input
     ------
@@ -526,15 +526,17 @@ def u_tau(frame, option='mean'):
         # rho_wall = frame['rho_m'].values[0]
         # mu_wall = frame['mu_m'].values[0]
         # delta_u = frame['u_m'].values[1] - frame['u_m'].values[0]
-        rho_wall = frame['<rho>'].values[1]
-        mu_wall = frame['<mu>'].values[1]
-        delta_u = frame['<u>'].values[1] # - frame['<u>'].values[0]
-        u_grad = np.gradient(frame['<u>'].values, frame['walldist'].values)
+        rho_wall = frame['<rho>'].values[0]
+        mu_wall = frame['<mu>'].values[0]
+        delta_u = frame['<u>'].values[1] - frame['<u>'].values[0]
+        u_grad = np.gradient(frame['<u>'].values, frame['walldist'].values,
+                             edge_order=2)
     else:
-        rho_wall = frame['rho'].values[1]
-        mu_wall = frame['mu'].values[1]
-        delta_u = frame['u'].values[1] # - frame['u'].values[0]
-        u_grad = np.gradient(frame['u'].values, frame['walldist'].values)
+        rho_wall = frame['rho'].values[0]
+        mu_wall = frame['mu'].values[0]
+        delta_u = frame['u'].values[1] - frame['u'].values[0]
+        u_grad = np.gradient(frame['u'].values, frame['walldist'].values,
+                             edge_order=2)
     walldist2 = frame['walldist'].values[1]
     
 #    if(frame['walldist'].values[1] > 0.005):
@@ -542,7 +544,6 @@ def u_tau(frame, option='mean'):
 #        func = interp1d(frame['walldist'].values, frame['u'].values, kind='cubic')
 #        delta_u = func(0.004)
 #        walldist2 = 0.004
-    grad = False
     if(grad==True):
         tau_wall = mu_wall * u_grad[1]
     else:
@@ -554,7 +555,7 @@ def u_tau(frame, option='mean'):
 # This code validate boundary layer profile by
 # incompressible, Van Direst transformed
 # boundary profile from mean reults
-def direst_transform(frame, option='mean'):
+def direst_transform(frame, option='mean', grad=False):
     """
     This code validate boundary layer profile by
     incompressible, Van Direst transformed
@@ -581,7 +582,7 @@ def direst_transform(frame, option='mean'):
     m = np.size(u)
     rho_wall = rho[0]
     mu_wall = mu[0]
-    shear_velocity = u_tau(frame, option=option)
+    shear_velocity = u_tau(frame, option=option, grad=grad)
     u_van = np.zeros(m)
     dudy = sec_ord_fdd(walldist, u)
     rho_ratio = np.sqrt(rho / rho_wall)

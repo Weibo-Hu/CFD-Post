@@ -210,11 +210,11 @@ for ii in range(np.size(phase)):
         p2p.tec2plt(path3D, filename2, filename2)
 
 # %% dat file to plt file
-dirs = os.listdir(path3D + '0p085/')
+dirs = os.listdir(path3D + '0p022/')
 for jj in range(np.size(dirs)):
     filename = os.path.splitext(dirs[jj])[0]
     print(filename)
-    p2p.tec2plt(path3D + '0p085/', filename, filename)
+    p2p.tec2plt(path3D + '0p022/', filename, filename)
 
 """
 plot 2D slice contour 
@@ -240,15 +240,14 @@ df = pd.DataFrame(data, columns=names)
 # %% load data
 freq1 = 0.022  # freq[num]
 path1 = path3D + '0p022/'
-files = glob(path1 + '*DMD000?.plt')
+files = glob(path1 + '*DMD007?.plt')
 df = p2p.ReadAllINCAResults(path1, FileName=files)
 # %% in X-Y plane, preprocess
-var = 'p'
-avg = True
-amp = 1.0  # for fluctuations
+var = 'u'
+avg = False
 fa = 0.0   # for mean value
+amp = 1.0  # for fluctuations
 sliceflow = df.loc[df['z']==0]
-x, y = np.meshgrid(np.unique(xarr), np.unique(yarr))
 if var == 'u':
     varval = sliceflow[var] * fa + sliceflow['u`'] * amp
     grouped = df.groupby(['x', 'y'])
@@ -259,7 +258,7 @@ if var == 'p':
     varval = sliceflow[var] * fa + sliceflow['p`'] * amp
     grouped = df.groupby(['x', 'y'])
     df2 = grouped.mean().reset_index()
-    varval = df2['p`']
+    # varval = df2['p`']
 
 if var == 'rho':
     p_t = sliceflow['p'] * fa + sliceflow['p`'] * amp
@@ -272,7 +271,7 @@ if avg == True:
 else:
     xarr = sliceflow['x']
     yarr = sliceflow['y']
-
+x, y = np.meshgrid(np.unique(xarr), np.unique(yarr))
 print("Limit value: ", np.min(varval), np.max(varval))
 u = griddata((xarr, yarr), varval, (x, y))
 corner = (x < 0.0) & (y < 0.0)
@@ -282,7 +281,7 @@ matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.8))
-c1 = -0.03 # -0.13 #-0.024
+c1 = -0.8 # -0.13 #-0.024
 c2 = -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
@@ -331,9 +330,18 @@ plt.show()
 
 # %% plot in X-Z
 """
-plot 2D slice contour in X-Y plane
+plot 2D slice contour in X-Z plane
 
 """
+# %%  load data
+freq1 = 0.022  # freq[num]
+path1 = path3D + '0p022/'
+files = glob(path1 + '*DMD007?.plt')
+equs = [''
+        ]
+df = p2p.ReadAllINCAResults(path1, FileName=files)
+
+# %% plot
 var = 'u'
 amp = 1.0  # for fluctuations
 fa = 1.0   # for mean value
@@ -359,8 +367,8 @@ matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.8))
-c1 = -1.0 #-0.024
-c2 = 1.3 # -c1 # 0.010 #0.018
+c1 = -1.2 #-0.024
+c2 = 1.2 # -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, z, u, levels=lev1, cmap='jet', extend='both') 
@@ -386,6 +394,95 @@ filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeXZ.svg'
 plt.savefig(filename, bbox_inches='tight')
 plt.show()
 
+
+# %% plot in X-Z
+"""
+plot 2D slice contour in X-Z plane
+
+"""
+# %% load data
+freq1 = 0.022  # freq[num]
+path1 = path3D + '0p022/'
+files = glob(path1 + '*DMD009?.plt')
+equs = ['{dudx}=ddx({u`})',
+        '{dvdx}=ddx({v`})',
+        '{dwdx}=ddx({w`})',
+        '{dudy}=ddy({u`})',
+        '{dvdy}=ddy({v`})',
+        '{dwdy}=ddy({w`})',
+        '{dudz}=ddz({u`})',
+        '{dvdz}=ddz({v`})',
+        '{dwdz}=ddz({w`})',
+        '{vorticity_x}={dwdy}-{dvdz}',
+        '{vorticity_y}={dudz}-{dwdx}',
+        '{vorticity_z}={dvdx}-{dudy}'
+        ]
+df = p2p.ReadAllINCAResults(path1, FileName=files, Equ=equs)
+
+# %% plot
+var = 'vorticity_x'
+fa = 1.0   # for mean value
+amp = 1.0  # for fluctuations
+sliceflow = df.loc[df['x']==10.0]
+zarr = sliceflow['z']
+yarr = sliceflow['y']
+z, y = np.meshgrid(np.unique(zarr), np.unique(yarr))
+varval = sliceflow[var]
+w_t = sliceflow['w'] * fa + sliceflow['w`'] * amp
+v_t = sliceflow['v'] * fa + sliceflow['v`'] * amp
+print("Limit value: ", np.min(varval), np.max(varval))
+vor = griddata((zarr, yarr), varval, (z, y))
+#corner = (x < 0.0) & (y < 0.0)
+#u[corner] = np.nan
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
+matplotlib.rc('font', size=textsize)
+fig, ax = plt.subplots(figsize=(6.6, 2.6))
+c1 = -5.0 #-0.024
+c2 = 7.0 # -c1 # 0.010 #0.018
+lev1 = np.linspace(c1, c2, 31)
+lev2 = np.linspace(c1, c2, 6)
+cbar = ax.contourf(z, y, vor, levels=lev1, cmap='PRGn_r', extend='both') 
+#cbar = ax.contourf(x, y, u,
+#                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
+ax.set_xlim(0.5, -3.5)
+ax.set_ylim(-3.0, -1.5)
+ax.set_yticks(np.linspace(-3.0, -1.5, 4))
+ax.tick_params(labelsize=numsize)
+#cbar.cmap.set_under('#053061')
+#cbar.cmap.set_over('#67001f')
+ax.set_aspect('equal')
+ax.set_xlabel(r'$z/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
+# add colorbar
+rg2 = np.linspace(c1, c2, 3)
+cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True,
+                    fraction=0.03, pad=0.03,
+                    shrink=0.74, aspect=10)
+cbar.ax.tick_params(labelsize=numsize)
+cbar.set_label(
+    r'$\phi(\omega_x)$'.format(var), rotation=0,
+    fontsize=textsize-1, labelpad=-21, y=1.14
+)
+# add streamlines
+w = griddata((sliceflow.z, sliceflow.y), sliceflow['w`'], (z, y))
+v = griddata((sliceflow.z, sliceflow.y), sliceflow['v`'], (z, y))
+# x, y must be equal spaced
+ax.streamplot(
+    z,
+    y,
+    w,
+    v,
+    density=[8, 4],
+    color="k",
+    arrowsize=1.2,
+    linewidth=0.6,
+    integration_direction="both",
+)
+ax.annotate("(b)", xy=(-0.13, 0.97), xycoords='axes fraction', fontsize=numsize+1)
+filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeZY_9.svg'
+plt.savefig(filename, bbox_inches='tight')
+plt.show()
 # %%      
 def dmd_plt(df, path, ind):
     matplotlib.rc('font', size=textsize)   

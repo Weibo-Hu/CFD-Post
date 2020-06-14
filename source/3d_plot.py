@@ -153,8 +153,10 @@ save wall plane data and plot
 """
 # %% plot Cf in x-z plane
 time_ave = tf()
-filename = glob(path + 'TP_data_912.h5')
+filename = glob(path + 'TP_data_1123.h5')
 time_ave.load_3data(pathT, FileList=filename, NameList='h5')
+# time_ave.load_3data(path+'TP_data_02087427/')
+# time_ave._data_field.to_hdf(path+'TP_data_1124.h5', 'w', format='fixed')
 time_ave.add_walldist(3.0)
 # filename = glob(pathT + 'MeanFlow_*')
 # time_ave.load_3data(pathT, FileList=filename, NameList='h5')
@@ -182,8 +184,8 @@ print("Cf_min=", np.min(df3['Cf']))
 # %% plot skin friction
 fig, ax = plt.subplots(figsize=(6.4, 2.4))
 matplotlib.rc("font", size=textsize)
-cx1 = -8
-cx2 = 8
+cx1 = -5
+cx2 = 7
 fa = 1000
 rg1 = np.linspace(cx1, cx2, 21)
 cbar = ax.contourf(x, z, friction*fa, cmap="jet", levels=rg1, extend='both')  # rainbow_r
@@ -193,7 +195,7 @@ ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$z/\delta_0$", fontsize=textsize)
 ax.set_yticks(np.linspace(-8.0, 8.0, 5))
-plt.gca().set_aspect("equal", adjustable="box")
+# plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(cx1, cx2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.016, pad=0.03)
@@ -201,11 +203,11 @@ cbar.ax.tick_params(labelsize=numsize)
 cbar.set_label(
     r"$C_f \times 10^3$", rotation=0, fontsize=numsize, labelpad=-20, y=1.12
 )
-ax.axvline(x=10.9, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
+ax.axvline(x=8.9, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 # cbar.formatter.set_powerlimits((-2, 2))
 # cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 # cbar.update_ticks()
-plt.savefig(pathF + "skinfriction.svg", bbox_inches="tight")
+plt.savefig(pathF + "skinfriction1.svg", bbox_inches="tight")
 plt.show()
 
 

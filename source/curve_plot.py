@@ -21,7 +21,7 @@ from planar_field import PlanarField as pf
 
 
 # %% data path settings
-path = "/home/weibohu/weibo/FFS_M1.7TB/"
+path = "/media/weibo/IM2/BFS_M1.7Tur1/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -135,12 +135,12 @@ plt.savefig(
 # BLProf['walldist'] = BLProf['y']
 # BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
 # %% velocity profile, computation
-x0 = -30.0
+x0 = -5.0
 # results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)
 
-u_tau = va.u_tau(BLProf, option='mean')
+u_tau = va.u_tau(BLProf, option='mean', grad=True)
 mu_inf = BLProf['<mu>'].values[-1]
 delta, u_inf = va.bl_thickness(BLProf['walldist'], BLProf['<u>'])
 delta_star, u_inf, rho_inf = va.bl_thickness(
@@ -155,11 +155,11 @@ Re_tau = BLProf['<rho>'].values[0] * u_tau / BLProf['<mu>'].values[0] * delta
 print("Re_tau=", Re_tau)
 print("Re_theta=", Re_theta)
 print("Re_delta*=", Re_delta_star)
-CalUPlus = va.direst_transform(BLProf, option='mean')
+CalUPlus = va.direst_transform(BLProf, option='mean', grad=True)
 # results from theory by van Driest
 StdUPlus1, StdUPlus2 = va.std_wall_law()
 # results from known DNS
-Re_theta = 800 # 1000  # 800 # 1400 #
+Re_theta = 1000 # 1000  # 800 # 1400 #
 ExpUPlus = va.ref_wall_law(Re_theta)[0]
 # plot velocity profile
 fig = plt.figure(figsize=(6.4, 2.6))
@@ -178,7 +178,7 @@ ax.scatter(
     ExpUPlus[:, 0],
     ExpUPlus[:, 1],
     linewidth=0.8,
-    s=15.0,
+    s=16.0,
     facecolor="none",
     edgecolor="gray",
 )
@@ -223,7 +223,7 @@ ax2.scatter(
     ExpUrmsPlus[:, 0],
     ExpUrmsPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=16,
     facecolor="none",
     edgecolor="gray",
 )
@@ -231,7 +231,7 @@ ax2.scatter(
     ExpVrmsPlus[:, 0],
     ExpVrmsPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=16,
     facecolor="none",
     edgecolor="gray",  # "r",
 )
@@ -239,7 +239,7 @@ ax2.scatter(
     ExpWrmsPlus[:, 0],
     ExpWrmsPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=16,
     facecolor="none",
     edgecolor="gray",  # "b",
 )
@@ -247,7 +247,7 @@ ax2.scatter(
     ExpUVPlus[:, 0],
     ExpUVPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=16,
     facecolor="none",
     edgecolor="gray",  # "gray",
 )
@@ -256,6 +256,7 @@ ax2.plot(CalUPlus[:, 0], vv[1:], "k", linewidth=1.5)
 ax2.plot(CalUPlus[:, 0], ww[1:], "k", linewidth=1.5)
 ax2.plot(CalUPlus[:, 0], uv[1:], "k", linewidth=1.5)
 ax2.set_xscale("log")
+ax2.set_ylim([-1.5, 3.5])
 ax2.set_xlim([1, 2000])
 vna1 = r'$u^\prime u^\prime$'
 vna2 = r'$w^\prime w^\prime$'
@@ -265,7 +266,7 @@ ax2.text(100, 3.0, vna1, fontsize=numsize)
 ax2.text(400, 3.0, vna2, fontsize=numsize)
 ax2.text(100, 2.5, vna3, fontsize=numsize)
 ax2.text(400, 2.5, vna4, fontsize=numsize)
-# ax.set_ylim([0, 30])
+
 ax2.set_ylabel(r"$\sqrt{\langle u^{\prime}_i u^{\prime}_j\rangle^{+}}$",
                fontsize=textsize)
 ax2.set_xlabel(r"$y^+$", fontsize=textsize)
