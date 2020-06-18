@@ -37,7 +37,7 @@ class TriField(PlanarField):
     def load_3data(self, path, FileList=None, NameList=None):
         # nfiles = np.size(os.listdir(path))
         if FileList is None:
-            infile = glob(path + '*.plt')
+            infile = glob(path + '*plt')
         else:
             infile = FileList
 

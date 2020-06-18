@@ -15,14 +15,15 @@ from glob import glob
 import sys
 
 # %%
-path = '/media/weibo/IM1/BFS_M1.7Tur/'
+path = '/media/weibo/IM2/FFS_M1.7TB/'
 # splist = ['X_11', 'X_12', 'X_13', 'X_14']
 # splist = ['Y_07', 'Y_08', 'Y_09', 'S_10']
-splist = ['Z_01', 'Z_02', 'Z_03', 'Z_04', 'Z_05']
+# splist = ['Z_01', 'Z_02', 'Z_03', 'Z_04', 'Z_05']
 
 # splist = ['X_011', 'X_012', 'X_013', 'X_014']
 # splist = ['Y_007', 'Y_008', 'Y_009', 'S_010']
 # splist = ['Z_003', 'Z_004', 'Z_005', 'Z_006']  #
+splist = ['Z_001', 'Z_002', 'Z_003']  #
 
 InPath = path + 'snapshots/temp/'
 dirs = os.listdir(InPath)

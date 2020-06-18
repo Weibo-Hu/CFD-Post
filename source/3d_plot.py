@@ -31,7 +31,7 @@ from scipy.interpolate import griddata
 
 
 # %% data path settings
-path = "/media/weibo/VID2/BFS_M1.7L/"
+path = "/media/weibo/IM2/FFS_M1.7TB/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -153,23 +153,25 @@ save wall plane data and plot
 """
 # %% plot Cf in x-z plane
 time_ave = tf()
-filename = glob(path + 'TP_data_912.h5')
+filename = glob(path + 'TP_data_0556.25.h5')
 time_ave.load_3data(pathT, FileList=filename, NameList='h5')
-time_ave.add_walldist(3.0)
+# time_ave.load_3data(path+'TP_data_01428807/')
+# time_ave._data_field.to_hdf(path+'TP_data_1124.h5', 'w', format='fixed')
 # filename = glob(pathT + 'MeanFlow_*')
 # time_ave.load_3data(pathT, FileList=filename, NameList='h5')
+time_ave.add_walldist(-3.0)
 df1 = time_ave.TriData.query("x>0 & walldist>0")
-df1a = df1.loc[df1['walldist']==np.min(df1['walldist'])]  # np.min(df1['walldist'])*2 
-df2 = time_ave.TriData.query("x<=0 & y>=0 & walldist>0")
-df2a = df2.loc[df2['walldist']==np.min(df2['walldist'])]  # on the wall=0.5*dy
+df1a = df1.loc[df1['walldist']==np.unique(df1['walldist'])[0]]  # np.min(df1['walldist'])*2 
+df2 = time_ave.TriData.query("x<0 & y>=0 & walldist>0")
+df2a = df2.loc[df2['walldist']==np.unique(df2['walldist'])[0]]  # on the wall=0.5*dy
 df = pd.concat([df1a, df2a])
 df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
 del time_ave
 # %% skin friction
 Re = 13718
 # df = pd.read_hdf(pathT + 'WallValue.h5')
-mu = va.viscosity(Re, df['T'], law='POW')  # df['<T>'],
-Cf = va.skinfriction(mu, df['u'], df['walldist'])  # df['<u>']
+mu = va.viscosity(Re, df['<T>'], law='POW')  # df['<T>'],
+Cf = va.skinfriction(mu, df['<u>'], df['walldist'])  # df['<u>']
 df['Cf'] = Cf
 df3 = df.query("Cf < 0.009")
 xx = np.unique(df['x'])  # np.linspace(-20.0, 40.0, 1201)
@@ -182,12 +184,12 @@ print("Cf_min=", np.min(df3['Cf']))
 # %% plot skin friction
 fig, ax = plt.subplots(figsize=(6.4, 2.4))
 matplotlib.rc("font", size=textsize)
-cx1 = -8
-cx2 = 8
+cx1 = -5
+cx2 = 7
 fa = 1000
 rg1 = np.linspace(cx1, cx2, 21)
 cbar = ax.contourf(x, z, friction*fa, cmap="jet", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(-10.0, 30.0)
+ax.set_xlim(-30.0, 10.0)
 ax.set_ylim(-8.0, 8.0)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -207,7 +209,6 @@ ax.axvline(x=10.9, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 # cbar.update_ticks()
 plt.savefig(pathF + "skinfriction.svg", bbox_inches="tight")
 plt.show()
-
 
 """
 calculate and save boundary layer thickness

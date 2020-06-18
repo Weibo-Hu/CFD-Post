@@ -77,7 +77,7 @@ MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 
 # %% Load laminar data for comparison
-path0 = "/media/weibo/VID2/BFS_M1.7L/"
+path0 = "/media/weibo/IM2/FFS_M1.7ZA/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
@@ -493,7 +493,7 @@ ax2 = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)
 xwall = WallFlow["x"].values
 ax2.plot(xwall[ind], Cf[ind], "k", linewidth=1.5)
-# ax2.plot(xwall0[ind0], Cf0[ind0], "k:", linewidth=1.5)
+ax2.plot(xwall0[ind0], Cf0[ind0], "b:", linewidth=1.5)
 # ax2.plot(xwall1[ind1], Cf1[ind1],
 #          color='gray', linestyle=':', linewidth=1.2) # 
 # ax2.plot(xwall2[ind2], Cf2[ind2],
@@ -501,11 +501,11 @@ ax2.plot(xwall[ind], Cf[ind], "k", linewidth=1.5)
 ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
 ax2.set_xlim([-60.0, 20.0])
-ax2.set_ylim([-0.002, 0.006])
+ax2.set_ylim([-0.003, 0.005])
 ax2.set_yticks(np.arange(-0.002, 0.008, 0.002))
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax2.axvline(x=9.2, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=-12.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.15, 1.0), xycoords='axes fraction',
@@ -519,7 +519,7 @@ fa = 1.7 * 1.7 * 1.4
 # fig3, ax3 = plt.subplots(figsize=(5, 2.5))
 ax3 = fig.add_subplot(122)
 ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
-# ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "k:", linewidth=1.5)
+ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "b:", linewidth=1.5)
 # ax3.plot(WallFlow1['x'], WallFlow1['p']*fa,
 #          color='gray', linestyle=':', linewidth=1.2) # 
 # ax3.plot(WallFlow2['x'], WallFlow2['p']*fa,
@@ -527,18 +527,18 @@ ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
 ax3.set_xlim([-60.0, 20.0])
-ax3.set_ylim([0.25, 1.6])
+ax3.set_ylim([0.1, 2.2])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=9.2, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=-12.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
 ax3.annotate("(b)", xy=(-0.17, 1.0), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 # plt.savefig(path2 + "Cp.svg", dpi=300)
-plt.savefig(pathF + "CfCp_all.svg", dpi=300)
+plt.savefig(pathF + "CfCp_ftb.svg", dpi=300)
 plt.show()
 
 # % turbulent kinetic energy

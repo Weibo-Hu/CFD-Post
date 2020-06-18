@@ -50,16 +50,17 @@ VarList = [
     #    'py',
     #    'pz'
 ]
-sp = "S_010"
+sp = "Z_003"
 equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)']
 # FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/" + sp + "/"
-FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/S_10/"
-OutFolder = "/media/weibo/VID2/BFS_M1.7TS_LA/Slice/" + sp + "/"
+path = "/media/weibo/IM2/FFS_M1.7TB/Slice/"
+FoldPath = path + 'TP_2D_' + sp + '/'
+OutFolder = "/media/weibo/IM2/FFS_M1.7TB/Slice/" + sp + "/"
 # subzone = [(-10.0, 30.0), (-3.0, 30.0), (-8.0, 8.0)]
 if not os.path.exists(OutFolder):
     os.mkdir(OutFolder)
 
-subzone = [(-40.0, 70.0), (-3.0, 10.0), (-8.0, 8.0)]  # for 2D snapshots
+subzone = [(-70.0, 40.0), (0.0, 12.0), (-8.0, 8.0)]  # for 2D snapshots
 dirs = os.scandir(FoldPath)
 for folder in dirs:
     file = FoldPath + folder.name

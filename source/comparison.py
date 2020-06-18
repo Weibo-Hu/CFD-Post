@@ -76,13 +76,15 @@ WallFlow2 = MeanFlow2.PlanarData.groupby("x", as_index=False).nth(1)
 MeanFlow3.copy_meanval()
 WallFlow3 = MeanFlow3.PlanarData.groupby("x", as_index=False).nth(1)
 # WallFlow = WallFlow[WallFlow.x != -0.0078125]
-xwall = WallFlow0["x"].values
+xwall0 = WallFlow0["x"].values
 mu0 = va.viscosity(13718, WallFlow0["T"])
 Cf0 = va.skinfriction(mu0, WallFlow0["u"], WallFlow0["walldist"]).values
 ind0 = np.where(Cf0[:] < 0.01)
+xwall1 = WallFlow1["x"].values
 mu1 = va.viscosity(13718, WallFlow1["T"])
 Cf1 = va.skinfriction(mu1, WallFlow1["u"], WallFlow1["walldist"]).values
 ind1 = np.where(Cf1[:] < 0.01)
+xwall2 = WallFlow2["x"].values
 mu2 = va.viscosity(13718, WallFlow2["T"])
 Cf2 = va.skinfriction(mu2, WallFlow2["u"], WallFlow2["walldist"]).values
 ind2 = np.where(Cf2[:] < 0.01)
@@ -90,7 +92,7 @@ ind2 = np.where(Cf2[:] < 0.01)
 xwall3 = WallFlow3['x'].values
 mu3 = va.viscosity(13718, WallFlow3["T"])
 Cf3 = va.skinfriction(mu3, WallFlow3["u"], WallFlow3["walldist"]).values
-ind3 = (Cf3 < 0.01) & (xwall3>=-60.0)
+ind3 = (Cf3 < 0.01) & (xwall3>=-100.0)
 # ind3 = np.where(Cf3[:] < 0.01)
 
 # %% Plot streamwise skin friction
@@ -99,10 +101,10 @@ fig = plt.figure(figsize=(6.4, 4.7))
 matplotlib.rc("font", size=textsize)
 ax2 = fig.add_subplot(211)
 matplotlib.rc("font", size=textsize)
-ax2.scatter(xwall[ind0][0::8], Cf0[ind0][0::8], s=10, marker='o',
+ax2.scatter(xwall0[ind0][0::8], Cf0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
-ax2.plot(xwall[ind1], Cf1[ind1], "k", linewidth=1.1)
-ax2.plot(xwall[ind2], Cf2[ind2], "k--", linewidth=1.1)
+ax2.plot(xwall1[ind1], Cf1[ind1], "k", linewidth=1.1)
+ax2.plot(xwall2[ind2], Cf2[ind2], "k--", linewidth=1.1)
 ax2.plot(xwall3[ind3], Cf3[ind3], "k:", linewidth=1.5)
 # ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
@@ -134,10 +136,10 @@ tke3 = np.sqrt(WallFlow3['<p`p`>'].values)
 # fig3, ax3 = plt.subplots(figsize=(6.4, 2.3))
 ax3 = fig.add_subplot(212)
 matplotlib.rc("font", size=textsize)
-ax3.scatter(xwall[ind0][0::8], tke0[ind0][0::8], s=10, marker='o',
+ax3.scatter(xwall0[ind0][0::8], tke0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
-ax3.plot(xwall[ind1], tke1[ind1], "k", linewidth=1.1)
-ax3.plot(xwall[ind2], tke2[ind2], "k--", linewidth=1.1)
+ax3.plot(xwall1[ind1], tke1[ind1], "k", linewidth=1.1)
+ax3.plot(xwall2[ind2], tke2[ind2], "k--", linewidth=1.1)
 ax3.plot(xwall3[ind3], tke3[ind3], "k:", linewidth=1.5)
 ax3.set_yscale('log')
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -155,7 +157,7 @@ ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.subplots_adjust(hspace=0.2)  # adjust space between subplots
-outfile = os.path.join(pathC, 'CfPrms.svg')
+outfile = os.path.join(pathC, 'CfPrms_ffs.svg')
 plt.savefig(outfile, bbox_inches='tight', pad_inches=0.1)
 plt.show()
 

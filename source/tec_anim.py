@@ -17,10 +17,10 @@ import numpy as np
 import glob as glob
 
 # %% instantaneous flow
-path = "/media/weibo/IM2/FFS_M1.7LA/"
+path = "/media/weibo/IM2/FFS_M1.7ZA/"
 p2p.create_folder(path)
 pathF = path + 'Figures/'
-pathin = path + "TP_data_01240981/"
+pathin = path + "TP_data_01600750/"
 dirs = glob.glob(pathin + '*.szplt')
 
 tp.session.connect()
@@ -28,7 +28,7 @@ tp.session.connect()
 dataset = tp.data.load_tecplot_szl(dirs, read_data_option=2)
 soltime = int(dataset.solution_times[0])
 # with tp.session.suspend():
-tp.session.suspend_enter()
+# tp.session.suspend_enter()
 frame = tp.active_frame()
 tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
 
@@ -40,23 +40,35 @@ tp.macro.execute_command('$!FrameLayout ShowBorder = No')
 
 plot = frame.plot(PlotType.Cartesian3D)
 plot.axes.orientation_axis.show=False
-tl.show_ffs_wall(plot)
-# value blank
+# value blank for FTB
+#tl.show_ffs_wall(plot)
+#blk_val = [-30, 10, 6]  
+#axes_val = [-30, 10, 0, 6, -8, 8]
+#axes = plot.axes
+#tl.axis_set_ffs(axes), axes_val
+# value blank for upstream FZA
+blk_val = [-80, -45, 6]
+axes_val = [-80, -45, 0, 6, -8, 8]
+axes = plot.axes
+tl.axis_set_ffs(axes, axes_val)
+# value blank for downstream FZA
+#blk_val = [-46, 5, 6]
+#axes_val = [-46, 5, 0, 4, -8, 8]
+#axes = plot.axes
+#tl.axis_set_ffs(axes, axes_val)
 plot.value_blanking.active=True
 plot.value_blanking.constraint(0).variable = dataset.variable('x')
 plot.value_blanking.constraint(0).comparison_operator=RelOp.LessThan
-plot.value_blanking.constraint(0).comparison_value=-30
+plot.value_blanking.constraint(0).comparison_value = blk_val[0]
 plot.value_blanking.constraint(0).active=True
 plot.value_blanking.constraint(1).variable = dataset.variable('x')
 plot.value_blanking.constraint(1).comparison_operator=RelOp.GreaterThan
-plot.value_blanking.constraint(1).comparison_value=10
+plot.value_blanking.constraint(1).comparison_value = blk_val[1]
 plot.value_blanking.constraint(1).active=True
 plot.value_blanking.constraint(2).variable = dataset.variable('y')
 plot.value_blanking.constraint(2).comparison_operator=RelOp.GreaterThan
-plot.value_blanking.constraint(2).comparison_value=6
+plot.value_blanking.constraint(2).comparison_value = blk_val[2]
 plot.value_blanking.constraint(2).active=True
-axes = plot.axes
-tl.axis_set_ffs(axes)
 xpos = [53.5, 13.5]
 ypos = [4.5, 65.6]
 zpos = [8.5, 14]
@@ -72,7 +84,7 @@ view.theta = 145
 view.alpha = -140
 view.position = (-200.5, 274, 331.5)
 # view.distance = 300
-view.width = 140 # 140 # for TB; 205 # for ZA
+view.width = 182 # 140 for TB; 205 # for ZA # 182 for upstream ZA; 
     
 # limit values                                                                                                                          values
 tl.limit_val(dataset, 'u')
@@ -80,7 +92,7 @@ tl.limit_val(dataset, 'p')
 
 # create isosurfaces and its contour
 var1 = 'L2-criterion'  # '<lambda_2>'
-val1 = -0.08
+val1 = -0.1
 var2 = 'u'
 plot.show_isosurfaces = True
 cont1 = plot.contour(0)
@@ -95,7 +107,7 @@ plot.show_slices = True
 cont3 = plot.contour(3)
 slc = plot.slice(0)
 tl.plt_schlieren(dataset, slc, cont3, var3, val3, label=False)
-tp.session.suspend_exit()
+# tp.session.suspend_exit()
 tp.export.save_png(pathF + 'L2_ffs.png', width=2048)
 
 # %% load data 

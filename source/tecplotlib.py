@@ -106,6 +106,8 @@ def axis_set(axes_obj):
     axes_obj.z_axis.tick_labels.font.size=3.0
     axes_obj.z_axis.tick_labels.font.typeface='Times'
     axes_obj.z_axis.title.show=False
+    axes_obj.z_axis.ticks.auto_spacing=False
+    axes_obj.z_axis.ticks.spacing=4
     #axes_obj.x_axis.title.show_on_opposite_edge=True
     #axes_obj.x_axis.title.show_on_opposite_edge=False
 
@@ -352,20 +354,19 @@ def plt_schlieren(dataset, slc, cont, var, val,
             TextType = LaTeX
             Text = '$p^{\\prime}$'""")
 
-
-def axis_set_ffs(axes_obj):
+def axis_set_ffs(axes_obj, axes_val):
     axes_obj.grid_area.filled=False
     axes_obj.x_axis.show=True
-    axes_obj.x_axis.min=-30
-    axes_obj.x_axis.max=10
+    axes_obj.x_axis.min=axes_val[0]
+    axes_obj.x_axis.max=axes_val[1]
     axes_obj.x_axis.tick_labels.font.size=2.3
     axes_obj.x_axis.tick_labels.font.typeface='Times New Roman'
     axes_obj.x_axis.title.show=False
     
     axes_obj.preserve_scale=True
     axes_obj.y_axis.show=True
-    axes_obj.y_axis.min=0
-    axes_obj.y_axis.max=6
+    axes_obj.y_axis.min=axes_val[2]
+    axes_obj.y_axis.max=axes_val[3]
     axes_obj.y_axis.tick_labels.font.size=2.3
     axes_obj.y_axis.tick_labels.font.typeface='Times New Roman'
     axes_obj.y_axis.title.show=False
@@ -375,11 +376,13 @@ def axis_set_ffs(axes_obj):
     axes_obj.y_axis.tick_labels.show=False
     
     axes_obj.z_axis.show=True
-    axes_obj.z_axis.min=-8
-    axes_obj.z_axis.max=8
+    axes_obj.z_axis.min=axes_val[4]
+    axes_obj.z_axis.max=axes_val[5]
     axes_obj.z_axis.tick_labels.font.size=2.3
     axes_obj.z_axis.tick_labels.font.typeface='Times New Roman'
     axes_obj.z_axis.title.show=False
+    axes_obj.z_axis.ticks.auto_spacing=False
+    axes_obj.z_axis.ticks.spacing=4
     #axes_obj.x_axis.title.show_on_opposite_edge=True
     #axes_obj.x_axis.title.show_on_opposite_edge=False
 
