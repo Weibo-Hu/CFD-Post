@@ -39,29 +39,29 @@ var4 = 'T'
 col = [var0, var1, var2, var3, var4]
 
 # %% load first snapshot data and obtain basic information
-path = "/media/weibo/IM1/BFS_M1.7Tur/"
-path3D = path + '3D_DMD_1200/'
+path = "/media/weibo/IM2/FFS_M1.7TB/"
+path3D = path + '3D_DMD/'
 pathH = path + 'hdf5/'
 pathM = path + 'MeanFlow/'
-timepoints = np.arange(951.0, 1450.5 + 0.5, 0.5)
+timepoints = np.arange(550, 849.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(pathH))
 # if np.size(dirs) != np.size(timepoints):
 #     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
 # obtain the basic information of the snapshots
 DataFrame = pd.read_hdf(pathH + dirs[0])
 DataFrame['walldist'] = DataFrame['y']
-DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
+DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += -3.0
 grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
-NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0") # 20
+NewFrame = DataFrame.query("x>=-25.0 & x<=15.0 & walldist>=0.0 & y<=8.0") # 20
 ind = NewFrame.index.values
 xval = DataFrame['x'][ind]  # NewFrame['x']
 yval = DataFrame['y'][ind]   # NewFrame['y']
 zval = DataFrame['z'][ind]
-x1 = -5.0
-x2 = 25.0
-y1 = -3.0
-y2 = 5.0
+x1 = -25.0
+x2 = 15.0
+y1 = 0.0
+y2 = 8.0
 m = np.size(xval)
 n = np.size(timepoints)
 o = np.size(col)
@@ -93,10 +93,10 @@ re_index = np.load(path3D + 'Re_index.npy')  # bfs2.ind
 # %% load mean flow
 meanflow = pd.read_hdf(path3D + 'Meanflow.h5')
 meanflow['walldist'] = meanflow['y']
-meanflow.loc[meanflow['x'] >= 0.0, 'walldist'] += 3.0
+meanflow.loc[meanflow['x'] >= 0.0, 'walldist'] += -3.0
 grouped = meanflow.groupby(['x', 'y', 'z'])
 meanflow = grouped.mean().reset_index()
-meanflow = meanflow.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0")  # 20
+meanflow = meanflow.query("x>=-25.0 & x<=15.0 & walldist>=0.0 & y<=8.0")  # 20
 # %% spdmd selection
 sp = 2
 r = np.size(eigval)
@@ -133,7 +133,7 @@ plt.show()
 
 # %% Mode frequency specturm
 reduction = 0
-filtval = 0.94
+filtval = 0.96
 matplotlib.rc('font', size=textsize)
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
@@ -178,9 +178,9 @@ frame.to_csv(path3D + 'ModeInfo.dat', index=False,
 base = meanflow[col].values
 base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
 # ind = 0 
-num = np.where(np.round(freq, 4) == 0.2033) # 0.3017 # 0.08224 # 0.2033 # 0.2134
+num = np.where(np.round(freq, 4) == 0.0423) # 0.3017 # 0.08224 # 0.2033 # 0.2134
 print("The frequency is", freq[num])
-phase = np.linspace(0, 2*np.pi, 4, endpoint=False)
+phase = np.linspace(0, 2*np.pi, 32, endpoint=False)
 # modeflow1 = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
 #             @ bfs.Vand[num, :].reshape(1, -1)
 modeflow = modes[:, num].reshape(-1, 1) * amplitudes[num] \
@@ -193,35 +193,46 @@ names = ['x', 'y', 'z', var0, var1, var2, var3, var4,
 path3 = path + 'plt/'
 for ii in range(np.size(phase)):
     # ind = 10
-    fluc = modeflow[:, ii].reshape((m, o), order='F')
-    newflow = fluc.real
+    fluc = modeflow[:, ii].reshape((-1, o), order='F')
+    newflow = fluc.real[:m,:]
     data = np.hstack((xarr, yarr, zarr, base, newflow))
     df = pd.DataFrame(data, columns=names)
     filename = str(np.round(freq[num], 3)) + "DMD" + '{:03}'.format(ii)
     filename = filename.replace(".", "p")
     with timer('save plt of t=' + str(phase[ii])):
-        df1 = df.query("x<=0.0 & y>=0.0")
+        df1 = df.query("x<0.0 & y<=3.0")
         filename1 = filename + "A"
         p2p.frame2tec3d(df1, path3D, filename1, zname=1, stime=ii)
         p2p.tec2plt(path3D, filename1, filename1)
-        df2 = df.query("x>=0.0")
+        
+        df2 = df.query("y>=3.0 & y<=5.0")
         filename2 = filename + "B"
         p2p.frame2tec3d(df2, path3D, filename2, zname=2, stime=ii)
         p2p.tec2plt(path3D, filename2, filename2)
+        
+        df3 = df.query("y>5.0 & y<=6.0")
+        filename3 = filename + "C"
+        p2p.frame2tec3d(df3, path3D, filename3, zname=2, stime=ii)
+        p2p.tec2plt(path3D, filename3, filename3)
+        
+        df4 = df.query("y>6.0 & y<=8.0")
+        filename4 = filename + "D"
+        p2p.frame2tec3d(df4, path3D, filename4, zname=2, stime=ii)
+        p2p.tec2plt(path3D, filename4, filename4)
 
 # %% dat file to plt file
-dirs = os.listdir(path3D + '0p085/')
+dirs = os.listdir(path3D + '0p042/')
 for jj in range(np.size(dirs)):
     filename = os.path.splitext(dirs[jj])[0]
     print(filename)
-    p2p.tec2plt(path3D + '0p085/', filename, filename)
+    p2p.tec2plt(path3D + '0p042/', filename, filename)
 
 """
 plot 2D slice contour 
 
 """
 # %% generate data
-num = np.where(np.round(freq, 4) == 0.0229) # 0.3017
+num = np.where(np.round(freq, 4) == 0.0423) # 0.3017
 base = meanflow[col].values
 base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
 print("The frequency is", freq[num])
@@ -238,12 +249,12 @@ data = np.hstack((xarr, yarr, zarr, base, newflow))
 df = pd.DataFrame(data, columns=names)
 
 # %% load data
-freq1 = 0.0755  # freq[num]
-path1 = path3D + '0p0755/'
+freq1 = 0.042  # freq[num]
+path1 = path3D + '0p042/'
 files = glob(path1 + '*DMD000?.plt')
 df = p2p.ReadAllINCAResults(path1, FileName=files)
 # %% in X-Y plane, preprocess
-var = 'u'
+var = 'p'
 avg = True
 amp = 1.0  # for fluctuations
 fa = 0.0   # for mean value

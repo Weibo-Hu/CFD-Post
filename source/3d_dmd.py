@@ -14,10 +14,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import gridspec
-from DMD import DMD
+# from DMD import DMD
 from sparse_dmd import dmd, sparse
-import types
-import dill
+# import types
+# import dill
 
 
 plt.close("All")
@@ -51,7 +51,7 @@ pathD = path + "Domain/"
 pathPOD = path + "POD/"
 path3D = path + "3D_DMD/"
 pathH = path + "hdf5/"
-timepoints = np.arange(900.0, 1149.5 + 0.5, 0.5)
+timepoints = np.arange(550.0, 849.5 + 0.5, 0.5)
 dirs = sorted(os.listdir(pathH))
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
@@ -59,19 +59,19 @@ if np.size(dirs) != np.size(timepoints):
 DataFrame = pd.read_hdf(pathH + dirs[0])
 
 DataFrame['walldist'] = DataFrame['y']
-DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += 3.0
+DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += -3.0
 grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
-NewFrame = DataFrame.query("x>=-5.0 & x<=20.0 & walldist>=0.0 & y<=5.0")
+NewFrame = DataFrame.query("x>=-25.0 & x<=15.0 & walldist>=0.0 & y<=8.0")
 ind = NewFrame.index.values
 xval = DataFrame['x'][ind] # NewFrame['x']
 yval = DataFrame['y'][ind] # NewFrame['y']
 zval = DataFrame['z'][ind]
 
-x1 = -5.0
-x2 = 25.0
-y1 = -3.0
-y2 = 5.0
+x1 = -25.0
+x2 = 15.0
+y1 = 0.0
+y2 = 8.0
 m = np.size(xval)
 n = np.size(timepoints)
 o = np.size(col)
@@ -128,6 +128,19 @@ bfs = dmd.DMD(Snapshots, dt=dt)
 with timer("DMD computing"):
     bfs.compute()
 print("The residuals of DMD is ", bfs.residuals)
+#     bfs0 = dill.load(f)
+# %% Save results for plotting
+meanflow.to_hdf(path3D + 'Meanflow.h5', 'w', format='fixed')
+np.save(path3D + 'eigval', bfs.eigval)
+tno = np.size(timepoints)
+ind = int(tno / 4)
+np.save(path3D + 'modes1', bfs.modes[:,:ind])
+np.save(path3D + 'modes2', bfs.modes[:,ind:2*ind])
+np.save(path3D + 'modes3', bfs.modes[:,2*ind:3*ind])
+np.save(path3D + 'modes4', bfs.modes[:,3*ind:])
+np.save(path3D + 'omega', bfs.omega)
+np.save(path3D + 'beta', bfs.beta)
+np.save(path3D + 'amplitudes', bfs.amplitudes)
 # %% SPDMD
 bfs1 = sparse.SparseDMD(Snapshots, dt=dt)
 gamma = [500, 700, 900]
@@ -144,18 +157,6 @@ re_coeff = bfs2.amplitudes
 # with open(path2+"dmd.bin", "wb") as f:  # save object to file 
 #     dill.dump(bfs, f)
 # with open(path2+"bfs.bin", "rb") as f:  # load object
-#     bfs0 = dill.load(f)
-# %% Save results for plotting
-meanflow.to_hdf(path3D + 'Meanflow.h5', 'w', format='fixed')
-np.save(path3D + 'eigval', bfs.eigval)
-np.save(path3D + 'modes1', bfs.modes[:,:200])
-np.save(path3D + 'modes2', bfs.modes[:,200:400])
-np.save(path3D + 'modes3', bfs.modes[:,400:600])
-np.save(path3D + 'modes4', bfs.modes[:,600:800])
-np.save(path3D + 'modes5', bfs.modes[:,800:])
-np.save(path3D + 'omega', bfs.omega)
-np.save(path3D + 'beta', bfs.beta)
-np.save(path3D + 'amplitudes', bfs.amplitudes)
 
 # discard the bad DMD modes
 percent = 0.998

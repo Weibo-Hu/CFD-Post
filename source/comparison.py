@@ -22,7 +22,7 @@ from planar_field import PlanarField as pf
 from triaxial_field import TriField as tf
 
 
-path0 = "/media/weibo/IM2/FFS_M1.7ZA/"
+path0 = "/media/weibo/IM2/FFS_M1.7ZA2/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 path1 = "/media/weibo/IM2/FFS_M1.7LA/"
 path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)

@@ -657,6 +657,68 @@ def reattach_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
     return (reatt)
 
 
+# obtain separation location with time 
+def separate_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
+    dirs = sorted(os.listdir(InFolder))
+    xarr = np.zeros(np.size(timezone))
+    yarr = np.zeros(np.size(timezone))
+    j = 0
+    if opt == 1:
+        data = pd.read_hdf(InFolder + dirs[0])
+        grouped = data.groupby(['x', 'y'])
+        data = grouped.mean().reset_index()
+        # NewFrame = data.query("x>=9.0 & x<=13.0 & y==-2.99703717231750488")
+        NewFrame = data.query("x>=-30.0 & x<=-5.0")
+        ywall = np.unique(NewFrame['y'])[1]
+        TemFrame = NewFrame.loc[NewFrame["y"] == ywall]
+        ind = TemFrame.index.values
+        
+        NewFrame1 = data.query("y<=3.0 & x<=0")
+        xwall = np.unique(NewFrame1['x'])[-2]
+        TemFrame1 = NewFrame1.loc[NewFrame1['x'] == xwall]
+        ind1 = TemFrame1.index.values
+        for i in range(np.size(dirs)):
+            if i % skip == 0:
+                with timer("Computing reattaching point " + dirs[i]):
+                    frame = pd.read_hdf(InFolder + dirs[i])
+                    frame0 = frame.iloc[ind]
+                    # aa = frame0.iloc[frame0['Cf'].abs().argsort()]
+                    aa = frame0.loc[frame0["u"] < 0.0, "x"].head(16)
+                    xarr[j] = aa.values[-1]
+                    
+                    frame1 = frame.iloc[ind1]
+                    yarr[j] = frame1.loc[frame1['u'] < 0.0, 'y'].tail(1)
+                    j = j + 1
+    else:
+        for i in range(np.size(dirs)):
+            if i % skip == 0:
+                with timer("Computing reattaching point " + dirs[i]):
+                    frame = pd.read_hdf(InFolder + dirs[i])
+                    grouped = frame.groupby(['x', 'y'])
+                    frame = grouped.mean().reset_index()
+                    xy = dividing_line(frame, loc=loc)
+                    xarr[j] = np.min(xy[:, 0])
+                    ind = np.argwhere(xy[:, 0]==0.0)[0]
+                    yarr[j] = xy[ind, 1]
+                    j = j + 1
+    separate = np.vstack((timezone, xarr)).T
+    reattach = np.vstack((timezone, yarr)).T
+    np.savetxt(
+        OutFolder + "Separate.dat",
+        separate,
+        fmt="%.8e",
+        delimiter="  ",
+        header="t, x",
+    )
+    np.savetxt(
+        OutFolder + "Reattach.dat",
+        reattach,
+        fmt="%.8e",
+        delimiter="  ",
+        header="t, y",
+    )
+    return (separate)
+
 def extract_point(InFolder, OutFolder, timezone, xy, skip=1, col=None):
     if col is None:
         col = ["u", "v", "w", "p", "vorticity_1", "vorticity_2", "vorticity_3"]
@@ -699,7 +761,7 @@ def shock_foot(InFolder, OutFolder, timepoints, yval, var, skip=1):
                 grouped = frame.groupby(['x', 'y'])
                 frame = grouped.mean().reset_index()
                 NewFrame = frame.loc[frame["y"] == yval]
-                temp = NewFrame.loc[NewFrame["u"] >= var, "x"]
+                temp = NewFrame.loc[NewFrame["u"] <= var, "x"]
                 xarr[j] = temp.head(1)
                 j = j + 1
     foot = np.vstack((timepoints, xarr)).T
@@ -713,69 +775,105 @@ def shock_foot(InFolder, OutFolder, timepoints, yval, var, skip=1):
 
 
 # Obtain shock location outside boundary layer with time
-def shock_loc(InFolder, OutFolder, timepoints, skip=1):
+def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1, val=[0.91, 0.92]):
     dirs = sorted(os.listdir(InFolder))
     fig1, ax1 = plt.subplots(figsize=(10, 4))
-    ax1.set_xlim([0.0, 30.0])
-    ax1.set_ylim([-3.0, 10.0])
+    ax1.set_xlim([-30.0, 5.0])
+    ax1.set_ylim([0.0, 10.0])
     matplotlib.rc("font", size=18)
     data = pd.read_hdf(InFolder + dirs[0])
     x0 = np.unique(data["x"])
-    x1 = x0[x0 > 8.0]
-    x1 = x1[x1 <= 30.0]
+    x1 = x0[x0 > -25]
+    x1 = x1[x1 <= -4.0]
     y0 = np.unique(data["y"])
-    y1 = y0[y0 > -2.5]
+    y1 = y0[y0 > 0.5]
     xini, yini = np.meshgrid(x1, y1)
-    corner = (xini < 0.0) & (yini < 0.0)
+    corner = (xini > 0.0) & (yini < 3.0)
     shock1 = np.empty(shape=[0, 3])
     shock2 = np.empty(shape=[0, 3])
-    ys1 = 0.5
-    ys2 = 5.0
+    ys1 = 3.0
+    ys2 = 6.0
     j = 0
     # if np.size(timepoints) != np.size(dirs):
     #    sys.exit("The input snapshots does not match!!!")
-    for i in range(np.size(dirs)):
-        if i % skip == 0:
-            with timer("Shock position at " + dirs[i]):
-                frame = pd.read_hdf(InFolder + dirs[i])
-                grouped = frame.groupby(['x', 'y'])
-                frame = grouped.mean().reset_index()
-                gradp = griddata(
-                    (frame["x"], frame["y"]),
-                    frame["|gradp|"],
-                    (xini, yini)
-                )
-                gradp[corner] = np.nan
-                cs = ax1.contour(xini, yini, gradp, levels=[0.06],
-                                 linewidths=1.2, colors="gray")
-                xycor = np.empty(shape=[0, 2])
-                x1 = np.empty(shape=[0, 1])
-                x2 = np.empty(shape=[0, 1])
-                for isoline in cs.collections[0].get_paths():
-                    xy = isoline.vertices
-                    xycor = np.append(xycor, xy, axis=0)
-                    ax1.plot(xy[:, 0], xy[:, 1], "r:")
-                    ind1 = np.where(np.around(xycor[:, 1], 8) == ys1)[0]
-                    x1 = np.append(x1, np.mean(xycor[ind1, 0]))
-                    ind2 = np.where(np.around(xycor[:, 1], 8) == ys2)[0]
-                    x2 = np.append(x2, np.mean(xycor[ind2, 0]))
-                x1 = x1[~np.isnan(x1)]
-                if np.size(x1) == 0:
-                    x1 = 0.0
-                else:
-                    x1 = x1[0]
-                x2 = x2[~np.isnan(x2)]
-                if np.size(x2) == 0:
-                    x2 = 0.0
-                else:
-                    x2 = x2[0]
-                ax1.plot(x1, ys1, "g*")
-                ax1.axhline(y=ys1)
-                ax1.plot(x2, ys2, "b^")
-                ax1.axhline(y=ys2)
-                shock1 = np.append(shock1, [[timepoints[j], x1, ys1]], axis=0)
-                shock2 = np.append(shock2, [[timepoints[j], x2, ys2]], axis=0)
-                j = j + 1
+    if opt == 1:
+        for i in range(np.size(dirs)):
+            if i % skip == 0:
+                with timer("Shock position at " + dirs[i]):
+                    frame = pd.read_hdf(InFolder + dirs[i])
+                    grouped = frame.groupby(['x', 'y'])
+                    frame = grouped.mean().reset_index()
+                    gradp = griddata(
+                        (frame["x"], frame["y"]),
+                        frame["|gradp|"],
+                        (xini, yini)
+                    )
+                    gradp[corner] = np.nan
+                    cs = ax1.contour(xini, yini, gradp, levels=[0.065],
+                                     linewidths=1.2, colors="gray")
+                    xycor = np.empty(shape=[0, 2])
+                    x1 = np.empty(shape=[0, 1])
+                    x2 = np.empty(shape=[0, 1])
+                    for isoline in cs.collections[0].get_paths():
+                        xy = isoline.vertices
+                        xycor = np.append(xycor, xy, axis=0)
+                        ax1.plot(xy[:, 0], xy[:, 1], ":")
+                        # yarr = np.ones(np.shape(xycor)[0]) * ys1
+                        # ydif = xycor[:, 1] - yarr
+                    yarr1 = np.ones(np.shape(xycor)[0]) * ys1
+                    ydif1 = xycor[:, 1] - yarr1
+                    ind1 = np.where(ydif1[:]>=0.0)[0]  # upper half
+                    xy_n1 = xycor[ind1, :]
+                    xy_n1 = xy_n1[xy_n1[:, 1].argsort()]  # most close two
+                    xtm1 = (xy_n1[0, 0] + xy_n1[1, 0])/2
+                    x1 = np.append(x1, xtm1)
+
+                    yarr2 = np.ones(np.shape(xycor)[0]) * ys2
+                    ydif2 = xycor[:, 1] - yarr2
+                    ind2 = np.where(ydif2[:]>=0.0)[0]
+                    xy_n2 = xycor[ind2, :]
+                    xy_n2 = xy_n2[xy_n2[:, 1].argsort()]
+                    xtm2 = (xy_n2[0, 0] + xy_n2[1, 0])/2
+                    x2 = np.append(x2, xtm2)
+
+                    x1 = x1[~np.isnan(x1)]
+                    if np.size(x1) == 0:
+                        x1 = 0.0
+                    else:
+                        x1 = x1[0]
+                    x2 = x2[~np.isnan(x2)]
+                    if np.size(x2) == 0:
+                        x2 = 0.0
+                    else:
+                        x2 = x2[0]
+                    ax1.plot(x1, ys1, "g*")
+                    ax1.axhline(y=ys1)
+                    ax1.plot(x2, ys2, "b^")
+                    ax1.axhline(y=ys2)
+                    shock1 = np.append(shock1, [[timepoints[j],x1,ys1]], axis=0)
+                    shock2 = np.append(shock2, [[timepoints[j],x2,ys2]], axis=0)
+                    j = j + 1
+                    plt.show()
+                    # plt.close()
+    elif opt == 2:
+        for i in range(np.size(dirs)):
+            if i % skip == 0:
+                with timer("Shock position at " + dirs[i]):
+                    frame = pd.read_hdf(InFolder + dirs[i])
+                    grouped = frame.groupby(['x', 'y'])
+                    frame = grouped.mean().reset_index()
+                    NewFrame1 = frame.loc[frame['y'] == ys1]
+                    temp1 = NewFrame1.loc[NewFrame1['u'] <= val[0], 'x']
+                    x1 = temp1.head(1)
+                
+                    NewFrame2 = frame.loc[frame['y'] == ys2]
+                    temp2 = NewFrame2.loc[NewFrame2['u'] <= val[1], 'x']
+                    x2 = temp2.head(1)
+                    shock1 = np.append(shock1, [[timepoints[j],x1,ys1]], axis=0)
+                    shock2 = np.append(shock2, [[timepoints[j],x2,ys2]], axis=0)
+                    j = j + 1
+
+
     np.savetxt(
         OutFolder + "ShockA.dat",
         shock1,
@@ -846,7 +944,7 @@ def shock_line_ffs(dataframe, path, val=[0.06]):
     x0 = np.unique(dataframe["x"])
     y0 = np.unique(dataframe["y"])
     x1 = x0[x0 > -70]
-    y1 = y0[y0 > 0.5]
+    y1 = y0[(y0 > 0.5) & (y0 < 30.0)]
     xini, yini = np.meshgrid(x1, y1)
     corner = (xini > 0.0) & (yini < 3.0)
     gradp = griddata((dataframe["x"], dataframe["y"]), dataframe["|gradp|"],
@@ -857,7 +955,7 @@ def shock_line_ffs(dataframe, path, val=[0.06]):
         xini, yini, gradp, levels=val, linewidths=1.2, colors="gray"
     )
     ax.set_xlim([-30.0, 10.0])
-    ax.set_ylim([0.0, 10.0])
+    ax.set_ylim([0.0, 12.0])
     plt.close()
     header = "x, y"
     xycor1 = np.empty(shape=[0, 2])
@@ -865,9 +963,9 @@ def shock_line_ffs(dataframe, path, val=[0.06]):
     xylist = []
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
-        if np.max(xy[:, 0]) < 0.0:
+        if np.min(xy[:, 0]) < -10.0:
             xycor1 = np.vstack((xycor1, xy))
-        elif np.max(xy[:, 0]) > 0.0:
+        elif np.min(xy[:, 0]) > -5.0:
             xycor2 = np.vstack((xycor2, xy))
         xylist.append(xy)
         # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
@@ -890,7 +988,7 @@ def shock_line_ffs(dataframe, path, val=[0.06]):
     )
     np.savetxt(
         path + "ShockLine2.dat",
-        xycor1,
+        xycor2,
         fmt="%.8e",
         delimiter="  ",
         header=header
@@ -980,7 +1078,8 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
     return xy
 
 
-def boundary_edge(dataframe, path, jump1=0.0, jump2=10.375, val=0.97):  # jump = reattachment location
+def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump2=16.0, 
+                  val1=0.81, val2=0.98):  # jump = reattachment location
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
@@ -989,17 +1088,22 @@ def boundary_edge(dataframe, path, jump1=0.0, jump2=10.375, val=0.97):  # jump =
         dataframe.loc[:, 'u'] = dataframe['<u>']
         # dataframe['u'] = dataframe['<u>']
     u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
-    u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
     umax = u[-1, :]
     umax[:] = 0.99
-    rg1 = (x[1, :] <= jump1) & (x[1, :] >= np.min(x)) # between two shocks 
-    uinterp = np.interp(x[1, rg1], [np.min(x), jump1], [0.99, val])
+    # range1
+    rg1 = (x[1, :] <= jump1) & (x[1, :] >= jump0) # between two shocks 
+    uinterp = np.interp(x[1, rg1], [jump0, jump1], [0.99, val1+0.000])
     umax[rg1] = uinterp
-    rg2 = (x[1, :] > jump1) & (x[1, :] < 0.0)
-    umax[rg2] = val
-    rg3 = (x[1, :] >= 0.0) & (x[1, :] < jump2)
-    uinterp1 = np.interp(x[1, rg3], [0.0, jump2], [val, 0.988])
+    # range2
+    rg2 = (x[1, :] > jump1) & (x[1, :] < -0.5)
+    umax[rg2] = val1
+    # range3
+    rg3 = (x[1, :] >= -0.5) & (x[1, :] < jump2)
+    uinterp1 = np.interp(x[1, rg3], [-0.5, jump2], [val1, val2+0.003])
     umax[rg3] = uinterp1
+    # range4
+    rg4 = (x[1, :] >= jump2)
+    umax[rg4] = val2
     u = u / (np.transpose(umax))
     corner = (x > 0.0) & (y < 3.0)
     u[corner] = np.nan
@@ -1029,6 +1133,8 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
     else:
         assert isinstance(cutoff, float), \
             'cutoff:{} is not a float'.format(cutoff.__class__.__name__)
+    plt.close()
+    fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     for i in range(np.size(dirs)):
         if i % skip == 0:
             with timer("Bubble area at " + dirs[i]):
@@ -1044,10 +1150,12 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
                 else:
                     xy = xy_org
                     area[j] = trapz(xy[:, 1] + step, xy[:, 0])
+                ax1.plot(xy[:, 0], xy[:, 1])
                 #ind = np.argmax(xy_new[:, 1])
                 # if xy[ind, 1] < cutoff:
                 #    area[j] = area[j] + 0.5 * xy[ind, 0] * (0 - xy[ind, 1])
             j = j + 1
+    plt.show()
     area_arr = np.vstack((timezone, area)).T
     np.savetxt(
         OutFolder + "BubbleArea.dat",

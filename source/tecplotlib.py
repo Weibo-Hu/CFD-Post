@@ -372,14 +372,16 @@ def axis_set_ffs(axes_obj, axes_val):
     axes_obj.y_axis.title.show=False
     axes_obj.y_axis.ticks.show_on_opposite_edge=True
     axes_obj.y_axis.tick_labels.show_on_opposite_edge=True
+    axes_obj.y_axis.tick_labels.angle=20
     axes_obj.y_axis.ticks.show=False
     axes_obj.y_axis.tick_labels.show=False
     
     axes_obj.z_axis.show=True
-    axes_obj.z_axis.min=axes_val[4]
+    axes_obj.z_axis.min=axes_val[4]-0.1
     axes_obj.z_axis.max=axes_val[5]
     axes_obj.z_axis.tick_labels.font.size=2.3
     axes_obj.z_axis.tick_labels.font.typeface='Times New Roman'
+    axes_obj.y_axis.tick_labels.angle=20
     axes_obj.z_axis.title.show=False
     axes_obj.z_axis.ticks.auto_spacing=False
     axes_obj.z_axis.ticks.spacing=4

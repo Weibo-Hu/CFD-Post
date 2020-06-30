@@ -155,15 +155,16 @@ save wall plane data and plot
 time_ave = tf()
 filename = glob(path + 'TP_data_0556.25.h5')
 time_ave.load_3data(pathT, FileList=filename, NameList='h5')
-# time_ave.load_3data(path+'TP_data_01428807/')
+# time_ave.load_3data(path+'TP_data_01706821/')
 # time_ave._data_field.to_hdf(path+'TP_data_1124.h5', 'w', format='fixed')
 # filename = glob(pathT + 'MeanFlow_*')
 # time_ave.load_3data(pathT, FileList=filename, NameList='h5')
 time_ave.add_walldist(-3.0)
 df1 = time_ave.TriData.query("x>0 & walldist>0")
-df1a = df1.loc[df1['walldist']==np.unique(df1['walldist'])[0]]  # np.min(df1['walldist'])*2 
+df1a = df1.loc[df1['walldist']==np.min(df1['walldist'])]  
+# np.min(df1['walldist'])*2 # for the mean flow
 df2 = time_ave.TriData.query("x<0 & y>=0 & walldist>0")
-df2a = df2.loc[df2['walldist']==np.unique(df2['walldist'])[0]]  # on the wall=0.5*dy
+df2a = df2.loc[df2['walldist']==np.min(df2['walldist'])]  # on the wall=0.5*dy
 df = pd.concat([df1a, df2a])
 df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
 del time_ave
@@ -173,7 +174,7 @@ Re = 13718
 mu = va.viscosity(Re, df['<T>'], law='POW')  # df['<T>'],
 Cf = va.skinfriction(mu, df['<u>'], df['walldist'])  # df['<u>']
 df['Cf'] = Cf
-df3 = df.query("Cf < 0.009")
+df3 = df.query("Cf < 0.015")
 xx = np.unique(df['x'])  # np.linspace(-20.0, 40.0, 1201)
 zz = np.unique(df['z'])  # np.linspace(-8.0, 8.0, 257)
 x, z = np.meshgrid(xx, zz)
@@ -182,14 +183,14 @@ print("Cf_max=", np.max(df3['Cf']))
 print("Cf_min=", np.min(df3['Cf']))
 
 # %% plot skin friction
-fig, ax = plt.subplots(figsize=(6.4, 2.4))
+fig, ax = plt.subplots(figsize=(6.6, 2.5))
 matplotlib.rc("font", size=textsize)
-cx1 = -5
-cx2 = 7
+cx1 = -3
+cx2 = 5
 fa = 1000
 rg1 = np.linspace(cx1, cx2, 21)
 cbar = ax.contourf(x, z, friction*fa, cmap="jet", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(-30.0, 10.0)
+ax.set_xlim(-25.0, 20.0)
 ax.set_ylim(-8.0, 8.0)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
@@ -203,10 +204,27 @@ cbar.ax.tick_params(labelsize=numsize)
 cbar.set_label(
     r"$C_f \times 10^3$", rotation=0, fontsize=numsize, labelpad=-20, y=1.12
 )
-ax.axvline(x=10.9, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
+ax.axvline(x=-12.8, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 # cbar.formatter.set_powerlimits((-2, 2))
 # cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 # cbar.update_ticks()
+#xbox = np.arange(-25, 20 + 0.125, 0.125)
+#zbox = np.arange(-8.0, 8.0 + 0.0625, 0.0625)
+#xstm, zstm = np.meshgrid(xbox, zbox)
+#u = griddata((df3.x, df3.z), df3['u'], (xstm, zstm))
+#w = griddata((df3.x, df3.z), df3['w'], (xstm, zstm))
+#ax.streamplot(
+#    xstm,
+#    zstm,
+#    u,
+#    w,
+#    density=[1, 2],
+#    color="k",
+#    arrowsize=0.8,
+#    linewidth=0.6,
+#    integration_direction="both",
+#)
+
 plt.savefig(pathF + "skinfriction.svg", bbox_inches="tight")
 plt.show()
 

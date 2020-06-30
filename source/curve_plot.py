@@ -77,7 +77,7 @@ MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 
 # %% Load laminar data for comparison
-path0 = "/media/weibo/IM2/FFS_M1.7ZA/"
+path0 = "/media/weibo/IM2/FFS_M1.7ZA2/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
@@ -123,7 +123,6 @@ plt.savefig(
     pathF + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
 )
 
-
 # %%############################################################################
 """
     Compare the law of wall: theoretical by van Driest, experiments, LES
@@ -142,11 +141,10 @@ plt.savefig(
 # BLProf['walldist'] = BLProf['y']
 # BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
 # %% velocity profile, computation
-x0 = -50.0
+x0 = -40.0
 # results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile('x', x0)
-
 u_tau = va.u_tau(BLProf, option='mean')
 mu_inf = BLProf['<mu>'].values[-1]
 delta, u_inf = va.bl_thickness(BLProf['walldist'], BLProf['<u>'])
@@ -230,7 +228,7 @@ ax2.scatter(
     ExpUrmsPlus[:, 0],
     ExpUrmsPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=18,
     facecolor="none",
     edgecolor="gray",
 )
@@ -238,7 +236,7 @@ ax2.scatter(
     ExpVrmsPlus[:, 0],
     ExpVrmsPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=18,
     facecolor="none",
     edgecolor="gray",  # "r",
 )
@@ -246,7 +244,7 @@ ax2.scatter(
     ExpWrmsPlus[:, 0],
     ExpWrmsPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=18,
     facecolor="none",
     edgecolor="gray",  # "b",
 )
@@ -254,7 +252,7 @@ ax2.scatter(
     ExpUVPlus[:, 0],
     ExpUVPlus[:, 1],
     linewidth=0.8,
-    s=15,
+    s=18,
     facecolor="none",
     edgecolor="gray",  # "gray",
 )
@@ -264,6 +262,7 @@ ax2.plot(CalUPlus[:, 0], ww[1:], "k", linewidth=1.5)
 ax2.plot(CalUPlus[:, 0], uv[1:], "k", linewidth=1.5)
 ax2.set_xscale("log")
 ax2.set_xlim([1, 2000])
+ax2.set_ylim([-1.5, 3.5])
 vna1 = r'$u^\prime u^\prime$'
 vna2 = r'$w^\prime w^\prime$'
 vna3 = r'$v^\prime v^\prime$'
@@ -272,7 +271,6 @@ ax2.text(100, 3.0, vna1, fontsize=numsize)
 ax2.text(400, 3.0, vna2, fontsize=numsize)
 ax2.text(100, 2.5, vna3, fontsize=numsize)
 ax2.text(400, 2.5, vna4, fontsize=numsize)
-# ax.set_ylim([0, 30])
 ax2.set_ylabel(r"$\sqrt{\langle u^{\prime}_i u^{\prime}_j\rangle^{+}}$",
                fontsize=textsize)
 ax2.set_xlabel(r"$y^+$", fontsize=textsize)
@@ -471,13 +469,13 @@ MeanFlow2.add_walldist(StepHeight)
 WallFlow2 = MeanFlow2.PlanarData.groupby("x", as_index=False).nth(1)
 mu2 = va.viscosity(13718, WallFlow1["T"])
 Cf2 = va.skinfriction(mu2, WallFlow2["u"], WallFlow2["walldist"]).values
-ind2 = np.where(Cf1[:] < 0.008)
+ind2 = np.where(Cf1[:] < 0.006)
 xwall2 = WallFlow2["x"].values
 # %% comparison with laminar case
 WallFlow0 = MeanFlow0.PlanarData.groupby("x", as_index=False).nth(1)
 mu0 = va.viscosity(13718, WallFlow0["T"])
 Cf0 = va.skinfriction(mu0, WallFlow0["u"], WallFlow0["walldist"]).values
-ind0 = np.where(Cf0[:] < 0.005)
+ind0 = np.where(Cf0[:] < 0.008)
 xwall0 = WallFlow0['x'].values
 # %% Plot streamwise skin friction
 MeanFlow.copy_meanval()
@@ -485,7 +483,7 @@ WallFlow = MeanFlow.PlanarData.groupby("x", as_index=False).nth(1)
 # WallFlow = WallFlow[WallFlow.x != -0.0078125]
 mu = va.viscosity(13718, WallFlow["T"])
 Cf = va.skinfriction(mu, WallFlow["u"], WallFlow["walldist"]).values
-ind = np.where(Cf[:] < 0.005)
+ind = np.where(Cf[:] < 0.008)
 # fig2, ax2 = plt.subplots(figsize=(5, 2.5))
 fig = plt.figure(figsize=(6.4, 3.1))
 matplotlib.rc("font", size=textsize)
@@ -500,18 +498,18 @@ ax2.plot(xwall0[ind0], Cf0[ind0], "b:", linewidth=1.5)
 #          color='gray', linestyle=':', linewidth=1.2) # 
 ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
-ax2.set_xlim([-60.0, 20.0])
+ax2.set_xlim([-40.0, 20.0])
 ax2.set_ylim([-0.003, 0.005])
 ax2.set_yticks(np.arange(-0.002, 0.008, 0.002))
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax2.axvline(x=-12.0, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=-13.0, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.15, 1.0), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
+#plt.savefig(pathF+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
 # % pressure coefficiency
@@ -526,12 +524,12 @@ ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "b:", linewidth=1.5)
 #          color='gray', linestyle=':', linewidth=1.2) # 
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
-ax3.set_xlim([-60.0, 20.0])
+ax3.set_xlim([-40.0, 20.0])
 ax3.set_ylim([0.1, 2.2])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=-12.0, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=-13.0, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
 ax3.annotate("(b)", xy=(-0.17, 1.0), xycoords='axes fraction',
              fontsize=numsize)

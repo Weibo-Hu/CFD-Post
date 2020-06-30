@@ -30,7 +30,7 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/VID2/BFS_M1.7TS_LA/"
+path = "/media/weibo/IM2/FFS_M1.7TB/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -60,7 +60,7 @@ VarName = [
     "L2-criterion",
 ]
 
-StepHeight = 3.0
+StepHeight = -3.0
 
 # %%
 MeanFlow = pf()
@@ -74,14 +74,16 @@ stat = MeanFlow.PlanarData
 """
 # %% save dividing line coordinates
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)[:-2, :]
-x2 = np.arange(dividing[-1, 0], 50.0+0.125, 0.125)
-y2 = np.ones(np.size(x2))*(-2.99342)
-x3 = np.concatenate((dividing[:,0], x2), axis=0)
-y3 = np.concatenate((dividing[:,1], y2), axis=0) # streamline
+x1 = np.arange(-40.0, dividing[0, 0], 0.125)
+y1 = np.ones(np.size(x1)) * 0.0023
+x2 = np.arange(dividing[-1, 0], 20.0+0.125, 0.125)
+y2 = np.ones(np.size(x2)) * 3.001953
+x3 = np.concatenate((x1, dividing[:,0], x2), axis=0)
+y3 = np.concatenate((y1, dividing[:,1], y2), axis=0) # streamline
 xx = np.zeros(np.size(x3))
 yy = np.zeros(np.size(y3))
 frame1 = stat.loc[stat['z'] == 0, ['x', 'y']]
-frame2 = frame1.query("x>=0.0 & y<=3.0")
+frame2 = frame1.query("y<=3.1")
 xmesh = frame2['x'].values
 ymesh = frame2['y'].values
 for i in range(np.size(x3)):
@@ -109,7 +111,7 @@ plt.savefig(
 )
 
 # %% compute coordinates where the BL profile has Max RMS along streamwise direction
-varn = '<u`u`>'
+varn = '<p`p`>'
 if varn == '<u`u`>':
     savenm = "MaxRMS_u.dat"
 elif varn =='<p`p`>':
@@ -130,9 +132,9 @@ df.to_csv(pathM + savenm, sep=' ',
 
 # %% save the grid points on the wall
 xnew = np.arange(-40.0, 40.0+0.125, 0.125)
-ynew = 0.001953125 * np.ones(np.size(xnew))
+ynew = 0.0023 * np.ones(np.size(xnew))
 ind = np.where(xnew >= 0.0)
-ynew[ind] = -2.997037172
+ynew[ind] = 3.001953
 data = np.vstack((xnew, ynew))
 df = pd.DataFrame(data.T, columns=['x', 'y'])
 df.to_csv(pathM + 'WallGrid.dat', sep=' ', float_format='%1.8e', index=False)
@@ -158,7 +160,7 @@ plt.savefig(
 """
 # %% Plot RMS of velocity on the wall along streamwise direction
 loc = ['z', 'y']
-val = [0.0, -2.99704]
+val = [0.0, 0.002300]
 varnm = '<u`u`>'
 pert = va.pert_at_loc(stat, varnm, loc, val)
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
@@ -166,7 +168,7 @@ matplotlib.rc('font', size=14)
 ax.set_ylabel(r"$\sqrt{u^{\prime 2}}/u_{\infty}$", fontsize=textsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.plot(pert['x'], np.sqrt(pert[varnm]), 'k')
-ax.set_xlim([0.0, 30])
+ax.set_xlim([-40.0, 20])
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
@@ -175,7 +177,7 @@ plt.savefig(
 )
 
 # %% Plot RMS of velocity on the wall along streamwise direction
-xynew = pd.read_csv(pathM + 'MaxRMS.dat', sep=' ')
+xynew = pd.read_csv(pathM + 'MaxRMS_u.dat', sep=' ')
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=numsize)
 ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
@@ -183,7 +185,7 @@ ax.set_ylabel(ylab, fontsize=textsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.plot(xynew['x'], xynew['<u`u`>'], 'k')
 ax.set_yscale('log')
-ax.set_xlim([-5, 30])
+ax.set_xlim([-30, 20])
 # ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.grid(b=True, which="both", linestyle=":")
 ax.tick_params(labelsize=numsize)
@@ -195,7 +197,7 @@ plt.savefig(
 
 # %% Plot RMS of velocity along wall-normal direction
 loc = ['x', 'z']
-val = [10.0, 0.0]
+val = [-10.0, 0.0]
 pert = va.pert_at_loc(stat, varnm, loc, val)
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=14)
@@ -302,7 +304,7 @@ plt.savefig(
     distribution of amplitude & amplication factor along a line
 """
 # %% load time sequential snapshots
-sp = 'S_010'
+sp = 'S_009'
 InFolder = path + 'Slice/' + sp + '/'
 dirs = sorted(os.listdir(InFolder))
 DataFrame = pd.read_hdf(InFolder + dirs[0])
@@ -315,7 +317,7 @@ fa = 1.7*1.7*1.4
 skip = 1
 dt = 0.25  # 0.25
 freq_samp = 1/dt  # 4.0
-timepoints = np.arange(900, 1299.75 + dt, dt)
+timepoints = np.arange(550, 850.0 + dt, dt)
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
 with timer("Load Data"):
@@ -338,9 +340,9 @@ probe.insert(0, 'time', timepoints)
 probe.to_csv(pathI + 'probe_14.dat', index=False, sep=' ', float_format='%1.8e')
 # %% compute amplitude of variable along a line
 # xynew = np.loadtxt(pathM + "BubbleGrid.dat", skiprows=1)
-xynew = np.loadtxt(pathM + "MaxRMS_u.dat", skiprows=1)
+xynew = np.loadtxt(pathM + "MaxRMS_p.dat", skiprows=1)
 # xynew = np.loadtxt(pathM + "WallGrid.dat", skiprows=1)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-ind = (xynew[:, 0] <= 30.0) & (xynew[:, 0] >= -10.0)   # -40.0
+ind = (xynew[:, 0] <= 20.0) & (xynew[:, 0] >= -30.0)   # -40.0
 xval = xynew[ind, 0]
 yval = xynew[ind, 1]
 amplit = np.zeros(np.size(xval))
@@ -473,13 +475,13 @@ ax.plot(xval, max_freq, 'C7:', linewidth=1.2)
 ax.axvline(x=0.0, linewidth=1.0, linestyle='--', color='k')
 # ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
-ax.set_xlim([-5, 20.0])
+ax.set_xlim([-30, 15.0])
 rg = np.linspace(cb1, cb2, 3)
 cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.update_ticks()
-barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{min} ]$'
+barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{max} ]$'
 # barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
 ax.set_title(barlabel, pad=3, fontsize=numsize-1)
 # cbar.set_label(barlabel, rotation=90, fontsize=numsize)
@@ -490,7 +492,7 @@ plt.savefig(pathF + var + "_FWPSDMap_max_" + sp + ".svg",
 plt.show()
 
 # %% Plot multiple frequency-weighted PSD curve along streamwise
-xr = 8.9
+xr = 13
 def d2l(x):
     return x * xr
 
@@ -503,7 +505,7 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-2.0, 2.75, 3.0, 6.0, 6.375, 9.0, 10.0])
+xcoord = np.array([-20.0, -17, -11, -6.0, -1, 1.0, 6.0])
 # xcoord = np.array([-5, 1.0, 3.75, 4.875, 6.5, 8.875, 18.25])
 for i in range(np.size(xcoord)):
     ind = np.where(xval[:] == xcoord[i])[0]
@@ -519,7 +521,7 @@ for i in range(np.size(xcoord)):
         # ax[i].spines['left'].set_visible(False)
         ax[i].yaxis.set_ticks_position('none')
         xticks = ax[i].xaxis.get_major_ticks()
-        xticks[0].label1.set_visible(False)
+        xticks[0].label.set_visible(False) # xticks[0].label1.set_visible(False)
     if i != np.size(xcoord) - 1:
         ax[i].spines['right'].set_visible(False)
     ax[i].set_xlim(left=0)
@@ -530,7 +532,7 @@ ax[0].set_title(r'$x/\delta_0={}$'.format(xcoord[0]), fontsize=numsize-2)
 ax[0].set_ylabel(r"$f \delta_0 /u_\infty$", fontsize=textsize)
 ax[3].set_xlabel(r'$f \mathcal{P}(f)$', fontsize=textsize, labelpad=15)
 ax2 = ax[-1].secondary_yaxis('right', functions=(d2l, l2d)) 
-ax2.set_ylabel(r"$f x_r /u_\infty$", fontsize=textsize)
+ax2.set_ylabel(r"$f L_r /u_\infty$", fontsize=textsize)
 plt.tick_params(labelsize=numsize)
 plt.show()
 plt.savefig(
