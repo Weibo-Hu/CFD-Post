@@ -69,7 +69,7 @@ VarName = [
 ]
 
 timezone = np.arange(700, 999.75 + 0.25, 0.25)
-x1x2 = [700, 1000]
+x1x2 = [600, 1100]
 StepHeight = -3.0
 MeanFlow = pf()
 #MeanFlow.load_data(path + 'inca_out/')
@@ -536,7 +536,7 @@ ax3.annotate("(b)", xy=(-0.17, 1.0), xycoords='axes fraction',
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 # plt.savefig(path2 + "Cp.svg", dpi=300)
-plt.savefig(pathF + "CfCp_ftb.svg", dpi=300)
+plt.savefig(pathF + "CfCp_ftb.pdf", dpi=300)
 plt.show()
 
 # % turbulent kinetic energy

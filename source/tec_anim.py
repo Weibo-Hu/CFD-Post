@@ -110,30 +110,32 @@ tl.plt_schlieren(dataset, slc, cont3, var3, val3, label=False)
 # tp.session.suspend_exit()
 tp.export.save_png(pathF + 'L2_ffs.png', width=2048)
 
-# %% load data 
+# %% load data for DMD post-processing
 path = "/media/weibo/IM2/FFS_M1.7TB/3D_DMD/"
-freq = "0p205"
+freq = "0p4471"
 pathin = path + freq + "/"
 pathout = path + freq + "_ani/"
 file = '[' + freq + ']DMD'
-val1 = -0.3 # for u
-val2 = -0.04  # for p
-figout  = 'u' + file
-var = 'u`'
+val1 = -0.4 # for u
+val2 = -0.06  # for p
+vr = 'u'
 val = val1
+figout  = vr + file
+var = vr + '`'
 print(figout.replace(".", "p"))
 dirs = os.listdir(pathin)
-num = int(np.size(dirs)/4)
+num = int(np.size(dirs)/2)
 # tp.session.connect()
-# num = 1
+num = 1
 txtfl = open(pathout + 'levels.dat', "w")
 txtfl.writelines('u` = ' + str(val1) + '\n')
 txtfl.writelines('p` = ' + str(val2) + '\n')
 txtfl.close()
 for ii in range(num):
+    ii = 11
     ind = '{:03}'.format(ii)
-    filelist = [file+ind+'A.plt', file+ind+'B.plt',
-                file+ind+'C.plt', file+ind+'D.plt']
+    filelist = [file+ind+'A.plt', file+ind+'B.plt'] #,
+               # file+ind+'C.plt', file+ind+'D.plt']
     print(filelist)
     datafile = [os.path.join(pathin, name) for name in filelist]
     dataset = tp.data.load_tecplot(datafile, read_data_option=2)
@@ -145,21 +147,21 @@ for ii in range(num):
     # turn off orange zone bounding box
     tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')
     # frame setting
-    frame.width = 12.8
+    frame.width = 12.0
     frame.height = 7.5
     frame.position = (-1.0, 0.5)
     tp.macro.execute_command('$!FrameLayout ShowBorder = No')
     plot = frame.plot(PlotType.Cartesian3D)
     plot.axes.orientation_axis.show=False
     axes = plot.axes
-    axes_val = [-25, 15, 0, 8, -8, 8]  
+    axes_val = [-25, 15, 0, 6, -8, 8]  
     tl.axis_set_ffs(axes, axes_val)
     axes.y_axis.ticks.auto_spacing=False
-    axes.y_axis.ticks.spacing=4
+    axes.y_axis.ticks.spacing=3
     axes.z_axis.tick_labels.offset=0.3
-    xpos = [54, 16]
-    ypos = [4.0, 69]
-    zpos = [9, 17]
+    xpos = [56, 18]
+    ypos = [2.5, 58]
+    zpos = [9, 12]
     tl.axis_lab(xpos, ypos, zpos)
     # tl.axis_lab()
 
@@ -168,12 +170,12 @@ for ii in range(num):
     view.magnification = 1.0
     # view.fit_to_nice()
     view.rotation_origin = (10, 0.0, 0.0)
-    view.psi = 45
+    view.psi = 50
     view.theta = 145
-    view.alpha = -140
-    view.position = (-56, 75, 88)
+    view.alpha = -135
+    view.position = (-60, 80, 80)
     # view.distance = 300
-    view.width = 52
+    view.width = 50
     
     # limit values                                                                                                                          values
     tl.limit_val(dataset, 'u`')
@@ -212,8 +214,8 @@ for ii in range(num):
 
     # export figures
     outfile = pathout + figout + '{:02}'.format(int(SolTime))
-    tp.export.save_png(outfile + '.png', width=2048)
-    # tp.export.save_jpeg(outfile + '.jpeg', width=4096, quality=100) 
+    # tp.export.save_png(outfile + '.png', width=2048)
+    tp.export.save_jpeg(outfile + '.jpeg', width=2048, quality=100) 
     
 # %% generate animation
 # %% Convert plots to animation

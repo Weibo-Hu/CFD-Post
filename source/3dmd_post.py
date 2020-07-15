@@ -43,7 +43,7 @@ path = "/media/weibo/IM2/FFS_M1.7TB/"
 path3D = path + '3D_DMD/'
 pathH = path + 'hdf5/'
 pathM = path + 'MeanFlow/'
-timepoints = np.arange(550, 849.5 + 0.5, 0.5)
+timepoints = np.arange(600.0, 1100.0 + 0.5, 0.5)
 dirs = sorted(os.listdir(pathH))
 # if np.size(dirs) != np.size(timepoints):
 #     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
@@ -133,7 +133,7 @@ plt.show()
 
 # %% Mode frequency specturm
 reduction = 0
-filtval = 0.96
+filtval = 0.98
 matplotlib.rc('font', size=textsize)
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
@@ -174,13 +174,33 @@ frame = pd.DataFrame(data=savevr.T, columns=savenm)
 frame.sort_values(by=['freq'], inplace=True)
 frame.to_csv(path3D + 'ModeInfo.dat', index=False,
              float_format='%1.8e', sep=' ')
+# %% new frequency spectrum
+df = pd.read_csv(path3D + 'ModeInfo.dat', sep=' ')
+psi = np.abs(df['psi'])/np.max(np.abs(df['psi']))
+matplotlib.rc('font', size=textsize)
+plt.rcParams['xtick.top'] = True
+plt.rcParams['ytick.right'] = True
+fig2, ax2 = plt.subplots(figsize=(4.0, 3.0))
+ax2.set_xscale("log")
+colors = plt.cm.Greys_r(df['beta']/np.min(df['beta']))
+ax2.vlines(df['freq'], [0], psi, color=colors, linewidth=1.0)
+ax2.set_ylim(bottom=0.0)
+ax2.tick_params(labelsize=numsize, pad=6)
+ax2.set_xlabel(r'$f \delta_0/u_\infty$')
+ax2.set_ylabel(r'$|\psi_k|$')
+ax2.grid(b=True, which='both', linestyle=':', alpha=0.0)
+plt.savefig(path3D+var+'DMDFreqSpectrumR.svg', bbox_inches='tight')
+plt.show()
+df['psi'] = df['psi']/np.max(df['psi'])
+df.to_csv(path3D + 'ModeInfoR.dat', index=False,
+             float_format='%1.8e', sep=' ')
 # %% save dataframe of reconstructing flow
 base = meanflow[col].values
 base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
-# ind = 0 
-num = np.where(np.round(freq, 4) == 0.0423) # 0.3017 # 0.08224 # 0.2033 # 0.2134
+# ind = 0 # 1.25720529e-02
+num = np.where(np.round(freq, 5) == 0.38075) # 0.3017 # 0.08224 # 0.2033 # 0.2134
 print("The frequency is", freq[num])
-phase = np.linspace(0, 2*np.pi, 32, endpoint=False)
+phase = np.linspace(0, 2*np.pi, 8, endpoint=False)
 # modeflow1 = bfs.modes[:,num].reshape(-1, 1) * bfs.amplitudes[num] \
 #             @ bfs.Vand[num, :].reshape(1, -1)
 modeflow = modes[:, num].reshape(-1, 1) * amplitudes[num] \
@@ -197,7 +217,7 @@ for ii in range(np.size(phase)):
     newflow = fluc.real[:m,:]
     data = np.hstack((xarr, yarr, zarr, base, newflow))
     df = pd.DataFrame(data, columns=names)
-    filename = str(np.round(freq[num], 3)) + "DMD" + '{:03}'.format(ii)
+    filename = str(np.round(freq[num], 4)) + "DMD" + '{:03}'.format(ii)
     filename = filename.replace(".", "p")
     with timer('save plt of t=' + str(phase[ii])):
         df1 = df.query("x<0.0 & y<=3.0")
@@ -215,10 +235,10 @@ for ii in range(np.size(phase)):
         p2p.frame2tec3d(df3, path3D, filename3, zname=2, stime=ii)
         p2p.tec2plt(path3D, filename3, filename3)
         
-        df4 = df.query("y>6.0 & y<=8.0")
-        filename4 = filename + "D"
-        p2p.frame2tec3d(df4, path3D, filename4, zname=2, stime=ii)
-        p2p.tec2plt(path3D, filename4, filename4)
+        #df4 = df.query("y>6.0 & y<=8.0")
+        #filename4 = filename + "D"
+        #p2p.frame2tec3d(df4, path3D, filename4, zname=2, stime=ii)
+        #p2p.tec2plt(path3D, filename4, filename4)
 
 # %% dat file to plt file
 dirs = os.listdir(path3D + '0p042/')
@@ -232,11 +252,11 @@ plot 2D slice contour
 
 """
 # %% generate data
-num = np.where(np.round(freq, 4) == 0.0423) # 0.3017
+num = np.where(np.round(freq, 4) == 0.0126) # 0.3017
 base = meanflow[col].values
 base[:, 3] = meanflow['p'].values*1.7*1.7*1.4
 print("The frequency is", freq[num])
-phase = 0.5 * np.pi
+phase = 0.0 * np.pi
 modeflow = modes[:, num].reshape(-1, 1) * amplitudes[num] * np.exp(phase)
 fluc = modeflow.reshape((m, o), order='F')
 newflow = fluc.real
@@ -249,13 +269,13 @@ data = np.hstack((xarr, yarr, zarr, base, newflow))
 df = pd.DataFrame(data, columns=names)
 
 # %% load data
-freq1 = 0.042  # freq[num]
-path1 = path3D + '0p042/'
+freq1 = 0.0126  # freq[num]
+path1 = path3D + '0p0126/'
 files = glob(path1 + '*DMD000?.plt')
 df = p2p.ReadAllINCAResults(path1, FileName=files)
 # %% in X-Y plane, preprocess
 var = 'p'
-avg = True
+avg = False
 amp = 1.0  # for fluctuations
 fa = 0.0   # for mean value
 sliceflow = df.loc[df['z']==0]
@@ -263,13 +283,13 @@ if var == 'u':
     varval = sliceflow[var] * fa + sliceflow['u`'] * amp
     grouped = df.groupby(['x', 'y'])
     df2 = grouped.mean().reset_index()
-    varval = df2['u`']
+    # varval = df2['u`']
 
 if var == 'p':
     varval = sliceflow[var] * fa + sliceflow['p`'] * amp
     grouped = df.groupby(['x', 'y'])
     df2 = grouped.mean().reset_index()
-    varval = df2['p`']
+    # varval = df2['p`']
 
 if var == 'rho':
     p_t = sliceflow['p'] * fa + sliceflow['p`'] * amp
@@ -285,20 +305,20 @@ else:
 x, y = np.meshgrid(np.unique(xarr), np.unique(yarr))
 print("Limit value: ", np.min(varval), np.max(varval))
 u = griddata((xarr, yarr), varval, (x, y))
-corner = (x < 0.0) & (y < 0.0)
+corner = (x > 0.0) & (y < 3.0)
 u[corner] = np.nan
 # %% in X-Y plane, plot
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
-fig, ax = plt.subplots(figsize=(6.6, 2.8))
-c1 = -0.09 # -0.13 #-0.024
+fig, ax = plt.subplots(figsize=(6.6, 2.5))
+c1 = -0.06 # -0.13 #-0.024
 c2 = -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r', extend='both') 
-ax.set_xlim(-5.0, 20.0)
-ax.set_ylim(-3.0, 2.0)
+ax.set_xlim(-20.0, 10.0)
+ax.set_ylim(0.0, 5.0)
 ax.tick_params(labelsize=numsize)
 cbar.cmap.set_under('#053061')
 cbar.cmap.set_over('#67001f')
@@ -306,23 +326,24 @@ ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.18, 0.76, 0.30, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.36, 0.78, 0.2, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
                      extendrect='False', ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
+
 cbar1.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar1.update_ticks()
 cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0, 
-                x=1.16, labelpad=-26, fontsize=textsize)
+                x=1.22, labelpad=-26, fontsize=textsize)
 cbaxes.tick_params(labelsize=numsize)
 # add shock wave
 shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], color='#32cd32ff', linewidth=1.2)
 # add streamline1
-shock = np.loadtxt(pathM+'streamline1.dat', skiprows=1)
+shock = np.loadtxt(pathM+'streamline3.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1.2)
 # add streamline1
-shock = np.loadtxt(pathM+'streamline3.dat', skiprows=1)
+shock = np.loadtxt(pathM+'streamline5.dat', skiprows=1)
 ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1.2)
 # Add sonic line
 # sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
@@ -335,8 +356,9 @@ ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1
 dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
 ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
 # ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
-filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeXY_avg.svg'
-plt.savefig(filename, bbox_inches='tight')
+filename = var + str(np.round(freq1, 4)) + 'ModeXY'
+filename = path3D + filename.replace(".", "p")
+plt.savefig(filename + '.svg', bbox_inches='tight')
 plt.show()
 
 # %% plot in X-Z
@@ -373,7 +395,7 @@ c1 = -1.0 #-0.024
 c2 = 1.3 # -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
-cbar = ax.contourf(x, z, u, levels=lev1, cmap='jet', extend='both') 
+cbar = ax.contourf(x, z, u, levels=lev1, cmap='jet', extend='bo th') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
 ax.set_xlim(0.0, 20.0)
@@ -392,8 +414,9 @@ cbar.set_label(
     fontsize=numsize, labelpad=-26, y=1.12
 )
 ax.axvline(x=8.9, color="k", linestyle="--", linewidth=1.2)
-filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeXZ.svg'
-plt.savefig(filename, bbox_inches='tight')
+filename = var + str(np.round(freq1, 4)) + 'ModeXZ'
+filename = path3D + filename.replace(".", "p")
+plt.savefig(filename + '.svg', bbox_inches='tight')
 plt.show()
 
 
@@ -402,9 +425,9 @@ plt.show()
 plot 2D slice contour in Z-Y plane
 """
 # %% load data
-freq1 = 0.022  # freq[num]
-path1 = path3D + '0p022/'
-files = glob(path1 + '*DMD009?.plt')
+freq1 = 0.0126  # freq[num]
+path1 = path3D + '0p0126/'
+files = glob(path1 + '*DMD010?.plt')
 equs = ['{dudx}=ddx({u`})',
         '{dvdx}=ddx({v`})',
         '{dwdx}=ddx({w`})',
@@ -424,7 +447,7 @@ df = p2p.ReadAllINCAResults(path1, FileName=files, Equ=equs)
 var = 'vorticity_x'
 fa = 1.0   # for mean value
 amp = 1.0  # for fluctuations
-sliceflow = df.loc[df['x']==10.0]
+sliceflow = df.loc[df['x']==-6.0]
 zarr = sliceflow['z']
 yarr = sliceflow['y']
 z, y = np.meshgrid(np.unique(zarr), np.unique(yarr))
@@ -439,16 +462,16 @@ matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.6))
-c1 = -5.0 #-0.024
-c2 = 7.0 # -c1 # 0.010 #0.018
+c1 = -2.0 #-0.024
+c2 = 2.0 # -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 31)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(z, y, vor, levels=lev1, cmap='PRGn_r', extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
-ax.set_xlim(0.5, -3.5)
-ax.set_ylim(-3.0, -1.5)
-ax.set_yticks(np.linspace(-3.0, -1.5, 4))
+ax.set_xlim(3, 7)
+ax.set_ylim(0.5, 2.0)
+ax.set_yticks(np.linspace(0.5, 2.0, 4))
 ax.tick_params(labelsize=numsize)
 #cbar.cmap.set_under('#053061')
 #cbar.cmap.set_over('#67001f')
@@ -480,9 +503,10 @@ ax.streamplot(
     linewidth=0.6,
     integration_direction="both",
 )
-ax.annotate("(b)", xy=(-0.13, 0.97), xycoords='axes fraction', fontsize=numsize+1)
-filename = path3D + var + str(np.round(freq1, 3)) + 'DMDModeZY_9.svg'
-plt.savefig(filename, bbox_inches='tight')
+ax.annotate("(a)", xy=(-0.13, 0.97), xycoords='axes fraction', fontsize=numsize+1)
+filename = var + str(np.round(freq1, 3)) + 'ModeZY_9'
+filename = path3D + filename.replace(".", "p")
+plt.savefig(filename + '.svg', bbox_inches='tight')
 plt.show()
 
 # %%      

@@ -151,7 +151,7 @@ def viscosity(Re_delta, T, law='POW', T_inf=273):
 
 
 # Obtain BL thickness, momentum thickness, displacement thickness
-def bl_thickness(y, u, u_d=None, rho=None, opt=None):
+def bl_thickness(y, u, u_d=None, rho=None, opt=None, up=0.95):
     if isinstance(y, np.ndarray):
         pass
     else:
@@ -163,7 +163,7 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
     # ind = np.argsort(y)  # sort y from small to large
     if np.any(np.diff(y) <= 0):
         sys.exit('The boundary layer is not sorted in y-direction!!!')
-    bc = int(np.rint(np.size(y) * 0.95))
+    bc = int(np.rint(np.size(y) * up))
     y1 = y[:bc]  # remove the part near the farfield boundary conditions
     u1 = u[:bc]  # remove the part near the farfield boundary conditions
     if u_d is None:
@@ -178,16 +178,16 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None):
         return(delta, u_d)
     elif opt == 'displacement':
         rho1 = rho[:bc]
-        rho_d = np.max(rho1)
-        u_d = np.max(u1)
+        rho_d = np.max(rho1) # rho1[bl] # 
+        u_d = np.max(u1) # u1[bl] # 
         a1 = rho1*u1/rho_d/u_d
         var = 1-a1
         delta_star = np.trapz(var, y1)
         return(delta_star, u_d, rho_d)
     elif opt == 'momentum':
         rho1 = rho[:bc]
-        rho_d = np.max(rho1)
-        u_d = np.max(u1)
+        rho_d = np.max(rho1) # rho1[bl]  # 
+        u_d = np.max(u1) # u1[bl]  # 
         a1 = 1-u1/u_d
         a2 = rho1*u1/rho_d/u_d
         var = a1 * a2
@@ -1171,9 +1171,9 @@ def streamline(InFolder, df, seeds, OutFile=None,
                partition=None, opt='both'):
     if partition is None:
         xa1 = np.arange(-40.0, 0.0 + 0.03125, 0.03125)
-        ya1 = np.arange(0.0, 3.0 + 0.03125, 0.03125)
+        ya1 = np.arange(0.0, 5.0 + 0.03125, 0.03125)
         xa2 = np.arange(0.0, 40.0 + 0.03125, 0.03125)
-        ya2 = np.arange(-3.0, 5.0 + 0.03125, 0.03125)
+        ya2 = np.arange(3.0, 5.0 + 0.03125, 0.03125)
     else:
         if np.shape(partition) != (2, 3):
             sys.exit("the shape of partition does not match (2,3)!")

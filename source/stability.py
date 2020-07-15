@@ -317,7 +317,7 @@ fa = 1.7*1.7*1.4
 skip = 1
 dt = 0.25  # 0.25
 freq_samp = 1/dt  # 4.0
-timepoints = np.arange(550, 850.0 + dt, dt)
+timepoints = np.arange(600, 1100.0 + dt, dt)
 if np.size(dirs) != np.size(timepoints):
     sys.exit("The NO of snapshots are not equal to the NO of timespoints!!!")
 with timer("Load Data"):
@@ -434,7 +434,7 @@ plt.show()
     frequency-weighted PSD along a line
 """
 # %% compute
-var = 'p'
+var = 'u'
 skip = 1
 samples = int(np.size(timepoints) / skip / 2 + 1)
 FPSD = np.zeros((samples, np.size(xval)))

@@ -223,7 +223,7 @@ plt.show()
 """
 # %% Calculate singnal of Xr, Xsl, Xsf, Xb
 InFolder = path + 'Slice/S_009/'
-timezone = np.arange(550.0, 899.00 + 0.25, 0.25)
+timezone = np.arange(600.0, 1100.00 + 0.25, 0.25)
 skip = 1
 # -- separation location
 reatt = va.separate_loc(InFolder, pathI, timezone, skip=skip, opt=1) #, loc=-0.5, opt=1)
@@ -234,11 +234,12 @@ va.shock_foot(InFolder, pathI, timezone, 1.5, 0.87, skip=skip)  # 0.82 for lamin
 # -- area of the separation bubble
 va.bubble_area(InFolder, pathI, timezone, step=0, skip=skip)
 # -- a specific location, for example in the shear layer
+InFolder = path + 'Slice/Z_003/'
 xy = [-11.0625, 2.5] # [-4.375, 3.53125] # [-11.0625, 2.125]  # [-4.6875, 2.9375]  # 
 va.extract_point(InFolder, pathI, timezone, xy, skip=skip)
 dt = 0.25
 fs = 4.0
-x1x2 = [550, 900]
+x1x2 = [600, 1100]
 # %%############################################################################
 """
     Temporal evolution & Power spectral density
@@ -250,7 +251,7 @@ var = 'u'
 # probe = np.loadtxt(pathI + "ProbeKH.dat", skiprows=1)
 # func = interp1d(probe[:, 1], probe[:, 7])
 # Xk = func(timezone)  # probe[:, 8]
-probe = pd.read_csv(pathI + 'Xk5.dat', sep=' ',
+probe = pd.read_csv(pathI + 'Xk5_old.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
 Xk = probe[var].values
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
@@ -273,7 +274,7 @@ ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = va.fw_psd(Xk*fa, dt, 1/dt, opt=1, seg=8, overlap=4)
+Fre, FPSD = va.fw_psd(Xk*fa, dt, 1/dt, opt=1, seg=8, overlap=6)
 ax.semilogx(Fre, FPSD, "k", linewidth=0.8)
 ax.yaxis.offsetText.set_fontsize(numsize)
 # ax2nd = ax.secondary_xaxis('top', functions=(d2l, l2d))
@@ -325,7 +326,7 @@ shockloc = shock2[:, 1] - 8.0 / np.tan(angle/180*np.pi)  # outside the BL
 Xl = shockloc
 Xf = foot[:, 1]
 # %% temporal evolution
-Xa = angle # shock2[:, 1] # Xf # angle # Xf  # Xl  #      
+Xa = angle  # shock2[:, 1] # Xf # angle # Xf  # Xl  #      
 if np.array_equal(Xa, Xl):
     output = 'Shockloc'
     ylabel = r"$x_l/\delta_0$"
@@ -502,7 +503,7 @@ Xr0 = Xa # probe2[:, 1]
 fig = plt.figure(figsize=(6.4, 3.0))
 matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(121)
-Fre, coher = va.coherence(Xr0, Xs0, dt, fs, opt=1, seg=8, overlap=4)
+Fre, coher = va.coherence(Xr0, Xs0, dt, fs, opt=1, seg=8, overlap=2)
 #Fre1, coher1 = va.coherence(Xr1, Xs1, dt, fs)
 #Fre2, coher2 = va.coherence(Xr2, Xs2, dt, fs)
 ax.semilogx(Fre, coher, "k-", linewidth=1.0)
