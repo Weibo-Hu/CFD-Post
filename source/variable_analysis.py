@@ -1,13 +1,68 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue May 1 10:24:50 2018
-    This code for reading data from specific file to post-processing data
-    1. FileName (infile, VarName, (row1), (row2), (unique) ): sort data and
-    delete duplicates, SPACE is NOT allowed in VarName
-    2. MergeFile (NameStr, FinalFile): NameStr-input file name to be merged
-    3. GetMu (T): calculate Mu if not get from file
-    4. unique_rows (infile, outfile):
+
 @author: Weibo Hu
+@license: OpenSource
+
+This code for reading data from specific file to post-processing data.
+
+Overview:
+
+- basic_var(opt)
+- mean_var(opt)
+- intermittency(sigma, pressure, wall_pres, timezone)
+- alpha3(wall_pres)
+- viscosity(re_delta, temp, law, tmep_inf)
+- bl_thickness(y, u, u_d, rho, opt, up)
+- shape_factor(y, u, rho, u_d)
+- radius(x, y, opt)
+- curvature(x, y, opt)
+- gortler(re_inf, x, y, theta, scale, rad)
+- gortler_tur(theta, delta_star, rad, opt)
+- curvature_r(df, opt)
+- skinfriction(mu, du, dy)
+- tke(df)
+- psd(varzone, dt, freq_samp, opt, seg, overlap)
+- fw_psd(varzone, dt, freq_samp, opt, seg, overlap)
+- fw_psd_map(orig, xyz, var, dt, freq_samp, opt, seg, overlap)
+- rms(dataseries)
+- rms_map(orig, xyz, var)
+- cro_psd(var1, var2, dt, freq_samp, opt, seg, overlap)
+- coherence(var1, var2, dt, freq_samp, opt, seg, overlap)
+- std_wall_law()
+- ref_wall_law(Re_theta)
+- u_tau(frame, option)
+- direst_transform(frame, option)
+- direst_wall_lawRR(walldist, u_tau, uu, rho)
+- reattach_loc(InFolder, OutFolder, timezone, loc, skip, opt)
+- separate_loc(InFolder, OutFolder, timezone, loc, skip, opt)
+- extract_point(InFolder, OutFolder, timezone, xy, skip, col)
+- shock_foot(InFolder, OutFolder, timepoints, yval, var, skip)
+- shock_loc(InFolder, OutFolder, timepoints, skip, opt, val)
+- shock_line(dataframe, path)
+- shock_line_ffs(dataframe, path, val)
+- sonic_line(dataframe, path, option, Ma_inf)
+- dividing_line(dataframe, path, loc)
+- boundary_edge(dataframe, path, jump0, jump1, jump2, val1, val2)
+- bubble_area(InFolder, OutFolder, timezone, loc, step, skip, cutoff)
+- streamline(InFolder, df, seeds, OutFile, partition=None, opt):
+- correlate(x, y, method)
+- delay_correlate(x, y, dt, delay, method)
+- perturbations(orig, mean)
+- pert_at_loc(orig, var, loc, val, mean)
+- max_pert_along_y(orig, var, val, mean)
+- amplit(orig, xyz, var, mean)
+- growth_rate(xarr, var)
+- sec_ord_fdd(xarr, var)
+- integral_db(x, y, val, range1, range2, opt)
+- vorticity_abs(df, mode)
+- enstrophy(df, type, mode, rg1, rag2, opt)
+- vortex_dyna(df, type, opt)
+- grs(r, s, bs)
+- mixing(r, s, Cd, phi, opt)
+- stat2tot(Ma, Ts, opt, mode)
+
 """
 
 import numpy as np
@@ -17,18 +72,25 @@ import matplotlib
 import warnings
 import pandas as pd
 import variable_analysis as fv
-from scipy import interpolate
+from scipy import interpolate  # scipy.optimize
 from scipy.interpolate import griddata  # interp1d
 from scipy.integrate import trapz, dblquad  # simps,
-# import scipy.optimize
 from scipy.interpolate import splprep, splev, interp1d
-# from numpy import NaN, Inf, arange, isscalar, asarray, array
 import sys
 from timer import timer
 import os
+# from numpy import NaN, Inf, arange, isscalar, asarray, array
 
 
 def basic_var(opt):
+    """generate name list for the dataframe
+       
+       Args:
+        opt: if include vorticity or walldist
+
+       Return:
+        namelist and the corresponding equations
+    """
     varlist = [
         'x',
         'y',
@@ -56,6 +118,14 @@ def basic_var(opt):
 
 
 def mean_var(opt):
+    """generat name list for the meanflow dataframe
+       
+       Args:
+        opt: if include vorticity, velocity gradient or walldist
+
+       Return:
+        namelist and the corresponding equations
+    """
     varlist = [
         'x',
         'y',
@@ -105,8 +175,18 @@ def mean_var(opt):
     return(varlist, equ)
 
     
-# Obtain intermittency factor from an undisturbed and specific wall pressure
 def intermittency(sigma, Pressure0, WallPre, TimeZone):
+    """Obtain intermittency factor from pressure
+       
+       Args:
+        sigma: standard deviation of undisturbed wall pressure
+        pressure0: undisturbed wall pressure
+        wallpres: wall pressure
+        timezone: time periods
+
+       Return:
+        intermittency factor
+    """
     # AvePre    = np.mean(WallPre)
     AvePre = np.mean(Pressure0)
     # wall pressure standard deviation of undisturbed BL
@@ -1030,6 +1110,19 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
 
 
 def dividing_line(dataframe, path=None, loc=-0.015625):
+    """Obtain dividing line
+       
+       Args:
+        dataframe: dataframe
+        path: path of saving data
+        loc: point passing through the dividing line
+
+       Return:
+        array of coordinates
+    
+       Raises:
+        data error: find no bubble line
+    """
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
     NewFrame = dataframe.query("x>=-70.0 & x<=0.0 & y<=10.0")

@@ -238,7 +238,7 @@ MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 MeanFlow.copy_meanval()
 # %%
-xloc = np.linspace(-30.0, 20.0, 2001)
+xloc = np.linspace(-110.0, 30.0, 1121)
 xloc = np.delete(xloc, np.argwhere(xloc==0.0))
 dfx = MeanFlow.PlanarData
 dft = dfx[dfx.x.isin(xloc)]

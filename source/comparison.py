@@ -108,13 +108,13 @@ ax2.plot(xwall2[ind2], Cf2[ind2], "k--", linewidth=1.1)
 ax2.plot(xwall3[ind3], Cf3[ind3], "k:", linewidth=1.5)
 # ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
-ax2.set_xlim([-100, 20.0])
+ax2.set_xlim([-2, 2.0])
 ax2.tick_params(axis='x',          # changes apply to the x-axis
                 which='both',      # both major and minor ticks are affected
                 bottom=True,      # ticks along the bottom edge are off
                 top=False,         # ticks along the top edge are off
-                labelbottom=False)  # labels along the bottom edge are off)
-ax2.set_ylim([-0.004, 0.006])
+                labelbottom=True)  # labels along the bottom edge are off)
+ax2.set_ylim([-0.004, 0.004])
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)

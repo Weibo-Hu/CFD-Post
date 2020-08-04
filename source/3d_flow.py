@@ -107,11 +107,11 @@ va.shock_line_ffs(MeanFlow.PlanarData, pathM, val=[0.05])  # 0.065 for TB, 0.06 
 va.boundary_edge(MeanFlow.PlanarData, pathM, jump0=-18, jump1=-15.0,
                  jump2=6.0, val1=0.81, val2=0.973)
 # %%
-boundary = np.loadtxt(pathM + "BoundaryEdgeFit1.dat", skiprows=1)
+boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
-bsp = splrep(boundary[:, 0], boundary[:, 1], s=6.0, per=1)
-y_new = splev(boundary[:, 0], bsp)
-xy_fit = np.vstack((boundary[:, 0], y_new))
+bsp = splrep(boundary[1400:, 0], boundary[1400:, 1], s=6.0, per=1)
+y_new = splev(boundary[1400:, 0], bsp)
+xy_fit = np.vstack((boundary[1400:, 0], y_new))
 np.savetxt(
     pathM + "BoundaryEdgeFit.dat",
     xy_fit.T,
@@ -120,7 +120,7 @@ np.savetxt(
     header="x, y"
 )
 fig, ax = plt.subplots(figsize=(6.6, 2.3))
-ax.plot(xy_fit[0, :], xy_fit[1, :])
+ax.plot(xy_fit[0, :], xy_fit[1, :], 'b-')
 ax.plot(boundary[:, 0], boundary[:, 1], 'r:')
 ax.plot(dividing[:, 0], dividing[:, 1], "g--", linewidth=1.5)
 shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)

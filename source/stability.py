@@ -30,7 +30,7 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/IM2/FFS_M1.7TB/"
+path = "/media/weibo/IM2/FFS_M1.7ZA2/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -74,7 +74,7 @@ stat = MeanFlow.PlanarData
 """
 # %% save dividing line coordinates
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)[:-2, :]
-x1 = np.arange(-40.0, dividing[0, 0], 0.125)
+x1 = np.arange(-120.0, dividing[0, 0], 0.125)
 y1 = np.ones(np.size(x1)) * 0.0023
 x2 = np.arange(dividing[-1, 0], 20.0+0.125, 0.125)
 y2 = np.ones(np.size(x2)) * 3.001953
@@ -111,12 +111,12 @@ plt.savefig(
 )
 
 # %% compute coordinates where the BL profile has Max RMS along streamwise direction
-varn = '<p`p`>'
+varn = '<u`u`>'
 if varn == '<u`u`>':
     savenm = "MaxRMS_u.dat"
 elif varn =='<p`p`>':
     savenm = "MaxRMS_p.dat"
-xnew = np.arange(-40.0, 40.0+0.125, 0.125)
+xnew = np.arange(-110.0, 40.0+0.125, 0.125)
 znew = np.zeros(np.size(xnew))
 varv = np.zeros(np.size(xnew))
 ynew = np.zeros(np.size(xnew))
@@ -131,7 +131,7 @@ df.to_csv(pathM + savenm, sep=' ',
           float_format='%1.8e', index=False)
 
 # %% save the grid points on the wall
-xnew = np.arange(-40.0, 40.0+0.125, 0.125)
+xnew = np.arange(-110.0, 40.0+0.125, 0.125)
 ynew = 0.0023 * np.ones(np.size(xnew))
 ind = np.where(xnew >= 0.0)
 ynew[ind] = 3.001953
@@ -177,6 +177,8 @@ plt.savefig(
 )
 
 # %% Plot RMS of velocity on the wall along streamwise direction
+thick = pd.read_csv(pathM + 'fit_thickness.dat', sep=' ')
+shape_fa = thick['displace'] / thick['momentum']
 xynew = pd.read_csv(pathM + 'MaxRMS_u.dat', sep=' ')
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=numsize)
@@ -185,11 +187,16 @@ ax.set_ylabel(ylab, fontsize=textsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.plot(xynew['x'], xynew['<u`u`>'], 'k')
 ax.set_yscale('log')
-ax.set_xlim([-30, 20])
+ax.set_xlim([-100, 20])
 # ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.grid(b=True, which="both", linestyle=":")
 ax.tick_params(labelsize=numsize)
 ax.yaxis.offsetText.set_fontsize(numsize-1)
+
+ax2 = ax.twinx()
+ax2.plot(thick['x'], shape_fa, 'k--')
+ax2.set_ylabel(r"$H$", fontsize=textsize)
+
 plt.show()
 plt.savefig(
     pathF + "MaxRMS_x.svg", bbox_inches="tight", pad_inches=0.1
