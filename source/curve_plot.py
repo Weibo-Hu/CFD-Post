@@ -2,7 +2,7 @@
 """
 Created on Wed Jul  4 15:22:31 2018
     This code for plotting line/curve figures
-z
+
 @author: weibo
 """
 # %% Load necessary module
@@ -134,11 +134,48 @@ plt.savefig(
 # BLProf = grouped.mean().reset_index()
 # BLProf['walldist'] = BLProf['y']
 # BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
+# %% comparison
+
+path1 = "/media/weibo/IM2/Sensitive/G1_b/"
+pathM1 = path1 + 'MeanFlow/'
+MeanFlow1 = pf()
+MeanFlow1.load_meanflow(path1)
+MeanFlow1.add_walldist(StepHeight)
+MeanFlow1.copy_meanval()
+
+path2 = "/media/weibo/IM2/Sensitive/G2/"
+pathM2 = path2 + 'MeanFlow/'
+MeanFlow2 = pf()
+MeanFlow2.load_meanflow(path2)
+MeanFlow2.add_walldist(StepHeight)
+MeanFlow2.copy_meanval()
+
+
+# %%
+x1 = -20.0
+BLProf1 = MeanFlow1.yprofile('x', -30.0)
+CalUPlus1 = va.direst_transform(BLProf1, option='mean', grad=True)
+BLProf1 = MeanFlow1.yprofile('x', x1)
+u_tau1 = va.u_tau(BLProf1, option='mean', grad=True)
+xi1 = np.sqrt(BLProf1['<rho>'] / BLProf1['<rho>'].values[1])
+uu1 = np.sqrt(BLProf1['<u`u`>']) / u_tau1 * xi1
+vv1 = np.sqrt(BLProf1['<v`v`>']) / u_tau1 * xi1
+ww1 = np.sqrt(BLProf1['<w`w`>']) / u_tau1 * xi1
+uv1 = BLProf1['<u`v`>'] / u_tau1**2 * xi1**2
+BLProf2 = MeanFlow2.yprofile('x', -30.0)
+CalUPlus2 = va.direst_transform(BLProf2, option='mean', grad=True)
+BLProf2 = MeanFlow2.yprofile('x', x1)
+u_tau2 = va.u_tau(BLProf2, option='mean', grad=True)
+xi2 = np.sqrt(BLProf2['<rho>'] / BLProf2['<rho>'].values[1])
+uu2 = np.sqrt(BLProf2['<u`u`>']) / u_tau2 * xi2
+vv2 = np.sqrt(BLProf2['<v`v`>']) / u_tau2 * xi2
+ww2 = np.sqrt(BLProf2['<w`w`>']) / u_tau2 * xi2
+uv2 = BLProf2['<u`v`>'] / u_tau2**2 * xi2**2
 # %% velocity profile, computation
-x0 = -5.0
+x0 = -10.0 # -0.3125  # -6.0, # -0.875 # -0.75
 # results from LES
 MeanFlow.copy_meanval()
-BLProf = MeanFlow.yprofile('x', x0)
+BLProf = MeanFlow.yprofile('x', -2.0)
 
 u_tau = va.u_tau(BLProf, option='mean', grad=True)
 mu_inf = BLProf['<mu>'].values[-1]
@@ -172,7 +209,7 @@ ax.plot(
     StdUPlus2[:, 0],
     StdUPlus2[:, 1],
     "k--",
-    linewidth=1.5,
+    linewidth=1.0,
 )
 ax.scatter(
     ExpUPlus[:, 0],
@@ -186,7 +223,9 @@ ax.scatter(
 # uplus = splev(CalUPlus[:, 0], spl)
 # ax.plot(CalUPlus[:, 0], uplus, 'k', linewidth=1.5)
 # ax.scatter(CalUPlus[:, 0], CalUPlus[:, 1], s=15)
-ax.plot(CalUPlus[:, 0], CalUPlus[:, 1], "k", linewidth=1.5)
+ax.plot(CalUPlus[:, 0], CalUPlus[:, 1], "k", linewidth=1.0)
+ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "k:", linewidth=1.0)
+ax.plot(CalUPlus2[:, 0], CalUPlus2[:, 1], "k-.", linewidth=1.0)
 #ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "r:", linewidth=1.5)
 ax.set_xscale("log")
 ax.set_xlim([0.5, 2000])
@@ -209,6 +248,7 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
     va.ref_wall_law(Re_theta)
 # results from current LES
+BLProf = MeanFlow.yprofile('x', x0)
 xi = np.sqrt(BLProf['<rho>'] / BLProf['<rho>'].values[1])
 uu = np.sqrt(BLProf['<u`u`>']) / u_tau * xi
 vv = np.sqrt(BLProf['<v`v`>']) / u_tau * xi
@@ -251,10 +291,18 @@ ax2.scatter(
     facecolor="none",
     edgecolor="gray",  # "gray",
 )
-ax2.plot(CalUPlus[:, 0], uu[1:], "k", linewidth=1.5)
-ax2.plot(CalUPlus[:, 0], vv[1:], "k", linewidth=1.5)
-ax2.plot(CalUPlus[:, 0], ww[1:], "k", linewidth=1.5)
-ax2.plot(CalUPlus[:, 0], uv[1:], "k", linewidth=1.5)
+ax2.plot(CalUPlus[:, 0], uu[1:], "k", linewidth=1.0)
+ax2.plot(CalUPlus[:, 0], vv[1:], "k", linewidth=1.0)
+ax2.plot(CalUPlus[:, 0], ww[1:], "k", linewidth=1.0)
+ax2.plot(CalUPlus[:, 0], uv[1:], "k", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], uu1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], vv1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], ww1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], uv1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], uu2[1:], "k-.", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], vv2[1:], "k-.", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], ww2[1:], "k-.", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], uv2[1:], "k-.", linewidth=1.0)
 ax2.set_xscale("log")
 ax2.set_ylim([-1.5, 3.5])
 ax2.set_xlim([1, 2000])

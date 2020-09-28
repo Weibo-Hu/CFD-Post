@@ -545,6 +545,7 @@ for ii in range(np.size(num)):
 # %% Convert plots to animation
 import imageio
 from natsort import natsorted, ns
+path_id = path + "3D_DMD_1200/0p022_ani/0/"
 dirs = os.listdir(path_id)
 dirs = natsorted(dirs, key=lambda y: y.lower())
 with imageio.get_writer(path_id+fstr+'DMDAnima.mp4', mode='I', fps=2) as writer:

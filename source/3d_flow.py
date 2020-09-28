@@ -250,7 +250,7 @@ plt.show()
 """
 # %% Plot contour of the instantaneous flow field with isolines
 # MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
-InstFlow = pd.read_hdf(pathSL + 'Z_03/TP_2D_Z_03_01295.00.h5')
+InstFlow = pd.read_hdf(pathSL + 'Z_03/TP_2D_Z_03_01292.00.h5')
 var = 'u'
 var1 = 'vorticity_3'
 u = griddata((InstFlow.x, InstFlow.y), InstFlow[var], (x, y))
@@ -260,31 +260,50 @@ print("u=", np.min(InstFlow[var]))
 u[corner] = np.nan
 cval1 = -0.2
 cval2 = 1.1
-fig, ax = plt.subplots(figsize=(3.6, 2.0))
+fig, ax = plt.subplots(figsize=(6.0, 3.0))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(0.0, 6.0)
+ax.set_xlim(0.0, 4.0)
 ax.set_ylim(-2.0, 0.0)
+ax.set_yticks([-2.0, -1.5, -1.0, -0.5, 0.0])
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
-ax.set_title(r"$t u_\infty /\delta_0=1295$", fontsize=textsize-1, pad=0.1)
-ax.grid(b=True, which="both", linestyle=":")
+ax.set_title(r"$t u_\infty /\delta_0=1292$", fontsize=textsize-1, pad=0.1)
+# ax.grid(b=True, which="both", linestyle=":")
 # plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(cval1, cval2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.025, pad=0.05)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.set_label(
-    r"$u/u_{\infty}$", rotation=0, fontsize=textsize-1, labelpad=-28, y=1.13
+    r"$u/u_{\infty}$", rotation=0, fontsize=textsize-1, labelpad=-30, y=1.1
 )
 
 # Add isolines
-cbar = ax.contour(x, y, gradp, levels=[-3.6], colors='k',
-                  alpha=1.0, linewidths=1.0, linestyles='--')
+#cbar = ax.contour(x, y, gradp, levels=[-3.6], colors='k',
+#                  alpha=1.0, linewidths=1.0, linestyles='--')
 
-plt.savefig(pathF + "Shedding2.svg", bbox_inches="tight")
+# streamlines
+x1 = np.linspace(0.0, 6.0, 140)
+y1 = np.linspace(-3.0, -0.0, 90)
+xbox, ybox = np.meshgrid(x1, y1)
+u = griddata((InstFlow.x, InstFlow.y), InstFlow.u, (xbox, ybox))
+v = griddata((InstFlow.x, InstFlow.y), InstFlow.v, (xbox, ybox))
+ax.streamplot(
+    xbox,
+    ybox,
+    u,
+    v,
+    color="k",
+    density=[3.0, 3.0],
+    arrowsize=0.7,
+    maxlength=30.0,
+    linewidth=0.6,
+)
+
+plt.savefig(pathF + "Shedding1.svg", bbox_inches="tight")
 plt.show()
 
 

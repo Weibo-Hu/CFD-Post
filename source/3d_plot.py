@@ -169,7 +169,9 @@ df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
 del time_ave
 # %% skin friction
 Re = 13718
-# df = pd.read_hdf(pathT + 'WallValue.h5')
+df = pd.read_hdf(pathT + 'WallValue.h5')
+grouped = df.groupby(['x', 'y', 'z'])
+df = grouped.mean().reset_index()
 mu = va.viscosity(Re, df['T'], law='POW')  # df['<T>'],
 Cf = va.skinfriction(mu, df['u'], df['walldist'])  # df['<u>']
 df['Cf'] = Cf
@@ -211,6 +213,41 @@ plt.savefig(pathF + "skinfriction1.svg", bbox_inches="tight")
 plt.show()
 
 
+# %% 
+zprof1 = df.loc[df['x']==-5.0]
+zprof2 = df.loc[df['x']==10.0] 
+fig, ax = plt.subplots(2, 1, figsize=(6.4, 2.4))
+matplotlib.rc("font", size=numsize)
+val1 = np.sign(zprof1['u'] - np.mean(zprof1['u']))
+ax[0].plot(zprof1['z'], val1, 'k-', linewidth=1.0)
+# ax[0].axhline(y=np.mean(zprof1['u']), color="k", linestyle="--", linewidth=0.8)
+ax[0].set_xlim([-8.0, 8.0])
+ax[0].set_xticklabels('')
+ax[0].ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+val2 = np.sign(zprof2['u'] - np.mean(zprof2['u']))
+ax[1].plot(zprof2['z'], val2, 'b-', linewidth=1.0)
+# ax[1].axhline(y=np.mean(zprof2['u']), color="b", linestyle="--", linewidth=0.8)
+ax[1].set_xlim([-8.0, 8.0])
+ax[0].set_ylabel(r"$u/u_\infty$", fontsize=textsize)
+ax[1].set_xlabel(r"$z/\delta_0$", fontsize=textsize)
+plt.savefig(pathF + "zprofile.svg", bbox_inches="tight")
+plt.show()
+
+# %%
+fig, ax = plt.subplots(figsize=(2.4, 2.2))
+freq1, FPSD1 = va.fw_psd(val1, 0.0625, 16, opt=1, seg=8, overlap=4)
+freq2, FPSD2 = va.fw_psd(val2, 0.0625, 16, opt=1, seg=8, overlap=4)
+matplotlib.rc("font", size=numsize)
+ax.plot(freq1, FPSD1, 'k-', linewidth=1.0)
+ax.plot(freq2, FPSD2, 'b-', linewidth=1.0)
+ax.set_xlabel(r"$k_z$", fontsize=textsize)
+ax.set_ylabel(r'$f \mathcal{P}(f)$', fontsize=textsize)
+ax.yaxis.tick_right()
+ax.yaxis.set_label_position("right")
+ax.grid(b=True, which="both", linestyle=":")
+ax.set_xscale('log')
+plt.savefig(pathF + "zprofile_psd.svg", bbox_inches="tight")
+plt.show()
 """
 calculate and save boundary layer thickness
 """
@@ -298,7 +335,7 @@ calculate and plot for contours of Gortler number
 """
 # %% calculate gortler
 df = MeanFlow.PlanarData
-curvature = va.curvature_r(df, opt='mean')
+curvature_radius = va.curvature_r(df, opt='mean')
 thick = pd.read_csv(pathM + 'thickness.dat', sep=' ')
 x1 = np.linspace(-10.0, 30.0, 801)
 y1 = np.linspace(-3.0, 10.0, 209)
@@ -307,7 +344,7 @@ theta0 = np.interp(x1, thick['x'], thick['momentum'])
 star0 = np.interp(x1, thick['x'], thick['displace'])
 theta = np.tile(theta0, (np.size(y1), 1))
 star = np.tile(star0, (np.size(y1), 1))
-radius = griddata((df.x, df.y), curvature, (x2, y2))
+radius = griddata((df.x, df.y), curvature_radius, (x2, y2))
 gortler = va.gortler_tur(theta, star, radius)
 corner = (x2 < 0.0) & (y2 < 0.0)
 gortler[corner] = np.nan

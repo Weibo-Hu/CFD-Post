@@ -205,10 +205,6 @@ def shape_factor(y, u, rho, u_d=None):
 
 # radius of curve curvature
 def radius(x, y, opt='external'):
-    y1 = fv.sec_ord_fdd(x, y)
-    y2 = fv.sec_ord_fdd(x, y1)
-    a1 = 1+(y1)**2
-    a2 = np.abs(y2)
     curva = curvature(x, y, opt=opt)
     radi = 1/curva
     return radi
@@ -260,8 +256,8 @@ def curvature_r(df, opt='mean'):
     dvdy = df['dvdy']
     numerator = u**2 * dvdx - v**2 * dudy + u*v*(dvdy - dudx)
     denominator = np.power(u**2+v**2, 3.0/2.0)
-    curvature = numerator / denominator 
-    return curvature
+    radius = numerator / denominator 
+    return radius
 
 
 # Obtain skin friction coefficency
