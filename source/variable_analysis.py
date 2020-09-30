@@ -1015,7 +1015,7 @@ def shock_line(dataframe, path):
 
 
 # Save shock isoline
-def shock_line_ffs(dataframe, path, val=[0.06]):
+def shock_line_ffs(dataframe, path, val=[0.06], show=False):
     if not isinstance(val, list):
         print("input value must be an array!")
         exit
@@ -1036,7 +1036,8 @@ def shock_line_ffs(dataframe, path, val=[0.06]):
     )
     ax.set_xlim([-30.0, 10.0])
     ax.set_ylim([0.0, 12.0])
-    plt.close()
+    if show == False:
+        plt.close()
     header = "x, y"
     xycor1 = np.empty(shape=[0, 2])
     xycor2 = np.empty(shape=[0, 2])

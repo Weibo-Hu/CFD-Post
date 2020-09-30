@@ -31,7 +31,7 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/IM2/FFS_M1.7ZA2/"
+path = "/media/weibo/IM2/FFS_70_SFD/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -95,32 +95,35 @@ plt.show()
 # %% dividing streamline
 MeanFlow.copy_meanval()
 points = np.array([[0.0], [3.0]])
-xyzone = np.array([[-100.0, 0.0, 40.0], [0.0, 3.0, 6.0]])
+xyzone = np.array([[-70.0, 0.0, 40.0], [0.0, 3.0, 6.0]])
 va.streamline(pathM, MeanFlow.PlanarData, points, partition=xyzone, opt='up')
 # %% Mean flow isolines
 va.dividing_line(MeanFlow.PlanarData, pathM)  # (MeanFlow.PlanarData, pathM, loc=2.5)
 # %% Save sonic line
 va.sonic_line(MeanFlow.PlanarData, pathM, option='velocity', Ma_inf=1.7)
 # %% Save shock line
-va.shock_line_ffs(MeanFlow.PlanarData, pathM, val=[0.05])  # 0.065 for TB, 0.06 for ZA
+va.shock_line_ffs(MeanFlow.PlanarData, pathM, val=[0.065], show=True)  # 0.065 for TB, 0.06 for ZA
 # %% Save boundary layer
 va.boundary_edge(MeanFlow.PlanarData, pathM, jump0=-18, jump1=-15.0,
-                 jump2=6.0, val1=0.81, val2=0.973)
+                 jump2=6.0, val1=0.78, val2=0.973)
 # %%
 boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
-bsp = splrep(boundary[1400:, 0], boundary[1400:, 1], s=6.0, per=1)
-y_new = splev(boundary[1400:, 0], bsp)
-xy_fit = np.vstack((boundary[1400:, 0], y_new))
+bsp = splrep(boundary[:550, 0], boundary[:550, 1], k=2, s=3.0, per=0.0)
+x_new = np.arange(np.min(boundary[:550,0]), np.max(boundary[:550,0]), 0.125)
+y_new = splev(x_new, bsp)
+xy_fit = np.vstack((x_new, y_new))
 np.savetxt(
-    pathM + "BoundaryEdgeFit.dat",
+    pathM + "BoundaryEdgeFit1.dat",
     xy_fit.T,
     fmt="%.8e",
     delimiter="  ",
     header="x, y"
 )
+# %% 
+xy_fit = np.loadtxt(pathM + "BoundaryEdgeFit.dat", skiprows=1)
 fig, ax = plt.subplots(figsize=(6.6, 2.3))
-ax.plot(xy_fit[0, :], xy_fit[1, :], 'b-')
+ax.plot(xy_fit[:, 0], xy_fit[:, 1], 'b-')
 ax.plot(boundary[:, 0], boundary[:, 1], 'r:')
 ax.plot(dividing[:, 0], dividing[:, 1], "g--", linewidth=1.5)
 shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
