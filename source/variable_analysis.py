@@ -554,9 +554,11 @@ def ref_wall_law(Re_theta):
         file = path + 'vel_1000_dns.prof'
     elif 1200 < Re_theta <= 1700:
         file = path + 'vel_1410_dns.prof'
-    elif 1700 < Re_theta <= 2075:
+    elif 1700 < Re_theta <= 2050:
         file = path + 'vel_2000_dns.prof'
-    elif 2075 < Re_theta <= 2300:
+    elif 2050 < Re_theta <= 2100:
+        file = path + 'vel_2080_dns.prof'
+    elif 2100 < Re_theta <= 2300:
         file = path + 'vel_2150_dns.prof'
     elif 2300 < Re_theta <= 2500:
         file = path + 'vel_2400_dns.prof'
@@ -583,15 +585,19 @@ def ref_wall_law(Re_theta):
     vrms_plus = ExpData[:, 4]
     wrms_plus = ExpData[:, 5]
     uv_plus = ExpData[:, 6]
+    if n > 7:
+        Xi = ExpData[:, 7]
+    else:
+        Xi = np.ones(np.shape(y_plus))
     UPlus = np.column_stack((y_plus, u_plus))
     UVPlus = np.column_stack((y_plus, uv_plus))
     UrmsPlus = np.column_stack((y_plus, urms_plus))
     VrmsPlus = np.column_stack((y_plus, vrms_plus))
     WrmsPlus = np.column_stack((y_plus, wrms_plus))
-    return (UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus)
+    return (UPlus, UVPlus, UrmsPlus, VrmsPlus, WrmsPlus, Xi)
 
 
-def u_tau(frame, option='mean'):
+def u_tau(frame, option='mean', grad=False):
     """
     input
     ------
@@ -622,7 +628,6 @@ def u_tau(frame, option='mean'):
 #        func = interp1d(frame['walldist'].values, frame['u'].values, kind='cubic')
 #        delta_u = func(0.004)
 #        walldist2 = 0.004
-    grad = False
     if(grad==True):
         tau_wall = mu_wall * u_grad[1]
     else:
