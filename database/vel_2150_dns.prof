@@ -1,12 +1,14 @@
 LES of a turbulent zero-pressure gradient boundary layer
 Reference: Schlatter et al., Int. J. Heat Fluid Flow 31, 251-261 (2010)
  
+
 Integral quantities:
 Re_{\theta}   =       2166.883
 Re_{\delta^*} =       3062.025
 Re_{\tau}     =       721.5341
 H_{12}        =       1.413102
 c_f           =    0.003503871
+
 
 Wall-normal profiles:
 y/\delta_{99}       y+          U+          urms+       vrms+       wrms+       uv+         prms+

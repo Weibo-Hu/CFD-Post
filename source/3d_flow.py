@@ -250,7 +250,7 @@ plt.show()
 """
 # %% Plot contour of the instantaneous flow field with isolines
 # MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
-InstFlow = pd.read_hdf(pathSL + 'Z_03/TP_2D_Z_03_01292.00.h5')
+InstFlow = pd.read_hdf(pathSL + 'Z_03/TP_2D_Z_03_01295.00.h5')
 var = 'u'
 var1 = 'vorticity_3'
 u = griddata((InstFlow.x, InstFlow.y), InstFlow[var], (x, y))
@@ -260,17 +260,17 @@ print("u=", np.min(InstFlow[var]))
 u[corner] = np.nan
 cval1 = -0.2
 cval2 = 1.1
-fig, ax = plt.subplots(figsize=(6.0, 3.0))
+fig, ax = plt.subplots(figsize=(5.0, 2.5))
 matplotlib.rc("font", size=textsize)
 rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
 ax.set_xlim(0.0, 4.0)
 ax.set_ylim(-2.0, 0.0)
 ax.set_yticks([-2.0, -1.5, -1.0, -0.5, 0.0])
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
-ax.set_title(r"$t u_\infty /\delta_0=1292$", fontsize=textsize-1, pad=0.1)
+ax.tick_params(labelsize=numsize+1)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize+1)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize+1)
+ax.set_title(r"$t u_\infty /\delta_0=1295$", fontsize=textsize-1, pad=0.1)
 # ax.grid(b=True, which="both", linestyle=":")
 # plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
@@ -278,7 +278,7 @@ rg2 = np.linspace(cval1, cval2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.025, pad=0.05)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.set_label(
-    r"$u/u_{\infty}$", rotation=0, fontsize=textsize-1, labelpad=-30, y=1.1
+    r"$u/u_{\infty}$", rotation=0, fontsize=textsize, labelpad=-30, y=1.1
 )
 
 # Add isolines
@@ -303,7 +303,7 @@ ax.streamplot(
     linewidth=0.6,
 )
 
-plt.savefig(pathF + "Shedding1.svg", bbox_inches="tight")
+plt.savefig(pathF + "Shedding2.svg", bbox_inches="tight")
 plt.show()
 
 

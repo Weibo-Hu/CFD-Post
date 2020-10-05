@@ -1,12 +1,14 @@
 DNS of a turbulent zero-pressure gradient boundary layer
 Reference: Schlatter et al., Phys. Fluids 21, 051702 (2009)
- 
+
+
 Integral quantities:
 Re_{\theta}   =       2400.206
 Re_{\delta^*} =       3384.808
 Re_{\tau}     =       802.2587
 H_{12}        =       1.410216
 c_f           =    0.003388410
+
 
 Wall-normal profiles:
 y/\delta_{99}       y+          U+          urms+       vrms+       wrms+       uv+         prms+       pu+         pv+

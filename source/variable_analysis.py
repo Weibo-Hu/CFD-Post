@@ -470,9 +470,11 @@ def ref_wall_law(Re_theta):
         file = path + 'vel_1000_dns.prof'
     elif 1200 < Re_theta <= 1700:
         file = path + 'vel_1410_dns.prof'
-    elif 1700 < Re_theta <= 2075:
+    elif 1700 < Re_theta <= 2050:
         file = path + 'vel_2000_dns.prof'
-    elif 2075 < Re_theta <= 2300:
+    elif 2050 < Re_theta <= 2120:
+        file = path + 'vel_2080_dns.prof'
+    elif 2120 < Re_theta <= 2300:
         file = path + 'vel_2150_dns.prof'
     elif 2300 < Re_theta <= 2500:
         file = path + 'vel_2400_dns.prof'
