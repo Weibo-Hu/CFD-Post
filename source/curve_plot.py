@@ -23,7 +23,7 @@ from planar_field import PlanarField as pf
 # %% data path settings
 # host = "/run/user/1000/gvfs/sftp:host=cartesius.surfsara.nl,user="
 # path = host + "weibohu/nfs/home6/weibohu/weibo/FFS_M1.7TB/"
-path = "/media/weibo/IM2/FFS_M1.7TB/"
+path = "/media/weibo/IM2/FFS_M1.7TB1/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -77,7 +77,7 @@ MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
 
 # %% Load laminar data for comparison
-path0 = "/media/weibo/IM2/FFS_M1.7ZA2/"
+path0 = "/media/weibo/IM2/FFS_70_SFD/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
@@ -96,7 +96,7 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-120, -80, -60, -30, -10, 0, 10, 20])
+xcoord = np.array([-50, -25, -10, -5, -3, 0, 5, 10])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df['walldist']
@@ -298,7 +298,7 @@ def yplus(MeanFlow, dy, wallval, opt):
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData['x'] < 0.0]
     elif opt == 2:
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData['x'] > 0.0]
-    frame = TempFlow.loc[np.around(TempFlow['y'], 6) == np.around(dy, 6)]
+    frame = TempFlow.loc[np.round(TempFlow['y'], 9) == dy]
     frame1 = TempFlow.loc[TempFlow['y'] == wallval]
     x = frame['x'].values
     rho = frame1['<rho>'].values
@@ -309,7 +309,8 @@ def yplus(MeanFlow, dy, wallval, opt):
     yplus = (dy - wallval) * u_tau * rho / mu
     return (x, yplus)
 
-x1, yplus1 = yplus(MeanFlow, 0.0023002559, 0.0, opt=1)  # upsteam the step
+
+x1, yplus1 = yplus(MeanFlow, 0.002300256, 0.0, opt=1)  # upsteam the step
 x2, yplus2 = yplus(MeanFlow, 3.001953125, 3.0, opt=2)  # downstream
 res = np.vstack((np.hstack((x1, x2)), np.hstack((yplus1, yplus2))))
 frame2 = pd.DataFrame(data=res.T, columns=['x', 'yplus'])
@@ -323,7 +324,7 @@ fig3, ax3 = plt.subplots(figsize=(6.4, 3.0))
 ax3.plot(yp['x'], yp['yplus'], "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\Delta y^{+}$", fontsize=textsize)
-ax3.set_xlim([-120.0, 40.0])
+ax3.set_xlim([-70.0, 40.0])
 ax3.set_ylim([0.0, 2.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
@@ -480,7 +481,9 @@ xwall0 = WallFlow0['x'].values
 # %% Plot streamwise skin friction
 MeanFlow.copy_meanval()
 WallFlow = MeanFlow.PlanarData.groupby("x", as_index=False).nth(1)
-# WallFlow = WallFlow[WallFlow.x != -0.0078125]
+if np.size(np.unique(WallFlow['y'])) > 2:
+    maxy = np.max(WallFlow['y'])
+    WallFlow = WallFlow.drop(WallFlow[WallFlow['y']==maxy].index)
 mu = va.viscosity(13718, WallFlow["T"])
 Cf = va.skinfriction(mu, WallFlow["u"], WallFlow["walldist"]).values
 ind = np.where(Cf[:] < 0.008)
@@ -536,7 +539,7 @@ ax3.annotate("(b)", xy=(-0.17, 1.0), xycoords='axes fraction',
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 # plt.savefig(path2 + "Cp.svg", dpi=300)
-plt.savefig(pathF + "CfCp_ftb.pdf", dpi=300)
+plt.savefig(pathF + "CfCp_ftb.svg", dpi=300)
 plt.show()
 
 # % turbulent kinetic energy
