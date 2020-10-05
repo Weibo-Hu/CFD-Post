@@ -175,7 +175,7 @@ uv2 = BLProf2['<u`v`>'] / u_tau2**2 * xi2**2
 x0 = -15.0# -0.3125  # -6.0, # -0.875 # -0.75
 # results from LES
 MeanFlow.copy_meanval()
-BLProf = MeanFlow.yprofile('x', -5.0)  # -2.0
+BLProf = MeanFlow.yprofile('x', -10.0)  # -2.0
 
 u_tau = va.u_tau(BLProf, option='mean', grad=True)
 mu_inf = BLProf['<mu>'].values[-1]
@@ -245,7 +245,7 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 
 #  Reynolds stresses in Morkovin scaling
 # results from known DNS
-ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus = \
+ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus, Xi = \
     va.ref_wall_law(Re_theta)
 # results from current LES
 BLProf = MeanFlow.yprofile('x', x0)
@@ -258,10 +258,11 @@ uv = BLProf['<u`v`>'] / u_tau**2 * xi**2
 # uu = splev(CalUPlus[:, 0], spl)
 # plot Reynolds stress
 # fig, ax = plt.subplots(figsize=(3.2, 3.2))
+Xi = 1.0
 ax2 = fig.add_subplot(122)
 ax2.scatter(
     ExpUrmsPlus[:, 0],
-    ExpUrmsPlus[:, 1],
+    ExpUrmsPlus[:, 1] *  Xi,
     linewidth=0.8,
     s=16,
     facecolor="none",
@@ -269,7 +270,7 @@ ax2.scatter(
 )
 ax2.scatter(
     ExpVrmsPlus[:, 0],
-    ExpVrmsPlus[:, 1],
+    ExpVrmsPlus[:, 1] * Xi,
     linewidth=0.8,
     s=16,
     facecolor="none",
@@ -277,7 +278,7 @@ ax2.scatter(
 )
 ax2.scatter(
     ExpWrmsPlus[:, 0],
-    ExpWrmsPlus[:, 1],
+    ExpWrmsPlus[:, 1] * Xi,
     linewidth=0.8,
     s=16,
     facecolor="none",
@@ -285,7 +286,7 @@ ax2.scatter(
 )
 ax2.scatter(
     ExpUVPlus[:, 0],
-    ExpUVPlus[:, 1],
+    ExpUVPlus[:, 1] * Xi,
     linewidth=0.8,
     s=16,
     facecolor="none",
