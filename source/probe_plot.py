@@ -18,7 +18,7 @@ import variable_analysis as va
 from line_field import LineField as lf
 
 # -- data path settings
-path = "/media/weibo/IM2/FFS_M1.7TB/"
+path = "/media/weibo/IM2/FFS_M1.7SFD120/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -46,11 +46,15 @@ numsize = 10
 """
 # %% Time evolution of a specific variable at several streamwise locations
 probe = lf()
-fa = 1.7 * 1.7 * 1.4
+fa = 1.0
 var = 'p'
-timezone = np.arange(850.25, 850.00 + 0.25, 0.25)
-xloc = [-70.0, -50.0, -30.0, -20.0, 0.0]
-yloc = 0.0
+ylab = r"$u^\prime/u_\infty$"
+if var == 'p':
+    fa = 1.7 * 1.7 * 1.4
+    ylab = r"$p^\prime/p_\infty$"
+timezone = np.arange(900, 1620 + 0.125, 0.125)
+xloc = [-36, -33, -30, -27, -24]# [-50.0, -30.0, -20.0, -10.0, 4.0]
+yloc =  [0.0, 0.0, 0.0, 0.0, 0.0]
 zloc = 0.0
 fig, ax = plt.subplots(np.size(xloc), 1, figsize=(6.4, 5.6))
 fig.subplots_adjust(hspace=0.6, wspace=0.15)
@@ -58,7 +62,7 @@ matplotlib.rc('font', size=numsize)
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 for i in range(np.size(xloc)):
-    probe.load_probe(pathP, (xloc[i], yloc, zloc))
+    probe.load_probe(pathP, (xloc[i], yloc[i], zloc))
     probe.extract_series([timezone[0], timezone[-1]])
     temp = (getattr(probe, var) - np.mean(getattr(probe, var))) * fa
     ax[i].plot(probe.time, temp, 'k')
@@ -68,13 +72,12 @@ for i in range(np.size(xloc)):
     # ax[i].set_ylim([-0.001, 0.001])
     if i != np.size(xloc) - 1:
         ax[i].set_xticklabels('')
-    ax[i].set_ylabel(r"$p^\prime/p_\infty$",
-                     fontsize=textsize)
+    ax[i].set_ylabel(ylab, fontsize=textsize)
     ax[i].grid(b=True, which='both', linestyle=':')
     ax[i].set_title(r'$x/\delta_0={}$'.format(xloc[i]), fontsize=numsize - 1)
 ax[-1].set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
 plt.show()
-plt.savefig(pathF + var + '_TimeEvolveX.svg' + str(zloc) + '.svg',
+plt.savefig(pathF + var + '_TimeEvolveX' + str(zloc) + '.svg',
             bbox_inches='tight')
 
 # %%############################################################################
@@ -114,56 +117,175 @@ plt.savefig(pathF + var + '_StreamwiseEvolve.svg',
     frequency weighted power spectral density
 """
 # %% Frequency Weighted Power Spectral Density
-Lsep = 8.9
-def d2l(x):
+Lsep = 12.8 # for 48 laminar # 12.8 for turbulent
+def d_l(x):
+    return x / Lsep
+def l_d(x):
     return x * Lsep
 
-def l2d(x):
-    return x / Lsep
+sh = 3.0
+def d_h(x):
+    return x / sh
+def h_d(x):
+    return x * sh
 
-dt = 0.25
+Hsep = 4.3 # 16 for laminar # 4.3 for turbulent
+def h_l(x):
+    return x / Hsep
+
+def l_h(x):
+    return x * Hsep
+
+dt = 0.125
 freq_samp = 1/dt  # 50
-var = 'u'
+var = 'p'
 
-# probe = lf()
-# probe.load_probe(pathP, (-60.0, 0.0, 0.0))
-# freq, fpsd = va.fw_psd(getattr(probe, var), probe.time, freq_samp)
-probe = pd.read_csv(pathI + 'probe_03.dat', sep=' ')
-freq, fpsd = va.fw_psd(probe[var].values, dt, 1/dt, opt=1)
+probe = lf()
+x0 = -3
+t1, t2 = [600, 1000]
+probe.load_probe(pathP, (x0, 0.0, 0.0))
+probe.extract_series((t1, t2))
+freq, fpsd = va.fw_psd(getattr(probe, var), probe.time, freq_samp,
+                       opt=1, seg=8, overlap=4)
+# probe = pd.read_csv(pathI + 'probe_03.dat', sep=' ')
+# freq, fpsd = va.fw_psd(probe[var].values, dt, 1/dt, opt=1)
 # fig, ax1 = plt.subplots(figsize=(6.4, 2.8))
-fig = plt.figure(figsize=(6.4, 2.8))
+fig = plt.figure(figsize=(6.4, 3.0))
 ax1 = fig.add_subplot(121)
-matplotlib.rc('font', size=textsize)
+matplotlib.rc('font', size=numsize)
 ax1.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax1.grid(b=True, which='both', linestyle=':')
-ax1.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
-ax1.semilogx(freq, fpsd, 'k', linewidth=1.0)
+ax1.set_xlabel(r"$f h /u_\infty$", fontsize=textsize)
+ax1.semilogx(h_d(freq), fpsd, 'k', linewidth=1.0)
 ax1.set_ylabel('Weighted PSD, unitless', fontsize=textsize - 4)
-ax1.annotate("(a)", xy=(-0.12, 1.04), xycoords='axes fraction',
+ax1b = ax1.secondary_xaxis('top', functions=(l_h, h_l))
+ax1b.tick_params(axis='x', which='major', pad=1)
+ax1b.set_xlabel(r'$f L_r/u_\infty$', fontsize=textsize)
+ax1.annotate("(a)", xy=(-0.15, 1.1), xycoords='axes fraction',
              fontsize=numsize)
+ax1.set_title(r"$x/h={:.1f}$".format(x0/sh), fontsize=numsize, 
+              position=(0.3, 0.78) ) # pad=0.1)
+ax1.get_yaxis().get_offset_text().set_visible(False)
+ax_max = max(ax1.get_yticks())
+exponent_axis = np.floor(np.log10(ax_max)).astype(int)
+ax1.annotate(r'$\times$10$^{%i}$'%(exponent_axis),
+             xy=(.05, .92), xycoords='axes fraction')
 plt.tick_params(labelsize=numsize)
 ax1.yaxis.offsetText.set_fontsize(numsize)
-plt.savefig(pathF + var + '_ProbeFWPSD_03.svg', bbox_inches='tight')
-plt.show()
+# plt.savefig(pathF + var + '_ProbeFWPSD_03.svg', bbox_inches='tight')
+# plt.show()
 
-# probe1 = lf()
-# probe1.load_probe(pathP, (-50.0, 0.0, 0.0))
-# freq1, fpsd1 = va.fw_psd(getattr(probe1, var), probe1.time, freq_samp)
+probe1 = lf()
+x1 = 2
+probe1.load_probe(pathP, (x1, 3.0, 0.0))
+probe1.extract_series((t1, t2))
+freq1, fpsd1 = va.fw_psd(getattr(probe1, var), probe1.time, freq_samp,
+                         opt=1, seg=8, overlap=4)
 ax2 = fig.add_subplot(122)
-matplotlib.rc('font', size=textsize)
+matplotlib.rc('font', size=numsize)
 ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax2.grid(b=True, which='both', linestyle=':')
-ax2.set_xlabel(r'$f\delta_0/u_\infty$', fontsize=textsize)
-# ax2.semilogx(freq1, fpsd1, 'k', linewidth=1.0)
-# ax2nd = ax2.secondary_xaxis('top', functions=(d2l, l2d))
-# ax2nd.set_xlabel(r'$f x_r / u_\infty$')
-# ax2.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
-#              fontsize=numsize)
+ax2.set_xlabel(r"$f h /u_\infty$", fontsize=textsize)
+ax2.semilogx(h_d(freq1), fpsd1, 'k', linewidth=1.0)
+ax2b = ax2.secondary_xaxis('top', functions=(l_h, h_l))
+ax2b.tick_params(axis='x', which='major', pad=1)
+ax2b.set_xlabel(r'$f L_r / u_\infty$', fontsize=textsize)
+ax2.annotate("(b)", xy=(-0.12, 1.1), xycoords='axes fraction',
+             fontsize=numsize)
+ax2.set_title(r"$x/h={:.1f}$".format(x1/sh), fontsize=numsize,
+              position=(0.3, 0.78) ) # pad=0.1)
+ax2.get_yaxis().get_offset_text().set_visible(False)
+ax_max = max(ax2.get_yticks())
+exponent_axis = np.floor(np.log10(ax_max)).astype(int)
+ax2.annotate(r'$\times$10$^{%i}$'%(exponent_axis),
+             xy=(.05, .92), xycoords='axes fraction')
 plt.tick_params(labelsize=numsize)
 ax2.yaxis.offsetText.set_fontsize(numsize)
-plt.savefig(pathF + var + '_ProbeFWPSD_03.svg', bbox_inches='tight')
+plt.savefig(pathF + var + '_ProbeFWPSD_05.svg', bbox_inches='tight')
 plt.show()
 
+# %%############################################################################
+"""
+Multiple FWPSD Map
+"""
+# %% Plot multiple frequency-weighted PSD curve along streamwise
+sh = 3.0
+t1, t2 = [600, 1000]
+var = 'p'
+freq_samp = 1/0.125
+fig, ax = plt.subplots(1, 7, figsize=(7.2, 2.4))
+fig.subplots_adjust(hspace=0.5, wspace=0)
+matplotlib.rc('font', size=numsize)
+title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
+matplotlib.rcParams['xtick.direction'] = 'in'
+matplotlib.rcParams['ytick.direction'] = 'in'
+xcoord = np.array([-60.0, -48.0, -24, -12.0, -3.0, 2.0, 6.0])
+ycoord = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0])
+for i in range(np.size(xcoord)):
+    probe.load_probe(pathP, (xcoord[i], ycoord[i], 0.0))
+    probe.extract_series((t1, t2))
+    varval = getattr(probe, var)
+    freq, fpsd_x = va.fw_psd(varval, probe.time, freq_samp,
+                             opt=1, seg=8, overlap=4)
+    maxs = "{:.0e}".format(np.max(fpsd_x))
+    parts = str(maxs).split('e', 2)
+    if int(parts[0]) < 3:
+        pownm = int(parts[-1]) - 1
+    else:
+        pownm = int(parts[-1])
+    pownm = -5
+    expon = 10**pownm
+    if i % 2 == 0:
+        ax[i].plot(fpsd_x/expon, h_d(freq), "k-", linewidth=1.0)
+    else:
+        ax[i].plot(fpsd_x/expon, h_d(freq), "k-", linewidth=1.0)
+    ax[i].set_ylim([0.003, 15])
+    ax[i].set_yscale('log')
+    # ax[i].set_xscale('log')
+    # ax[i].set_xticks([0, 0.25*10**(-4), 0.5*10**(-4), 0.75*10**(-4), 10**(-4)])
+    # ax[i].set_xticks([0, 0.5*10**(-4), 10**(-4)])
+    # ax[i].set_xticks(np.linspace(0, 1, 11)*10**(-4), minor=True)
+    # ax[i].set_xlim([0, 3*10**(-4)])
+    ax[i].set_xlim([0, 10])
+    ax[i].set_xticks([0, 5, 10])
+    xloc = np.round(xcoord[i]/sh, 1)
+    ax[i].set_title(r'${}$'.format(xloc), fontsize=numsize-1, loc='left')
+    ax[i].annotate(r'$\times 10^{{{}}}$'.format(int(pownm)), 
+                   xy=(0.1, 0.1), fontsize=numsize-2, xycoords='axes fraction')
+    # ax[i].xaxis.major.formatter.set_powerlimits((-2, 2))
+    # ax[i].xaxis.offsetText.set_fontsize(numsize)
+    if i != 0:
+        ax[i].set_yticklabels([])
+        ax[i].set_xticklabels([])
+        ax[i].patch.set_alpha(0.0)
+        ax[i].xaxis.set_ticks_position('none')
+        ax[i].yaxis.set_ticks_position('none')
+        xticks = ax[i].xaxis.get_major_ticks()
+        ax[i].spines['left'].set_color('gray')
+        ax[i].spines['left'].set_linestyle('--')
+        ax[i].spines['left'].set_linewidth(0.5)
+        # ax[i].set_frame_on(False)
+        # ax[i].yaxis.set_visible(False)
+        # xticks[0].label.set_visible(False) # xticks[0].label1.set_visible(False)
+    if i != np.size(xcoord) - 1:
+        ax[i].spines['right'].set_visible(False)
+    # ax[i].set_xlim(left=0)
+    # ax[i].set_xticklabels('')
+    # ax[i].tick_params(axis='both', which='major', labelsize=numsize)
+    ax[i].grid(b=True, which="both", axis='y', linestyle=":")
+ax[0].spines['right'].set_visible(False)
+ax[0].ticklabel_format(axis='x', style='sci', scilimits=(-2, 2))
+# ax[0].set_xticklabels([r'$10^{-8}$','',r'$10^{-6}$','', r'$10^{-4}$'])
+ax[0].annotate(r'$x/h=$', xy=(-0.48, 1.04), xycoords='axes fraction')
+ax[3].set_xlabel(r'$f \mathcal{P}(f)$', fontsize=textsize, labelpad=10)
+ax[0].set_ylabel(r"$f h /u_\infty$", fontsize=textsize)
+ax2 = ax[-1].secondary_yaxis('right', functions=(l_h, h_l)) 
+ax2.set_ylabel(r"$f L_r /u_\infty$", fontsize=textsize)
+plt.tick_params(labelsize=numsize)
+plt.show()
+plt.savefig(
+    pathF + "ProbeFWPSD_" + var + ".svg", bbox_inches="tight", pad_inches=0.1
+)
 # %%############################################################################
 """
     intermittency factor
