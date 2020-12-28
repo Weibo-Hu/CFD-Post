@@ -362,7 +362,7 @@ def tke(df):
 def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
     TotalNo = np.size(VarZone)
     if np.size(dt) > 1:
-        TotalNo = Freq_samp * (dt[-1] - dt[0])
+        TotalNo = int(Freq_samp * (dt[-1] - dt[0]))
         if TotalNo > np.size(dt):
             warnings.warn(
                 "PSD results are not accurate as too few snapshots",
@@ -1115,7 +1115,7 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
                delimiter='  ', header=header)
 
 
-def dividing_line(dataframe, path=None, loc=-0.015625):
+def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
     """Obtain dividing line
        
        Args:
@@ -1140,7 +1140,8 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
     cs1 = ax.contour(
         x, y, u, levels=[0.0], linewidths=1.5, linestyles="--", colors="k"
     )
-    plt.close()
+    if show == False:
+        plt.close()
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     xylist = []
@@ -1164,7 +1165,8 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
     xy = xylist[ind]
     fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     ax1.scatter(xy[:, 0], xy[:, 1])
-    plt.close()
+    if show == False:
+        plt.close()
     if path is not None:
         np.savetxt(
             path + "DividingLine.dat", xycor, fmt="%.8e", delimiter="  ",
@@ -1177,8 +1179,8 @@ def dividing_line(dataframe, path=None, loc=-0.015625):
     return xy
 
 
-def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump2=16.0, 
-                  val1=0.81, val2=0.98):  # jump = reattachment location
+def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump3=16.0, 
+                  val1=0.81, val3=0.98):  # jump = reattachment location
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
@@ -1197,12 +1199,12 @@ def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump2=16.0,
     rg2 = (x[1, :] > jump1) & (x[1, :] < -0.5)
     umax[rg2] = val1
     # range3
-    rg3 = (x[1, :] >= -0.5) & (x[1, :] < jump2)
-    uinterp1 = np.interp(x[1, rg3], [-0.5, jump2], [val1, val2+0.003])
+    rg3 = (x[1, :] >= -0.5) & (x[1, :] < jump3)
+    uinterp1 = np.interp(x[1, rg3], [-0.5, jump3], [val1, val3+0.003])
     umax[rg3] = uinterp1
     # range4
-    rg4 = (x[1, :] >= jump2)
-    umax[rg4] = val2
+    rg4 = (x[1, :] >= jump3)
+    umax[rg4] = val3
     u = u / (np.transpose(umax))
     corner = (x > 0.0) & (y < 3.0)
     u[corner] = np.nan
