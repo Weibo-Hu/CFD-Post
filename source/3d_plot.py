@@ -31,7 +31,7 @@ from scipy.interpolate import griddata
 
 
 # %% data path settings
-path = "/media/weibo/IM2/FFS_M1.7ZA2/"
+path = "/media/weibo/IM2/FFS_M1.7TB1/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -54,7 +54,7 @@ matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 13
 numsize = 10
-
+lh = 3.0
 # %% 3D PSD
 # load data
 var = 'p'
@@ -151,7 +151,7 @@ plt.show()
 """
 save wall plane data and plot
 """
-# %% plot Cf in x-z plane
+# %% plot Cf in x-z plane (TP_data)
 time_ave = tf()
 filename = glob(path + 'TP_data_0556.25.h5')
 time_ave.load_3data(pathT, FileList=filename, NameList='h5')
@@ -168,6 +168,21 @@ df2a = df2.loc[df2['walldist']==np.min(df2['walldist'])]  # on the wall=0.5*dy
 df = pd.concat([df1a, df2a])
 df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
 del time_ave
+# %% skin friction (snapshot)
+time_ave1 = tf()
+filename = '01012.00.h5'
+filename1 = glob(path + 'snapshots/Y_007/TP_2D_Y_007_'+filename)
+time_ave1.load_3data(pathT, FileList=filename1, NameList='h5')
+df1 = time_ave1.TriData
+df1a = df1.assign(walldist=0.003)
+time_ave2 = tf()
+filename2 = glob(path + 'snapshots/Y_008/TP_2D_Y_008_'+filename)
+time_ave2.load_3data(pathT, FileList=filename2, NameList='h5')
+df2 = time_ave2.TriData.query("x>0")
+df2a = df2.assign(walldist=0.002)
+df = pd.concat([df1a, df2a])
+df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
+# del time_ave1, time_ave2
 # %% skin friction
 Re = 13718
 df = pd.read_hdf(pathT + 'WallValue.h5')
@@ -185,17 +200,17 @@ print("Cf_min=", np.min(df3['Cf']))
 # %% plot skin friction
 fig, ax = plt.subplots(figsize=(6.6, 2.5))
 matplotlib.rc("font", size=textsize)
-cx1 = -5
-cx2 = 8.4
+cx1 = -4
+cx2 = 10
 fa = 1000
 rg1 = np.linspace(cx1, cx2, 21)
-cbar = ax.contourf(x, z, friction*fa, cmap="jet", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(-25.0, 20.0)
-ax.set_ylim(-8.0, 8.0)
+cbar = ax.contourf(x/lh, z/lh, friction*fa, cmap="RdBu", levels=rg1, extend='both')  # jet # rainbow_r
+ax.set_xlim(-7.0, 3.0)
+ax.set_ylim(-2, 2)
 ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$z/\delta_0$", fontsize=textsize)
-ax.set_yticks(np.linspace(-8.0, 8.0, 5))
+ax.set_xlabel(r"$x/h$", fontsize=textsize)
+ax.set_ylabel(r"$z/h$", fontsize=textsize)
+# ax.set_yticks(np.linspace(-8.0, 8.0, 5))
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(cx1, cx2, 3)
@@ -204,7 +219,7 @@ cbar.ax.tick_params(labelsize=numsize)
 cbar.set_label(
     r"$C_f \times 10^3$", rotation=0, fontsize=numsize, labelpad=-20, y=1.12
 )
-ax.axvline(x=-15.9, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
+ax.axvline(x=-4.2, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 # cbar.formatter.set_powerlimits((-2, 2))
 # cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 # cbar.update_ticks()
@@ -226,6 +241,42 @@ ax.axvline(x=-15.9, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 #)
 
 plt.savefig(pathF + "skinfriction.svg", bbox_inches="tight")
+plt.show()
+
+# %% 
+zprof1 = df.loc[df['x']==-13]
+zprof2 = df.loc[df['x']==6] 
+fig, ax = plt.subplots(2, 1, figsize=(6.4, 2.4))
+matplotlib.rc("font", size=numsize)
+val1 = zprof1['u'] - np.mean(zprof1['u'])  # np.sign()
+ax[0].plot(zprof1['z']/lh, val1, 'k-', linewidth=1.0)
+# ax[0].axhline(y=np.mean(zprof1['u']), color="k", linestyle="--", linewidth=0.8)
+ax[0].set_xlim([-2.7, 2.7])
+ax[0].set_xticklabels('')
+ax[0].ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+val2 = zprof2['u'] - np.mean(zprof2['u'])
+ax[1].plot(zprof2['z']/lh, val2, 'b-', linewidth=1.0)
+# ax[1].axhline(y=np.mean(zprof2['u']), color="b", linestyle="--", linewidth=0.8)
+ax[1].set_xlim([-2.7, 2.7])
+ax[0].set_ylabel(r"$u/u_\infty$", fontsize=textsize)
+ax[1].set_xlabel(r"$z/h$", fontsize=textsize)
+plt.savefig(pathF + "zprofile.svg", bbox_inches="tight")
+plt.show()
+
+# %%
+fig, ax = plt.subplots(figsize=(2.4, 2.2))
+freq1, FPSD1 = va.fw_psd(val1, 0.0625, 16, opt=1, seg=8, overlap=4)
+freq2, FPSD2 = va.fw_psd(val2, 0.0625, 16, opt=1, seg=8, overlap=4)
+matplotlib.rc("font", size=numsize)
+ax.plot(freq1*lh, FPSD1, 'k-', linewidth=1.0)
+ax.plot(freq2*lh, FPSD2, 'b-', linewidth=1.0)
+ax.set_xlabel(r"$k_z$", fontsize=textsize)
+ax.set_ylabel(r'$f \mathcal{P}(f)$', fontsize=textsize)
+ax.yaxis.tick_right()
+ax.yaxis.set_label_position("right")
+ax.grid(b=True, which="both", linestyle=":")
+ax.set_xscale('log')
+plt.savefig(pathF + "zprofile_psd.svg", bbox_inches="tight")
 plt.show()
 
 """
