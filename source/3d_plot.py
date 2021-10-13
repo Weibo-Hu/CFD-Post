@@ -21,6 +21,7 @@ from scipy import interpolate
 from scipy import signal
 import matplotlib
 import plt2pandas as p2p
+
 import matplotlib.ticker as ticker
 from data_post import DataPost
 from matplotlib.ticker import ScalarFormatter
@@ -31,7 +32,7 @@ from scipy.interpolate import griddata
 
 
 # %% data path settings
-path = "/media/weibo/IM2/FFS_M1.7TB1/"
+path = "/mnt/work/Fourth/FFS_M1.7SFD120/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -168,45 +169,64 @@ df2a = df2.loc[df2['walldist']==np.min(df2['walldist'])]  # on the wall=0.5*dy
 df = pd.concat([df1a, df2a])
 df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
 del time_ave
-# %% skin friction (snapshot)
+
+# %%
 time_ave1 = tf()
-filename = '01012.00.h5'
+filename = '01110.00.h5'
 filename1 = glob(path + 'snapshots/Y_007/TP_2D_Y_007_'+filename)
 time_ave1.load_3data(pathT, FileList=filename1, NameList='h5')
+time_ave1.rescale(lh)
 df1 = time_ave1.TriData
-df1a = df1.assign(walldist=0.003)
+df1a = df1.assign(walldist=0.003)  # Cf must be normalized by boundary layer thickness
 time_ave2 = tf()
 filename2 = glob(path + 'snapshots/Y_008/TP_2D_Y_008_'+filename)
 time_ave2.load_3data(pathT, FileList=filename2, NameList='h5')
+time_ave2.rescale(lh)
 df2 = time_ave2.TriData.query("x>0")
 df2a = df2.assign(walldist=0.002)
 df = pd.concat([df1a, df2a])
 df.to_hdf(pathT + 'WallValue.h5', 'w', format='fixed')
 # del time_ave1, time_ave2
 # %% skin friction
-Re = 13718
+Re = 13718  # normalize by boundary layer thickness
 df = pd.read_hdf(pathT + 'WallValue.h5')
 mu = va.viscosity(Re, df['T'], law='POW')  # df['<T>'],
 Cf = va.skinfriction(mu, df['u'], df['walldist'])  # df['<u>']
 df['Cf'] = Cf
 df3 = df.query("Cf < 0.015")
 xx = np.unique(df['x'])  # np.linspace(-20.0, 40.0, 1201)
-zz = np.unique(df['z'])  # np.linspace(-8.0, 8.0, 257)
+zz = np.unique(df['z'])  # np.linspace(-8.0, 8.0, 33) #
 x, z = np.meshgrid(xx, zz)
 friction = griddata((df3['x'], df3['z']), df3['Cf'], (x, z))
 print("Cf_max=", np.max(df3['Cf']))
 print("Cf_min=", np.min(df3['Cf']))
-
+Cf_ft1 = np.zeros(np.shape(friction))
+Cf_ft2 = np.zeros(np.shape(friction))
+# %%
+n_ord = 10   # digital order
+fs = 1.0
+Wn = 1 / fs  # cutoff frequency / (0.5 * f_sample)
+for i in range(np.size(zz)):
+    b, a = signal.butter(n_ord, Wn, 'lowpass', fs=32)  # Wn = 
+    Cf_2 = signal.filtfilt(b, a, friction[i, :])
+    Cf_ft1[i, :] = Cf_2
+for i in range(np.size(xx)):
+    b, a = signal.butter(n_ord, Wn, 'lowpass', fs=32)  # Wn = 
+    Cf_2 = signal.filtfilt(b, a, Cf_ft1[:, i])
+    Cf_ft2[:, i] = Cf_2
 # %% plot skin friction
 fig, ax = plt.subplots(figsize=(6.6, 2.5))
 matplotlib.rc("font", size=textsize)
-cx1 = -4
-cx2 = 10
+cx1 = -6
+cx2 = 12
 fa = 1000
 rg1 = np.linspace(cx1, cx2, 21)
-cbar = ax.contourf(x/lh, z/lh, friction*fa, cmap="RdBu", levels=rg1, extend='both')  # jet # rainbow_r
-ax.set_xlim(-7.0, 3.0)
-ax.set_ylim(-2, 2)
+# cbar = ax.contourf(x, z, friction*fa, cmap="RdBu_r", levels=rg1, extend='both')  # jet # rainbow_r
+cbar = ax.contourf(x, z, Cf_ft2*fa, cmap="RdBu_r", levels=rg1, extend='both')  # jet # rainbow_r
+ax.set_xlim(-16, 5.0)
+ax.set_ylim(-4, 4)
+#ax.set_xlim(-7.0, 3.0)
+#ax.set_ylim(-2, 2)
 ax.tick_params(labelsize=numsize)
 ax.set_xlabel(r"$x/h$", fontsize=textsize)
 ax.set_ylabel(r"$z/h$", fontsize=textsize)
@@ -224,7 +244,7 @@ ax.axvline(x=-4.2, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 # cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 # cbar.update_ticks()
 #xbox = np.arange(-25, 20 + 0.125, 0.125)
-#zbox = np.arange(-8.0, 8.0 + 0.0625, 0.0625)
+#zbox = np.arange(-8.0, 8.0 + 0.0625, 0.0625)        
 #xstm, zstm = np.meshgrid(xbox, zbox)
 #u = griddata((df3.x, df3.z), df3['u'], (xstm, zstm))
 #w = griddata((df3.x, df3.z), df3['w'], (xstm, zstm))
@@ -240,36 +260,189 @@ ax.axvline(x=-4.2, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
 #    integration_direction="both",
 #)
 
-plt.savefig(pathF + "skinfriction.svg", bbox_inches="tight")
+plt.savefig(pathF + "skinfriction_xztest.svg", bbox_inches="tight")
+plt.show()
+
+# %% skin friction (snapshot)
+time_ave1 = tf()
+filename1 = 'y3p01_1200'
+lh = 3.0
+# filename1 = glob(path + filename1 + '.plt')
+# time_ave1.load_data(path, FileList=filename1)
+# time_ave1._data_field.to_hdf(path+'y3p01_700' + '.h5', 'w', format='fixed')
+filename1 = glob(path + filename1 + '.h5')
+time_ave1.load_3data(path, FileList=filename1, NameList='h5')
+time_ave1.rescale(lh)
+df1 = time_ave1.TriData
+time_ave2 = tf()
+filename2 = 'y0p01_1200'
+filename2 = glob(path + filename2 + '.h5')
+time_ave2.load_3data(path, FileList=filename2, NameList='h5')
+time_ave2.rescale(lh)
+df2 = time_ave2.TriData
+# %% prep-process
+df3 = df1.query("x > 0")
+df4 = df2.query("x < 0")
+df = pd.concat([df3, df4])
+xx = np.unique(df['x'])  # np.linspace(-20.0, 40.0, 1201)
+zz = np.unique(df['z'])  # np.linspace(-8.0, 8.0, 33) #
+x, z = np.meshgrid(xx, zz)
+var = 'dudy'
+vor3 = griddata((df['x'], df['z']), df[var], (x, z))
+print("vor3_max=", np.max(df[var]))
+print("vor3_min=", np.min(df[var]))
+# %% plot x-z contour
+fig, ax = plt.subplots(figsize=(7.2, 3.2))
+matplotlib.rc("font", size=textsize)
+cx1 = -8
+cx2 = 40
+fa = 1000
+rg1 = np.linspace(cx1, cx2, 21)
+# cbar = ax.contourf(x, z, friction*fa, cmap="RdBu_r", levels=rg1, extend='both')  # jet # rainbow_r
+cbar = ax.contourf(x, z, vor3, cmap="RdBu_r", levels=rg1, extend='both')  # jet # rainbow_r
+ax.set_xlim(-4.5, 2.0)
+# ax.set_ylim(-4, 4)
+#ax.set_xlim(-7.0, 3.0)
+#ax.set_ylim(-2, 2)
+ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r"$x/h$", fontsize=textsize)
+ax.set_ylabel(r"$z/h$", fontsize=textsize)
+# ax.set_yticks(np.linspace(-8.0, 8.0, 5))
+# plt.gca().set_aspect("equal", adjustable="box")
+# Add colorbar
+rg2 = np.linspace(cx1, cx2, 3)
+cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.018, pad=0.03)
+cbar.ax.tick_params(labelsize=numsize)
+cbar.set_label(
+    r"${\partial u}/{\partial y}$", rotation=0, fontsize=numsize, labelpad=-20, y=1.1
+)
+ax.axvline(x=-4.3, color="k", linestyle="--", linewidth=1.2) # 10.9 # 8.9
+# cbar.formatter.set_powerlimits((-2, 2))
+# cbar.ax.xaxis.offsetText.set_fontsize(numsize)
+# cbar.update_ticks()
+#xbox = np.arange(-25, 20 + 0.125, 0.125)
+#zbox = np.arange(-8.0, 8.0 + 0.0625, 0.0625)        
+#xstm, zstm = np.meshgrid(xbox, zbox)
+#u = griddata((df3.x, df3.z), df3['u'], (xstm, zstm))
+#w = griddata((df3.x, df3.z), df3['w'], (xstm, zstm))
+#ax.streamplot(
+#    xstm,
+#    zstm,
+#    u,
+#    w,
+#    density=[1, 2],
+#    color="k",
+#    arrowsize=0.8,
+#    linewidth=0.6,
+#    integration_direction="both",
+#)
+
+plt.savefig(pathF + "dudy_xz.svg", bbox_inches="tight")
 plt.show()
 
 # %% 
-zprof1 = df.loc[df['x']==-13]
-zprof2 = df.loc[df['x']==6] 
-fig, ax = plt.subplots(2, 1, figsize=(6.4, 2.4))
+zprof1 = df.loc[np.round(df['x'], 4) ==-4.2083]  # 4.125  4.2083
+zprof2 = df.loc[np.round(df['x'], 4) == 1.0] # 0.1042 0.3021 # 0.5 # 0.75 # 1.25
+fig, ax = plt.subplots(2, 1, figsize=(7.2, 3.2))
 matplotlib.rc("font", size=numsize)
 val1 = zprof1['u'] - np.mean(zprof1['u'])  # np.sign()
-ax[0].plot(zprof1['z']/lh, val1, 'k-', linewidth=1.0)
+ax[0].plot(zprof1['z'], val1, 'k-', linewidth=1.0)
 # ax[0].axhline(y=np.mean(zprof1['u']), color="k", linestyle="--", linewidth=0.8)
 ax[0].set_xlim([-2.7, 2.7])
 ax[0].set_xticklabels('')
 ax[0].ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 val2 = zprof2['u'] - np.mean(zprof2['u'])
-ax[1].plot(zprof2['z']/lh, val2, 'b-', linewidth=1.0)
+ax[1].plot(zprof2['z'], val2, 'b-', linewidth=1.0)
 # ax[1].axhline(y=np.mean(zprof2['u']), color="b", linestyle="--", linewidth=0.8)
 ax[1].set_xlim([-2.7, 2.7])
 ax[0].set_ylabel(r"$u/u_\infty$", fontsize=textsize)
 ax[1].set_xlabel(r"$z/h$", fontsize=textsize)
-plt.savefig(pathF + "zprofile.svg", bbox_inches="tight")
+plt.savefig(pathF + "zprofile_dudy.svg", bbox_inches="tight")
+plt.show()
+
+# 
+dt1 = np.unique(np.diff(zprof1['z']))[0]
+dt2 = np.unique(np.diff(zprof2['z']))[0]
+fre_samp = 45
+fig, ax = plt.subplots(figsize=(3.2, 3.0))
+freq1, FPSD1 = va.fw_psd(val1, dt1, fre_samp, opt=1, seg=8, overlap=4)
+freq2, FPSD2 = va.fw_psd(val2, dt2, fre_samp, opt=1, seg=8, overlap=4)
+matplotlib.rc("font", size=numsize)
+ax.plot(freq1, FPSD1, 'k-', linewidth=1.0)
+ax.plot(freq2, FPSD2, 'b-', linewidth=1.0)
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+ax.set_xlabel(r"$k_z$", fontsize=textsize)
+ax.set_ylabel(r'$f \mathcal{P}(f)$', fontsize=textsize)
+ax.yaxis.tick_right()
+ax.yaxis.set_label_position("right")
+ax.grid(b=True, which="both", linestyle=":")
+ax.set_xscale('log')
+plt.savefig(pathF + "zprofile_dudy_psd.svg", bbox_inches="tight")
 plt.show()
 
 # %%
+pathSY = pathSL  + 'TP_2D_Y_008/'
+dirs = sorted(os.listdir(pathSY))
+vname = ['x', 'z', 'u', 'v', 'w', 'p', 'T']
+ts_data = pd.DataFrame(columns=vname)
+timerange = np.arange(600, 1000 + 0.25, 0.25)
+for i in range(np.size(dirs)):
+    df0 = va.temp_span(pathSY + dirs[i], 3.0, vname)
+    df0 = df0.assign(time=timerange[i])
+    ts_data = ts_data.append(df0)
+ts_data.to_hdf(pathSL + 'Y_008.h5', 'w', format='fixed')
+# %%
+df = pd.read_hdf(pathSL + 'Y_007.h5')
+n_ord = 4 # digital order
+Wn = 0.1 / 2 # cutoff frequency / (0.5 * f_sample)
+b, a = signal.butter(n_ord, Wn, 'low')  # Wn = 
+filter_sig = signal.filtfilt(b, a, df1['u'])
+zval = np.unique(df['z'].values)
+new = np.zeros(np.size(zval))
+for i in range(np.size(zval)):
+    df1 = df.loc[df['z']==zval[i]]
+    df1.sort_values(by=['time'])
+    b, a = signal.butter(n_ord, Wn, 'low')  # Wn = 
+    filter_sig = signal.filtfilt(b, a, df1['u'])
+    new[i] = filter_sig[800]
+
+fig, ax = plt.subplots(figsize=(6.4, 2.4))
+matplotlib.rc("font", size=numsize)
+ax.plot(df1['time'], df1['u'], 'k-', linewidth=1.0)
+ax.plot(df1['time'], filter_sig, 'b-', linewidth=1.0)
+# ax.set_xlim([-8, 8])
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+ax.set_ylabel(r"$t u_\infty/\delta$", fontsize=textsize)
+ax.set_xlabel(r"$u$", fontsize=textsize)
+plt.savefig(pathF + "test.svg", bbox_inches="tight")
+plt.show()
+
 fig, ax = plt.subplots(figsize=(2.4, 2.2))
-freq1, FPSD1 = va.fw_psd(val1, 0.0625, 16, opt=1, seg=8, overlap=4)
-freq2, FPSD2 = va.fw_psd(val2, 0.0625, 16, opt=1, seg=8, overlap=4)
+freq1, FPSD1 = va.fw_psd(df1['u'], 0.25, 4, opt=1, seg=8, overlap=4)
+freq2, FPSD2 = va.fw_psd(filter_sig, 0.25, 4, opt=1, seg=8, overlap=4)
+matplotlib.rc("font", size=numsize)
+ax.plot(freq1, FPSD1, 'k-', linewidth=1.0)
+ax.plot(freq2, FPSD2, 'b-', linewidth=1.0)
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+ax.set_xlabel(r"$k_z$", fontsize=textsize)
+ax.set_ylabel(r'$f \mathcal{P}(f)$', fontsize=textsize)
+ax.yaxis.tick_right()
+ax.yaxis.set_label_position("right")
+ax.grid(b=True, which="both", linestyle=":")
+ax.set_xscale('log')
+plt.savefig(pathF + "test_psd.svg", bbox_inches="tight")
+plt.show()
+
+# %%
+dt1 = 0.0625
+fre_samp = 1/dt1
+fig, ax = plt.subplots(figsize=(2.4, 2.2))
+freq1, FPSD1 = va.fw_psd(new, dt1, fre_samp, opt=1, seg=8, overlap=4)
+# freq2, FPSD2 = va.fw_psd(val2, dt2, fre_samp, opt=1, seg=8, overlap=4)
 matplotlib.rc("font", size=numsize)
 ax.plot(freq1*lh, FPSD1, 'k-', linewidth=1.0)
-ax.plot(freq2*lh, FPSD2, 'b-', linewidth=1.0)
+# ax.plot(freq2, FPSD2, 'b-', linewidth=1.0)
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.set_xlabel(r"$k_z$", fontsize=textsize)
 ax.set_ylabel(r'$f \mathcal{P}(f)$', fontsize=textsize)
 ax.yaxis.tick_right()
@@ -278,7 +451,7 @@ ax.grid(b=True, which="both", linestyle=":")
 ax.set_xscale('log')
 plt.savefig(pathF + "zprofile_psd.svg", bbox_inches="tight")
 plt.show()
-
+# %%
 """
 calculate and save boundary layer thickness
 """
@@ -377,7 +550,7 @@ calculate and plot for contours of Gortler number
 # %% calculate gortler
 df = MeanFlow.PlanarData
 curvature = va.curvature_r(df, opt='mean')
-thick = pd.read_csv(pathM + 'thickness.dat', sep=' ')
+thick = pd.read_csv(pathM + 'fit_thickness.dat', sep=' ')
 x1 = np.linspace(-20.0, 20.0, 801)
 y1 = np.linspace(-3.0, 10.0, 209)
 x2, y2 = np.meshgrid(x1, y1)
@@ -469,16 +642,16 @@ fig = plt.figure(figsize=(6.4, 2.6))
 matplotlib.rc("font", size=textsize)
 ax2 = fig.add_subplot(121)
 matplotlib.rc("font", size=textsize)
-ax2.plot(strm1, curva1, "k", linewidth=1.2)
+ax2.plot(strm1/lh, curva1*lh, "k", linewidth=1.2)
 # ax2.plot(strm3, curva3, "g", linewidth=1.2)
 # ax2.plot(strm5, curva5, "b", linewidth=1.2)
-ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax2.set_ylabel(r"$\delta_0 / R$", fontsize=textsize)
-ax2.set_xlim([-25.0, 15.0])
-ax2.set_ylim([-0.4, 0.2])
+ax2.set_xlabel(r"$x/h$", fontsize=textsize)
+ax2.set_ylabel(r"$h/ R$", fontsize=textsize)
+# ax2.set_xlim([-25.0, 15.0])
+ax2.set_ylim([-0.5, 0.4])
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax2.axvline(x=-13.0, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=-13.0/lh, color="gray", linestyle="--", linewidth=1.0)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.2, 1.0), xycoords='axes fraction',
@@ -489,21 +662,21 @@ plt.show()
 
 # fig3, ax3 = plt.subplots(figsize=(5, 2.5))
 ax3 = fig.add_subplot(122)
-ax3.plot(strm1, gort1, "k", linewidth=1.2)
+ax3.plot(strm1/lh, gort1, "k", linewidth=1.2)
 # ax3.plot(strm3, gort3, "g", linewidth=1.5)
 # ax3.plot(strm5, gort5, "b", linewidth=1.5)
-ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_xlabel(r"$x/h$", fontsize=textsize)
 ax3.set_ylabel(r"$G_t$", fontsize=textsize)
-ax3.set_xlim([-25.0, 15.0])
+# ax3.set_xlim([-25.0, 15.0])
 ax3.set_ylim([-0.2, 3.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axhline(y=0.58, color='gray', linestyle='-.', linewidth=1.0)
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=-13.0, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=-13.0/lh, color="gray", linestyle="--", linewidth=1.0)
 ax3.grid(b=True, which="both", linestyle=":")
-# ax3.annotate("(b)", xy=(-0.15, 1.0), xycoords='axes fraction',
-#              fontsize=numsize)
+ax3.annotate("(b)", xy=(-0.15, 1.0), xycoords='axes fraction',
+             fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + "gortler1.svg", dpi=300)

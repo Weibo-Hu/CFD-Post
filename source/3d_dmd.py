@@ -39,7 +39,7 @@ var4 = 'T'
 col = [var0, var1, var2, var3, var4]
 
 # %% load first snapshot data
-path = "/home/scratch/whu/BFS_M1.7TS/"
+path = "/home/weibo/BFS_M1.7TB1/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"

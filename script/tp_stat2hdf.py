@@ -17,8 +17,8 @@ import pandas as pd
 from glob import glob
 
 # %%
-path = '/media/weibo/IM2/FFS_70_SFD/'
-
+# path = '/media/weibo/IM2/FFS_grid/DZ/'
+path = '/media/weibo/IM2/FFS_grid/GX/'
 p2p.create_folder(path)
 pathTP = path + 'TP_stat/'
 pathM = path + 'MeanFlow/'

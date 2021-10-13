@@ -30,7 +30,8 @@ font = {
     "size": "large",
 }
 
-path = "/media/weibo/IM2/FFS_M1.7ZA2/"
+# path = "/media/weibo/IM2/FFS_M1.7ZA2/"
+path = "/mnt/work/Fourth/FFS_M1.7TB1/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"

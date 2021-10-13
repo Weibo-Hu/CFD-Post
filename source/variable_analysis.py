@@ -860,7 +860,8 @@ def shock_foot(InFolder, OutFolder, timepoints, yval, var, skip=1):
 
 
 # Obtain shock location outside boundary layer with time
-def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1, val=[0.91, 0.92]):
+def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
+              var='|gradp|', lev=0.065, val=[0.91, 0.92]):
     dirs = sorted(os.listdir(InFolder))
     fig1, ax1 = plt.subplots(figsize=(10, 4))
     ax1.set_xlim([-30.0, 5.0])
@@ -890,11 +891,11 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1, val=[0.91, 0.92]):
                     frame = grouped.mean().reset_index()
                     gradp = griddata(
                         (frame["x"], frame["y"]),
-                        frame["|gradp|"],
+                        frame[var],
                         (xini, yini)
                     )
                     gradp[corner] = np.nan
-                    cs = ax1.contour(xini, yini, gradp, levels=[0.065],
+                    cs = ax1.contour(xini, yini, gradp, levels=[lev],
                                      linewidths=1.2, colors="gray")
                     xycor = np.empty(shape=[0, 2])
                     x1 = np.empty(shape=[0, 1])
@@ -907,8 +908,10 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1, val=[0.91, 0.92]):
                         # ydif = xycor[:, 1] - yarr
                     yarr1 = np.ones(np.shape(xycor)[0]) * ys1
                     ydif1 = xycor[:, 1] - yarr1
-                    ind1 = np.where(ydif1[:]>=0.0)[0]  # upper half
-                    xy_n1 = xycor[ind1, :]
+                    ind0 = np.where(ydif1[:]>=0.0)[0]  # upper half
+                    xy_n0 = xycor[ind0, :]
+                    ind1 = (xy_n0[:, 0] >=-15.5) & (xy_n0[:, 0] <=-13.5)
+                    xy_n1 = xy_n0[ind1, :]
                     xy_n1 = xy_n1[xy_n1[:, 1].argsort()]  # most close two
                     xtm1 = (xy_n1[0, 0] + xy_n1[1, 0])/2
                     x1 = np.append(x1, xtm1)
@@ -916,7 +919,9 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1, val=[0.91, 0.92]):
                     yarr2 = np.ones(np.shape(xycor)[0]) * ys2
                     ydif2 = xycor[:, 1] - yarr2
                     ind2 = np.where(ydif2[:]>=0.0)[0]
-                    xy_n2 = xycor[ind2, :]
+                    xy_n02 = xycor[ind2, :]
+                    ind01 = (xy_n02[:, 0] >=-13) & (xy_n02[:, 0] <=-10)
+                    xy_n2 = xy_n02[ind01, :]                  
                     xy_n2 = xy_n2[xy_n2[:, 1].argsort()]
                     xtm2 = (xy_n2[0, 0] + xy_n2[1, 0])/2
                     x2 = np.append(x2, xtm2)
@@ -1643,6 +1648,13 @@ def stat2tot(Ma, Ts, opt, mode='total'):
             Tt = Ts / np.power(aa, 1/(gamma - 1))
     return Tt
 
+
+def temp_span(infile, xloc, vname):
+    df = pd.read_hdf(infile)
+    df1 = df.loc[np.round(df['x'], 4) == xloc]
+    vname = ['x', 'z', 'u', 'v', 'w', 'p', 'T']
+    df2 = df1[vname]
+    return (df2)
 
 
 if __name__ == "__main__":

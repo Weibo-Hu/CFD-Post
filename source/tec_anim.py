@@ -112,12 +112,12 @@ tp.export.save_png(pathF + 'L2_ffs.png', width=2048)
 
 # %% load data for DMD post-processing
 path = "/media/weibo/IM2/FFS_M1.7TB/3D_DMD/"
-freq = "0p4471"
+freq = "0p1164"
 pathin = path + freq + "/"
-pathout = path + freq + "_ani/"
+pathout = path + freq + "_ani/0/"
 file = '[' + freq + ']DMD'
-val1 = -0.4 # for u
-val2 = -0.06  # for p
+val1 = -0.2 # for u
+val2 = -0.03  # for p
 vr = 'u'
 val = val1
 figout  = vr + file
@@ -126,13 +126,13 @@ print(figout.replace(".", "p"))
 dirs = os.listdir(pathin)
 num = int(np.size(dirs)/2)
 # tp.session.connect()
-num = 1
+num = 32
 txtfl = open(pathout + 'levels.dat', "w")
 txtfl.writelines('u` = ' + str(val1) + '\n')
 txtfl.writelines('p` = ' + str(val2) + '\n')
 txtfl.close()
 for ii in range(num):
-    ii = 11
+    # ii = 11
     ind = '{:03}'.format(ii)
     filelist = [file+ind+'A.plt', file+ind+'B.plt'] #,
                # file+ind+'C.plt', file+ind+'D.plt']
@@ -154,14 +154,14 @@ for ii in range(num):
     plot = frame.plot(PlotType.Cartesian3D)
     plot.axes.orientation_axis.show=False
     axes = plot.axes
-    axes_val = [-25, 15, 0, 6, -8, 8]  
+    axes_val = [-25, 10, 0, 5, -8, 8]  
     tl.axis_set_ffs(axes, axes_val)
     axes.y_axis.ticks.auto_spacing=False
-    axes.y_axis.ticks.spacing=3
+    axes.y_axis.ticks.spacing=2
     axes.z_axis.tick_labels.offset=0.3
-    xpos = [56, 18]
+    xpos = [61, 18.5]
     ypos = [2.5, 58]
-    zpos = [9, 12]
+    zpos = [10, 11.5]
     tl.axis_lab(xpos, ypos, zpos)
     # tl.axis_lab()
 
@@ -173,9 +173,9 @@ for ii in range(num):
     view.psi = 50
     view.theta = 145
     view.alpha = -135
-    view.position = (-60, 80, 80)
+    view.position = (-61.5, 79.2, 79)
     # view.distance = 300
-    view.width = 50
+    view.width = 51
     
     # limit values                                                                                                                          values
     tl.limit_val(dataset, 'u`')
@@ -188,16 +188,16 @@ for ii in range(num):
     tl.plt_isosurf(dataset, iso, cont, var, val)
 
     # create slices and its contour
-    plot.show_slices = False
+    plot.show_slices = True
     cont1 = plot.contour(5)
     slices = plot.slice(0)
-    # tl.plt_slice(dataset, slices, cont1, 'p`', val2)
+    tl.plt_slice(dataset, slices, cont1, 'p`', val2)
 
     # tl.figure_ind()   # show figure index
-    # tl.show_time()  # show solution time
+    tl.show_time()  # show solution time
     tl.show_ffs_wall(plot)  # show the wall boundary
     
-    blk_val = [-25, 15, 6]
+    blk_val = [-25, 10, 6]
     plot.value_blanking.active=True
     plot.value_blanking.constraint(0).variable = dataset.variable('x')
     plot.value_blanking.constraint(0).comparison_operator=RelOp.LessThan
@@ -214,8 +214,8 @@ for ii in range(num):
 
     # export figures
     outfile = pathout + figout + '{:02}'.format(int(SolTime))
-    # tp.export.save_png(outfile + '.png', width=2048)
-    tp.export.save_jpeg(outfile + '.jpeg', width=2048, quality=100) 
+    tp.export.save_png(outfile + '.png', width=2048)
+    # tp.export.save_jpeg(outfile + '.jpeg', width=2048, quality=100) 
     
 # %% generate animation
 # %% Convert plots to animation

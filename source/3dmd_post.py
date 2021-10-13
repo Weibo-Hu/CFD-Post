@@ -39,7 +39,7 @@ var4 = 'T'
 col = [var0, var1, var2, var3, var4]
 
 # %% load first snapshot data and obtain basic information
-path = "/media/weibo/IM2/FFS_M1.7TB/"
+path = "/mnt/work/Fourth/FFS_M1.7TB1/"
 path3D = path + '3D_DMD/'
 pathH = path + 'hdf5/'
 pathM = path + 'MeanFlow/'
@@ -53,13 +53,13 @@ DataFrame['walldist'] = DataFrame['y']
 DataFrame.loc[DataFrame['x'] >= 0.0, 'walldist'] += -3.0
 grouped = DataFrame.groupby(['x', 'y', 'z'])
 DataFrame = grouped.mean().reset_index()
-NewFrame = DataFrame.query("x>=-25.0 & x<=15.0 & walldist>=0.0 & y<=8.0") # 20
+NewFrame = DataFrame.query("x>=-25.0 & x<=12.0 & walldist>=0.0 & y<=8.0") # 20
 ind = NewFrame.index.values
 xval = DataFrame['x'][ind]  # NewFrame['x']
 yval = DataFrame['y'][ind]   # NewFrame['y']
 zval = DataFrame['z'][ind]
 x1 = -25.0
-x2 = 15.0
+x2 = 12.0
 y1 = 0.0
 y2 = 8.0
 m = np.size(xval)
@@ -71,16 +71,26 @@ varset = {var0: [0, m],
           var3: [3 * m, 4 * m],
           var4: [4 * m, 5 * m]}
 dt = 0.5
+lh = 3.0
 # %% Load & rename data
 eigval = np.load(path3D + 'eigval.npy')  # bfs.eigval
 omega = np.load(path3D + 'omega.npy')  # bfs.omega
+
+# %% load mode 1
+modes = np.empty([m*o, 0], dtype=np.complex64)
+for i in range(4):
+    mode1 = np.load(path3D + 'modes' + str(i+1) + '.npy')
+    modes = np.concatenate([modes, mode1], axis=1)
+del mode1
+# %% load mode 2
 modes1 = np.load(path3D + 'modes1.npy')  # bfs.omega
 modes2 = np.load(path3D + 'modes2.npy')
 modes3 = np.load(path3D + 'modes3.npy')
 modes4 = np.load(path3D + 'modes4.npy')
-# %% merge modes
+#  merge modes
 modes = np.hstack((modes1, modes2, modes3, modes4))
 del modes1, modes2, modes3, modes4
+# %%
 amplitudes = np.load(path3D + 'amplitudes.npy')  # bfs.omega
 sparse = np.load(path3D + 'sparse.npz')
 nonzero = sparse['nonzero']
@@ -96,7 +106,7 @@ meanflow['walldist'] = meanflow['y']
 meanflow.loc[meanflow['x'] >= 0.0, 'walldist'] += -3.0
 grouped = meanflow.groupby(['x', 'y', 'z'])
 meanflow = grouped.mean().reset_index()
-meanflow = meanflow.query("x>=-25.0 & x<=15.0 & walldist>=0.0 & y<=8.0")  # 20
+meanflow = meanflow.query("x>=-25.0 & x<=12.0 & walldist>=0.0 & y<=8.0")  # 20
 # %% spdmd selection
 sp = 2
 r = np.size(eigval)
@@ -133,38 +143,40 @@ plt.show()
 
 # %% Mode frequency specturm
 reduction = 0
-filtval = 0.98
+filtval = 0.986 # 0.986
 matplotlib.rc('font', size=textsize)
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
-fig2, ax2 = plt.subplots(figsize=(4.0, 3.0))
+fig2, ax2 = plt.subplots(figsize=(4.2, 3.0))
 if reduction == 0:
     freq = omega/2/np.pi
     psi = np.abs(amplitudes)/np.max(np.abs(amplitudes))
     ind1 = (freq > 0.0) & (freq < 1.0) & (np.abs(eigval) > filtval)
     freq1 = freq[ind1]
-    psi1 = np.abs(amplitudes[ind1])/np.max(np.abs(amplitudes[ind1]))
+    psi1 = np.abs(amplitudes[ind1]) /np.max(np.abs(amplitudes[ind1]))
     beta1 = np.real(np.log(eigval[ind1])/dt)
     ind2 = nonzero[:, sp]
 else:
-    psi = np.abs(re_coeff)/np.max(np.abs(re_coeff))
+    psi = np.abs(re_coeff) / np.max(np.abs(re_coeff))
     ind1 = re_freq > 0.0  # freq > 0.0
     freq1 = re_freq[ind1]  # freq[ind1]
     psi1 = np.abs(re_coeff[ind1])/np.max(np.abs(re_coeff[ind1]))
     ind2 = nonzero[re_index, sp]
 ax2.set_xscale("log")
+ax2.set_ylim(bottom=0.0)
 colors = plt.cm.Greys_r(beta1/np.min(beta1))
-ax2.vlines(freq1, [0], psi1, color=colors, linewidth=1.0)
+ax2.vlines(freq1 * lh, [0], psi1, color=colors, linewidth=1.0)
+# ax2.set_yscale('log')
 if sp_ind is not None:
     ind3 = ind2[ind1]
-    ax2.scatter(freq1[ind3], psi1[ind3], marker='o',
+    ax2.scatter(freq1[ind3] * lh, psi1[ind3], marker='o',
                 facecolor='gray', edgecolors='gray', s=15)
 ax2.set_ylim(bottom=0.0)
 ax2.tick_params(labelsize=numsize, pad=6)
-ax2.set_xlabel(r'$f \delta_0/u_\infty$')
+ax2.set_xlabel(r'$f h/u_\infty$')
 ax2.set_ylabel(r'$|\psi_k|$')
 ax2.grid(b=True, which='both', linestyle=':', alpha=0.0)
-plt.savefig(path3D+var+'DMDFreqSpectrum.svg', bbox_inches='tight')
+plt.savefig(path3D+var+'DMDFreqSpectrum_new.svg', bbox_inches='tight')
 plt.show()
 print("the selected frequency:", freq[sparse['nonzero'][:, sp]])
 
@@ -571,9 +583,11 @@ for ii in range(np.size(num)):
 # %% Convert plots to animation
 import imageio
 from natsort import natsorted, ns
+path_id = '/media/weibo/IM2/FFS_M1.7TB/3D_DMD/0p0126_ani/0/'
+fstr = '0p0126'
 dirs = os.listdir(path_id)
-dirs = natsorted(dirs, key=lambda y: y.lower())
-with imageio.get_writer(path_id+fstr+'DMDAnima.mp4', mode='I', fps=2) as writer:
+dirs = natsorted(dirs, key=lambda y: y.lower())   # fps=2
+with imageio.get_writer(path_id+fstr+'DMDAnima.mp4', mode='I', fps=4) as writer:
     for filename in dirs:
         image = imageio.imread(path_id + filename)
         writer.append_data(image)

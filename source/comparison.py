@@ -18,19 +18,21 @@ from timer import timer
 import warnings
 from glob import glob
 import os
+import sys
+
 from planar_field import PlanarField as pf
 from triaxial_field import TriField as tf
 
 
-path0 = "/media/weibo/IM2/FFS_M1.7ZA2/"
+path0 = "/media/weibo/IM2/FFS_M1.7SFD120/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 path1 = "/media/weibo/IM2/FFS_M1.7LA/"
 path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)
 path2 = "/media/weibo/IM2/FFS_M1.7HA/"
 path2F, path2P, path2M, path2S, path2T, path2I = p2p.create_folder(path2)
-path3 = "/media/weibo/IM2/FFS_M1.7TB/"
+path3 = "/media/weibo/IM2/FFS_M1.7TB1/"
 path3F, path3P, path3M, path3S, path3T, path3I = p2p.create_folder(path3)
-pathC = path2 + 'Comparison/'
+pathC = path0 + 'Comparison/'
 
 plt.close("All")
 plt.rc("text", usetex=True)
@@ -163,6 +165,61 @@ plt.show()
 
 # %%############################################################################
 """
+    Temporal evolution & Power spectral density
+"""
+# %% probe within shear layer (Kelvin Helholmz fluctuation)
+# -- temporal evolution
+fa = 1.0 #1.7*1.7*1.4
+var = 'u'
+lh = 3.0
+dt = 0.25
+peri = np.arange(0.0, 500+0.25, 0.25)
+# probe = np.loadtxt(pathI + "ProbeKH.dat", skiprows=1)
+# func = interp1d(probe[:, 1], probe[:, 7])
+# Xk = func(timezone)  # probe[:, 8]
+probe0 = pd.read_csv(path0I + 'Xk1_new.dat', sep=' ',
+                     index_col=False, skipinitialspace=True)
+probe3 = pd.read_csv(path3I + 'Xk1.dat', sep=' ',
+                     index_col=False, skipinitialspace=True)
+if np.size(peri) != np.shape(probe0)[0]:
+    sys.exit("The NO of peri are not equal to the NO of timespoints!!!")
+Xk0 = probe0[var].values
+Xk3 = probe3[var].values
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
+# spl = splrep(timezone, xarr, s=0.35)
+# xarr1 = splev(timezone[0::5], spl)
+ax.plot(peri/lh, Xk0*fa, "k-", linewidth=0.8)
+ax.plot(peri/lh, Xk3*fa, "b--", linewidth=0.8)
+ax.set_xlim([peri[0]/lh, peri[-1]/lh]) # (950, 1350) # 
+ax.set_xlabel(r"$t_0 u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$u/u_\infty$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+xmean = np.mean(Xk0*fa)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathC + "Xk1.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+# -- FWPSD
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
+ax.set_ylabel(r"$f\mathcal{P}(f)/\mathcal{P}_\mathrm{max}$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+Fre0, FPSD0 = va.fw_psd(Xk0*fa, dt, 1/dt, opt=1, seg=8, overlap=4)
+Fre3, FPSD3 = va.fw_psd(Xk3*fa, dt, 1/dt, opt=1, seg=8, overlap=4)
+ax.semilogx(Fre0*lh, FPSD0/np.max(FPSD0), "k", linewidth=0.8)
+ax.semilogx(Fre3*lh, FPSD3/np.max(FPSD3), "b--", linewidth=0.8)
+ax.yaxis.offsetText.set_fontsize(numsize)
+# ax2nd = ax.secondary_xaxis('top', functions=(d2l, l2d))
+# ax2nd.set_xlabel(r'$f x_r / u_\infty$')
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(pathC + "XkFWPSD_new1.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %%############################################################################
+"""
     time sequential data at some probes
 """
 # %% load sequential slices
@@ -257,32 +314,59 @@ plt.show()
 """
     frequency-weighted PSD
 """
+data0 = np.loadtxt(path0I + "Separate.dat", skiprows=1)
+data3 = np.loadtxt(path0I + "Reattach.dat", skiprows=1)
+temp = 0.5*np.abs(data0[:, 1])*data3[:, 1]
+data3[:, 1] = temp
+np.savetxt(
+path0I + "BubbleNew.dat",
+data3,
+fmt="%.8e",
+delimiter="  ",
+header="t, A",
+)
 # %% singnal of bubble
 # -- temporal evolution
-data1 = np.loadtxt(path1I + "BubbleArea.dat", skiprows=1)
-data3 = np.loadtxt(path3I + "BubbleArea.dat", skiprows=1)
+data0 = np.loadtxt(path0I + "NewSep.dat", skiprows=1)
+data3 = np.loadtxt(path3I + "Separate.dat", skiprows=1)
+fa = 1/3
 dt = 0.25
-Xb1 = data1[:, 1]
+Xb0 = data0[:, 1]
 Xb3 = data3[:, 1]
 Lr1 = 10.9
 Lr3 = 8.9
-# -- FWPSD
-fig, ax = plt.subplots(figsize=(3.0, 3.0))
-ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.set_xlabel(r"$f L_r/u_\infty$", fontsize=textsize)
-ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
+# spl = splrep(timezone, xarr, s=0.35)
+# xarr1 = splev(timezone[0::5], spl)
+ax.plot(peri/lh, Xb0*fa, "k-", linewidth=0.8)
+ax.plot(peri/lh, Xb3*fa, "b--", linewidth=0.8)
+ax.set_xlim([peri[0]/lh, peri[-1]/lh]) # (950, 1350) # 
+ax.set_xlabel(r"$t_0 u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$x_s/h$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre1, FPSD1 = va.fw_psd(Xb1, dt, 1/dt, opt=1, seg=8, overlap=4)
+xmean = np.mean(Xb0*fa)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathC + "Xs_com.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+# -- FWPSD
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
+ax.set_ylabel(r"$f\mathcal{P}(f)/\mathcal{P}_\mathrm{max}$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+Fre0, FPSD0 = va.fw_psd(Xb0, dt, 1/dt, opt=1, seg=8, overlap=4)
 Fre3, FPSD3 = va.fw_psd(Xb3, dt, 1/dt, opt=1, seg=8, overlap=4)
-ax.semilogx(Fre1*Lr1, FPSD1, "k-", linewidth=1.0)
+ax.semilogx(Fre0*lh, FPSD0/np.max(FPSD0), "k-", linewidth=0.8)
+ax.semilogx(Fre3*lh, FPSD3/np.max(FPSD3), "b--", linewidth=0.8)
 # ax.scatter(Fre1*Lr1, FPSD1, s=10, marker='o',
 #           facecolors='w', edgecolors='C7', linewidths=0.8)
-ax.semilogx(Fre3*Lr3, FPSD3, "k:", linewidth=1.5)
 # ax.set_xscale('log')
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathC + "XbFWPSD_com.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathC + "XsFWPSD_com.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% singnal of bubble

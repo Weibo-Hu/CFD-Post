@@ -18,7 +18,8 @@ import variable_analysis as va
 from line_field import LineField as lf
 
 # -- data path settings
-path = "/media/weibo/IM2/FFS_M1.7SFD120/"
+# path = "/media/weibo/IM2/FFS_M1.7SFD120/"
+path = "/mnt/work/Fourth/FFS_M1.7TB1/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -46,13 +47,14 @@ numsize = 10
 """
 # %% Time evolution of a specific variable at several streamwise locations
 probe = lf()
+lh = 3.0
 fa = 1.0
 var = 'p'
 ylab = r"$u^\prime/u_\infty$"
 if var == 'p':
     fa = 1.7 * 1.7 * 1.4
     ylab = r"$p^\prime/p_\infty$"
-timezone = np.arange(900, 1620 + 0.125, 0.125)
+timezone = np.arange(900, 1300 + 0.125, 0.125)
 xloc = [-36, -33, -30, -27, -24]# [-50.0, -30.0, -20.0, -10.0, 4.0]
 yloc =  [0.0, 0.0, 0.0, 0.0, 0.0]
 zloc = 0.0
@@ -63,6 +65,7 @@ matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
 for i in range(np.size(xloc)):
     probe.load_probe(pathP, (xloc[i], yloc[i], zloc))
+    probe.rescale(lh)
     probe.extract_series([timezone[0], timezone[-1]])
     temp = (getattr(probe, var) - np.mean(getattr(probe, var))) * fa
     ax[i].plot(probe.time, temp, 'k')
@@ -117,7 +120,7 @@ plt.savefig(pathF + var + '_StreamwiseEvolve.svg',
     frequency weighted power spectral density
 """
 # %% Frequency Weighted Power Spectral Density
-Lsep = 12.8 # for 48 laminar # 12.8 for turbulent
+Lsep = 11.6 # for 34.8 laminar # 12.6 for turbulent
 def d_l(x):
     return x / Lsep
 def l_d(x):
@@ -129,7 +132,7 @@ def d_h(x):
 def h_d(x):
     return x * sh
 
-Hsep = 4.3 # 16 for laminar # 4.3 for turbulent
+Hsep = 4.2 # 11.6 for laminar # 4.2 for turbulent
 def h_l(x):
     return x / Hsep
 
@@ -142,7 +145,7 @@ var = 'p'
 
 probe = lf()
 x0 = -3
-t1, t2 = [600, 1000]
+t1, t2 = [600, 1100]
 probe.load_probe(pathP, (x0, 0.0, 0.0))
 probe.extract_series((t1, t2))
 freq, fpsd = va.fw_psd(getattr(probe, var), probe.time, freq_samp,
@@ -210,7 +213,7 @@ Multiple FWPSD Map
 """
 # %% Plot multiple frequency-weighted PSD curve along streamwise
 sh = 3.0
-t1, t2 = [600, 1000]
+t1, t2 = [600, 1100] # [600, 1100] # turbulent
 var = 'p'
 freq_samp = 1/0.125
 fig, ax = plt.subplots(1, 7, figsize=(7.2, 2.4))
@@ -219,8 +222,9 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-60.0, -48.0, -24, -12.0, -3.0, 2.0, 6.0])
+xcoord = np.array([-60.0, -36, -24, -12.0, -3.0, 2.0, 6.0])
 ycoord = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0])
+pow_arr = [-6, -6, -6, -5, -6, -5, -6] # [-7, -7, -6, -5, -4, -5, -5]
 for i in range(np.size(xcoord)):
     probe.load_probe(pathP, (xcoord[i], ycoord[i], 0.0))
     probe.extract_series((t1, t2))
@@ -229,11 +233,11 @@ for i in range(np.size(xcoord)):
                              opt=1, seg=8, overlap=4)
     maxs = "{:.0e}".format(np.max(fpsd_x))
     parts = str(maxs).split('e', 2)
-    if int(parts[0]) < 3:
+    if int(parts[0]) < 5:
         pownm = int(parts[-1]) - 1
     else:
         pownm = int(parts[-1])
-    pownm = -5
+    pownm = pow_arr[i] # -6
     expon = 10**pownm
     if i % 2 == 0:
         ax[i].plot(fpsd_x/expon, h_d(freq), "k-", linewidth=1.0)
@@ -247,7 +251,7 @@ for i in range(np.size(xcoord)):
     # ax[i].set_xticks(np.linspace(0, 1, 11)*10**(-4), minor=True)
     # ax[i].set_xlim([0, 3*10**(-4)])
     ax[i].set_xlim([0, 10])
-    ax[i].set_xticks([0, 5, 10])
+    ax[i].set_xticks([0, 15, 30])
     xloc = np.round(xcoord[i]/sh, 1)
     ax[i].set_title(r'${}$'.format(xloc), fontsize=numsize-1, loc='left')
     ax[i].annotate(r'$\times 10^{{{}}}$'.format(int(pownm)), 
@@ -344,24 +348,29 @@ plt.show()
     critical aerodynamic parameters (reattachment, shock, bubble)
 """
 # %% Calculate singnal of Xr, Xsl, Xsf, Xb
-InFolder = path + 'Slice/S_009/'
-timezone = np.arange(600.0, 1100.00 + 0.25, 0.25)
+InFolder = path + 'Slice/TP_2D_S_009/'
+timezone = np.arange(1100, 1600.0 + 0.25, 0.25)
 skip = 1
 # -- separation location
-reatt = va.separate_loc(InFolder, pathI, timezone, skip=skip, opt=1) #, loc=-0.5, opt=1)
+reatt = va.separate_loc(InFolder, pathI, timezone, skip=skip, opt=2) #, loc=-0.5, opt=1)
+# --- separation location by velocity on the wall
+ywall = 0.0023002559
+va.shock_foot(InFolder, pathI, timezone, ywall, 0.00099, outfile='NewSep.dat', skip=skip)
 # -- shock location outside the boundary layer
-va.shock_loc(InFolder, pathI, timezone, skip=skip) #, opt=2, val=[0.91, 0.92])
+va.shock_loc(InFolder, pathI, timezone, skip=skip, var='|grad(rho)|', lev=0.42) #, opt=2, val=[0.91, 0.92])
 # -- shock foot within the boudnary layer
-va.shock_foot(InFolder, pathI, timezone, 1.5, 0.87, skip=skip)  # 0.82 for laminar
+va.shock_foot(InFolder, pathI, timezone, 1.5, 0.875, skip=skip)  # 0.82 for laminar
 # -- area of the separation bubble
 va.bubble_area(InFolder, pathI, timezone, step=0, skip=skip)
-# -- a specific location, for example in the shear layer
-InFolder = path + 'Slice/Z_003/'
-xy = [-11.0625, 2.5] # [-4.375, 3.53125] # [-11.0625, 2.125]  # [-4.6875, 2.9375]  # 
+#%% -- a specific location, for example in the shear layer
+InFolder = path + 'Slice/TP_2D_S_009/'
+xy = [-37.5   ,  1.25]  # [-10,2.59375] # [-4.375, 3.53125] #[-4.6875, 2.9375]  #  
 va.extract_point(InFolder, pathI, timezone, xy, skip=skip)
 dt = 0.25
 fs = 4.0
-x1x2 = [600, 1100]
+lh = 3.0
+# x1x2 = [1100/lh, 1600/lh]
+x1x2 = [600/lh, 1100/lh]
 # %%############################################################################
 """
     Temporal evolution & Power spectral density
@@ -373,50 +382,50 @@ var = 'u'
 # probe = np.loadtxt(pathI + "ProbeKH.dat", skiprows=1)
 # func = interp1d(probe[:, 1], probe[:, 7])
 # Xk = func(timezone)  # probe[:, 8]
-probe = pd.read_csv(pathI + 'Xk5_old.dat', sep=' ',
+probe = pd.read_csv(pathI + 'Xk5.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
 Xk = probe[var].values
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
-ax.plot(probe['t'], Xk*fa, "k-", linewidth=0.8)
+ax.plot(probe['t']/lh, Xk*fa, "k-", linewidth=0.8)
 ax.set_xlim(x1x2) # (950, 1350) # 
-ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
 ax.set_ylabel(r"$u/u_\infty$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 xmean = np.mean(Xk*fa)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF + "Xk.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Xk5.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 # -- FWPSD
 fig, ax = plt.subplots(figsize=(2.5, 2.5))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = va.fw_psd(Xk*fa, dt, 1/dt, opt=1, seg=8, overlap=6)
-ax.semilogx(Fre, FPSD, "k", linewidth=0.8)
+Fre, FPSD = va.fw_psd(Xk*fa, dt, 1/dt, opt=1, seg=8, overlap=4)
+ax.semilogx(Fre*lh, FPSD, "k", linewidth=0.8)
 ax.yaxis.offsetText.set_fontsize(numsize)
 # ax2nd = ax.secondary_xaxis('top', functions=(d2l, l2d))
 # ax2nd.set_xlabel(r'$f x_r / u_\infty$')
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathF + "XkFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "Xk5FWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% singnal of bubble
 # -- temporal evolution
 bubble = np.loadtxt(pathI + "BubbleArea.dat", skiprows=1)
-Xb = bubble[:, 1]
+Xb = bubble[:, 1] / lh /lh
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
-ax.plot(bubble[:, 0], Xb, "k-", linewidth=0.8)
+ax.plot(bubble[:, 0]/lh, Xb, "k-", linewidth=0.8)
 ax.set_xlim(x1x2)
-ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$A/\delta_0^2$", fontsize=textsize)
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$A/h^2$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-xmean = np.mean(Xb)
+xmean = np.mean(Xb/lh/lh)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
@@ -426,11 +435,11 @@ plt.show()
 # -- FWPSD
 fig, ax = plt.subplots(figsize=(2.5, 2.5))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
-ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 Fre, FPSD = va.fw_psd(Xb, dt, 1/dt, opt=1, seg=10, overlap=6)
-ax.semilogx(Fre, FPSD, "k", linewidth=0.8)
+ax.semilogx(Fre*lh, FPSD, "k", linewidth=0.8)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
@@ -448,23 +457,26 @@ shockloc = shock2[:, 1] - 8.0 / np.tan(angle/180*np.pi)  # outside the BL
 Xl = shockloc
 Xf = foot[:, 1]
 # %% temporal evolution
-Xa = angle  # shock2[:, 1] # Xf # angle # Xf  # Xl  #      
+Xa = angle # shock1[:, 1] # shock2[:, 1] # Xf # angle # Xf  # Xl  #      
 if np.array_equal(Xa, Xl):
     output = 'Shockloc'
-    ylabel = r"$x_l/\delta_0$"
+    ylabel = r"$x_l/h$"
+    Xa1 = Xa/lh
 elif np.array_equal(Xa, Xf):
     output = 'Shockfoot'
-    ylabel = r"$x_f/\delta_0$"
+    ylabel = r"$x_f/h$"
+    Xa1 = Xa/lh
 elif np.array_equal(Xa, angle):
     output = 'Shockangle'
     ylabel = r"$\eta(^{\circ})$"
+    Xa1 = Xa
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
-ax.plot(shock1[:, 0], Xa, "k-", linewidth=0.8)
+ax.plot(shock1[:, 0]/lh, Xa1, "k-", linewidth=0.8)
 ax.set_xlim(x1x2)
-ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
 ax.set_ylabel(ylabel, fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-xmean = np.mean(Xa)
+xmean = np.mean(Xa1)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
@@ -476,11 +488,11 @@ plt.show()
 fig, ax = plt.subplots(figsize=(2.5, 2.5))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
-ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre, FPSD = va.fw_psd(Xa, dt, 1/dt, opt=1, seg=8, overlap=4)
-ax.semilogx(Fre, FPSD, "k", linewidth=0.8)
+Fre, FPSD = va.fw_psd(Xb, dt, 1/dt, opt=1, seg=8, overlap=4)
+ax.semilogx(Fre*lh, FPSD, "k", linewidth=0.8)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
@@ -489,14 +501,14 @@ plt.show()
 # %% singnal of reattachment point
 # -- temporal evolution
 reatt = np.loadtxt(pathI+"Reattach.dat", skiprows=1)  # separate
-Xr = reatt[:, 1]
+Xr = reatt[:, 1] / lh
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
-ax.plot(reatt[:, 0], Xr, "k-", linewidth=0.8)
+ax.plot(reatt[:, 0]/lh, Xr, "k-", linewidth=0.8)
 ax.set_xlim(x1x2) # (1150, 1200)  # 
-ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$y_r/\delta_0$", fontsize=textsize)
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$y_r/h$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 xmean = np.mean(Xr)
 print("The mean value: ", xmean)
@@ -508,11 +520,11 @@ plt.show()
 # -- FWPSD
 fig, ax = plt.subplots(figsize=(2.5, 2.5))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
-ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 Fre, FPSD = va.fw_psd(Xr, dt, 1/dt, opt=1, seg=10, overlap=8)
-ax.semilogx(Fre, FPSD, "k", linewidth=0.8)
+ax.semilogx(Fre*lh, FPSD, "k", linewidth=0.8)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
@@ -522,14 +534,15 @@ plt.show()
 # %% singnal of separation point
 # -- temporal evolution
 sepa = np.loadtxt(pathI+"Separate.dat", skiprows=1)  # separate
-Xs = sepa[:, 1]
+Xs = sepa[:, 1]/lh
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 # spl = splrep(timezone, xarr, s=0.35)
 # xarr1 = splev(timezone[0::5], spl)
-ax.plot(sepa[:, 0], Xs, "k-", linewidth=0.8)
-ax.set_xlim(x1x2) # (1150, 1200)  # 
-ax.set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$x_s/\delta_0$", fontsize=textsize)
+ax.plot(sepa[:, 0]/lh, Xs, "k-", linewidth=0.8)
+ax.set_xlim(x1x2)
+# ax.set_xlim(x1x2) # (1150, 1200)  # 
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$x_s/h$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 xmean = np.mean(Xs)
 print("The mean value: ", xmean)
@@ -541,11 +554,11 @@ plt.show()
 # -- FWPSD
 fig, ax = plt.subplots(figsize=(2.5, 2.5))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
-ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 Fre, FPSD = va.fw_psd(Xs, dt, 1/dt, opt=1, seg=8, overlap=4)
-ax.semilogx(Fre, FPSD, "k", linewidth=0.8)
+ax.semilogx(Fre*lh, FPSD, "k", linewidth=0.8)
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
@@ -616,7 +629,7 @@ timezone = np.arange(600, 1000 + 0.5, 0.5)
 dt = 0.25
 fs = 4
 Xs0 = Xs  # probe1[:, 1]
-Xr0 = Xa # probe2[:, 1]
+Xr0 = Xl # probe2[:, 1]
 #Xs1 = probe11[:, 1]
 #Xr1 = probe21[:, 1]
 #Xs2 = probe12[:, 1]
@@ -625,31 +638,32 @@ Xr0 = Xa # probe2[:, 1]
 fig = plt.figure(figsize=(6.4, 3.0))
 matplotlib.rc("font", size=textsize)
 ax = fig.add_subplot(121)
-Fre, coher = va.coherence(Xr0, Xs0, dt, fs, opt=1, seg=8, overlap=2)
+Fre, coher = va.coherence(Xs0, Xr0, dt, fs, opt=1, seg=8, overlap=4)
 #Fre1, coher1 = va.coherence(Xr1, Xs1, dt, fs)
 #Fre2, coher2 = va.coherence(Xr2, Xs2, dt, fs)
-ax.semilogx(Fre, coher, "k-", linewidth=1.0)
+ax.semilogx(Fre * lh, coher, "k-", linewidth=1.0)
 # ax.semilogx(Fre1, coher1, "k:", linewidth=1.0)
 # ax.semilogx(Fre2, coher2, "k--", linewidth=1.0)
 # ax.set_ylim([0.0, 1.0])
 # ax.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax.get_yaxis().get_major_formatter().set_useOffset(False)
-ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax.set_xlabel(r"$fh/u_\infty$", fontsize=textsize)
 ax.set_ylabel(r"$C$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
-ax.annotate("(a)", xy=(-0.15, 1.0), xycoords="axes fraction", fontsize=numsize)
+ax.annotate("(a)", xy=(-0.17, 1.0), xycoords="axes fraction", fontsize=numsize)
 
 ax = fig.add_subplot(122)
-Fre, cpsd = va.cro_psd(Xr0, Xs0, dt, fs, opt=1, seg=8, overlap=4)
+Fre, cpsd = va.cro_psd(Xs0, Xr0, dt, fs, opt=1, seg=8, overlap=2)
 #Fre1, cpsd1 = va.cro_psd(Xr1, Xs1, dt, fs)
 #Fre2, cpsd2 = va.cro_psd(Xr2, Xs2, dt, fs)
-ax.semilogx(Fre, np.arctan(cpsd.imag, cpsd.real), "k-", linewidth=1.0)
+ax.semilogx(Fre * lh, np.arctan2(cpsd.imag, cpsd.real) / np.pi, 
+            "k-", linewidth=1.0)
 # ax.semilogx(Fre, np.arctan(cpsd1.imag, cpsd1.real), "k:", linewidth=1.0)
 # ax.semilogx(Fre, np.arctan(cpsd2.imag, cpsd2.real), "k--", linewidth=1.0)
 # ax.set_ylim([-1.0, 1.0])
-ax.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
-ax.set_ylabel(r"$\theta$" + "(rad)", fontsize=textsize)
+ax.set_xlabel(r"$fh/u_\infty$", fontsize=textsize)
+ax.set_ylabel(r"$\theta/\pi$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.annotate("(b)", xy=(-0.20, 1.0), xycoords="axes fraction", fontsize=numsize)
 #lab = [
@@ -660,7 +674,7 @@ ax.annotate("(b)", xy=(-0.20, 1.0), xycoords="axes fraction", fontsize=numsize)
 # ax.legend(lab, ncol=1, loc="upper right", fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathF + "Statistic"+"XsXa.svg",
+plt.savefig(pathF + "Statistic"+"XsXl.svg",
             bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
