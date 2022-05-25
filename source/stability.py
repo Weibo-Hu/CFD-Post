@@ -513,10 +513,10 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-20.0, -17, -11, -6.0, -1, 1.0, 6.0])
+xcoord = np.array([-20.0, -16, -8, -4, -1, 0.75, 2.0])
 # xcoord = np.array([-5, 1.0, 3.75, 4.875, 6.5, 8.875, 18.25])
 for i in range(np.size(xcoord)):
-    ind = np.where(xval[:] == xcoord[i])[0]
+    ind = np.where(xval[:]/lh == xcoord[i])[0]
     fpsd_x = FPSD[:, ind]
     ax[i].plot(fpsd_x, freq, "k-", linewidth=1.0)
     ax[i].set_yscale('log')
@@ -536,7 +536,7 @@ for i in range(np.size(xcoord)):
     # ax[i].set_xticklabels('')
     ax[i].tick_params(axis='both', which='major', labelsize=numsize)
     # ax[i].grid(b=True, which="both", axis='both', linestyle=":")
-ax[0].set_title(r'$x/\delta_0={}$'.format(xcoord[0]), fontsize=numsize-2)
+ax[0].set_title(r'$x/h={}$'.format(xcoord[0]), fontsize=numsize-2)
 ax[0].set_ylabel(r"$f \delta_0 /u_\infty$", fontsize=textsize)
 ax[3].set_xlabel(r'$f \mathcal{P}(f)$', fontsize=textsize, labelpad=15)
 ax2 = ax[-1].secondary_yaxis('right', functions=(d2l, l2d)) 

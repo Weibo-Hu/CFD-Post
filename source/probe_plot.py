@@ -425,7 +425,7 @@ ax.set_xlim(x1x2)
 ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
 ax.set_ylabel(r"$A/h^2$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-xmean = np.mean(Xb/lh/lh)
+xmean = np.mean(Xb)
 print("The mean value: ", xmean)
 ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
 plt.tick_params(labelsize=numsize)
@@ -445,7 +445,42 @@ plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathF + "XbFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
-
+# %% probablity
+df = pd.DataFrame(data=Xb, columns=['A'])
+posi = np.zeros(np.size(Xb))
+nega = np.zeros(np.size(Xb))
+Xb_grad = np.gradient(Xb, 0.083333333)  # va.sec_ord_fdd(bubble[:, 0]/lh, Xb)
+posi_mean = np.mean(Xb_grad[Xb_grad > 0])
+nega_mean = np.mean(Xb_grad[Xb_grad < 0])
+for ii in range(np.size(Xb)):
+    if Xb_grad[ii] >= 0:
+        if ii == 0:
+            posi[ii] = posi[ii] + 1
+            nega[ii] = nega[ii] + 0
+        else:
+            posi[ii] = posi[ii-1] + 1
+            nega[ii] = nega[ii-1] + 0
+    elif Xb_grad[ii]  < 0:
+        if ii == 0:
+            posi[ii] = posi[ii] + 0
+            nega[ii] = nega[ii] + 1
+        else:
+            posi[ii] = posi[ii-1] + 0
+            nega[ii] = nega[ii-1] + 1
+    
+ig, ax = plt.subplots(figsize=(6.4, 2.2))
+ax.plot(bubble[:, 0]/lh, posi/np.size(Xb), "k-", linewidth=0.8)
+ax.plot(bubble[:, 0]/lh, nega/np.size(Xb), "b-", linewidth=0.8)
+ax.set_xlim(x1x2)
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$P(dA/dt)$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+# xmean = np.mean(Xb)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathF + "Xb_prob.pdf", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 # %% signal of shock information
 # -- load data
 shock1 = np.loadtxt(pathI + "ShockA.dat", skiprows=1)
@@ -530,7 +565,42 @@ plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathF + "XrFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
-
+# %% probablity
+df = pd.DataFrame(data=Xr, columns=['A'])
+posi = np.zeros(np.size(Xr))
+nega = np.zeros(np.size(Xr))
+Xr_grad = va.sec_ord_fdd(reatt[:, 0]/lh, Xr)
+posi_mean = np.mean(Xr_grad[Xr_grad > 0])
+nega_mean = np.mean(Xr_grad[Xr_grad < 0])
+for ii in range(np.size(Xr)):
+    if Xr_grad[ii] >= 0:
+        if ii == 0:
+            posi[ii] = posi[ii] + 1
+            nega[ii] = nega[ii] + 0
+        else:
+            posi[ii] = posi[ii-1] + 1
+            nega[ii] = nega[ii-1] + 0
+    elif Xr_grad[ii] < 0:
+        if ii == 0:
+            posi[ii] = posi[ii] + 0
+            nega[ii] = nega[ii] + 1
+        else:
+            posi[ii] = posi[ii-1] + 0
+            nega[ii] = nega[ii-1] + 1
+    
+ig, ax = plt.subplots(figsize=(6.4, 2.2))
+ax.plot(reatt[:, 0]/lh, posi/np.size(Xb), "k-", linewidth=0.8)
+ax.plot(reatt[:, 0]/lh, nega/np.size(Xb), "b-", linewidth=0.8)
+ax.set_xlim(x1x2)
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$P(dy_r/dt)$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+# xmean = np.mean(Xb)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathF + "yr_prob.pdf", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 # %% singnal of separation point
 # -- temporal evolution
 sepa = np.loadtxt(pathI+"Separate.dat", skiprows=1)  # separate
@@ -564,8 +634,46 @@ plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathF + "XsFWPSD.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
+# %% probablity
+df = pd.DataFrame(data=Xs, columns=['A'])
+posi = np.zeros(np.size(Xs))
+nega = np.zeros(np.size(Xs))
+Xs_grad = va.sec_ord_fdd(sepa[:, 0]/lh, Xs)
+posi_mean = np.mean(Xs_grad[Xs_grad > 0])
+nega_mean = np.mean(Xs_grad[Xs_grad < 0])
+for ii in range(np.size(Xs)):
+    if (Xs_grad[ii] >= 0):
+        if ii == 0:
+            posi[ii] = posi[ii] + 1
+            nega[ii] = nega[ii] + 0
+        else:
+            posi[ii] = posi[ii-1] + 1
+            nega[ii] = nega[ii-1] + 0
+    elif (Xs_grad[ii] < 0):
+        if ii == 0:
+            posi[ii] = posi[ii] + 0
+            nega[ii] = nega[ii] + 1
+        else:
+            posi[ii] = posi[ii-1] + 0
+            nega[ii] = nega[ii-1] + 1
+    
+ig, ax = plt.subplots(figsize=(6.4, 2.2))
+ax.plot(sepa[:, 0]/lh, posi/np.size(Xs), "k-", linewidth=0.8)
+ax.plot(sepa[:, 0]/lh, nega/np.size(Xs), "b-", linewidth=0.8)
+# ax.plot(sepa[:, 0]/lh, nega/np.size(Xs), "b-", linewidth=0.8)
+ax.set_xlim(x1x2)
+ax.set_xlabel(r"$t u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$P(d A/d t)$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+# xmean = np.mean(Xb)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathF + "Xs_prob.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 # %% gradient of Xr
-x1x2 = [-40, 10]
+# x1x2 = [-40, 10]
+timezone = sepa[:, 0]/lh
 fig, ax = plt.subplots(figsize=(6.4, 3.0))
 dxr = va.sec_ord_fdd(timezone, Xr)
 ax.plot(timezone, dxr, "k-")
@@ -584,31 +692,50 @@ plt.savefig(pathF + "GradientXr.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% histogram of probability
-num = 12
+num = 9
+timezone = reatt[:,0]
+t_no = 20
+aa = int(np.size(Xb)/t_no)
+new_t = np.zeros(aa)
+new_xr = np.zeros(aa)
+for i in range(aa):
+    new_t[i] = np.mean(timezone[i*t_no:(i+1)*t_no])
+    new_xr[i] = np.mean(Xb[i*t_no:(i+1)*t_no])
+
+dxr = va.sec_ord_fdd(new_t, new_xr)
+posi_mean = np.mean(dxr[dxr > 0])
+nega_mean = np.mean(dxr[dxr < 0])
 tnum = np.size(dxr)
+xr_max = np.round(np.max(np.abs(dxr)), 4)
+dxr_arr = np.linspace(-xr_max, xr_max, num, endpoint=True)
 dxdt = np.linspace(-2.0, 2.0, num)
-nsize = np.zeros(num)
-proba = np.zeros(num)
-for i in range(num):
-    ind = np.where(np.round(dxr, 1) == np.round(dxdt[i], 1))
-    nsize[i] = np.size(ind)
-    proba[i] = np.size(ind)/tnum
+nsize = np.zeros(num-1)
+proba = np.zeros(num-1)
+for i in range(num-1):
+    ind = np.all([dxr_arr[i]<=dxr, dxr<dxr_arr[i+1]], axis=0)
+    nsize[i] = np.size(dxr[ind])
+    proba[i] = nsize[i]/tnum
 
 fig, ax = plt.subplots(figsize=(10, 3.5))
 # ax.hist(dxr, bins=num, range=(-2.0, 2.0), edgecolor='k', linestyle='-',
 #         facecolor='#D3D3D3', alpha=0.98, density=True)
 hist, edges = np.histogram(dxr, bins=num, range=(-2.0, 2.0), density=True)
-binwid = edges[1] - edges[0]
+# binwid = edges[1] - edges[0]
 # plt.bar(edges[:-1], hist*binwid, width=binwid, edgecolor='k', linestyle='-',
 #         facecolor='#D3D3D3', alpha=0.98)
-plt.bar(edges[:-1], hist, width=binwid, edgecolor='k', linestyle='-',
-        facecolor='#D3D3D3', alpha=0.98)
+#plt.bar(edges[:-1], hist, width=binwid, edgecolor='k', linestyle='-',
+#         facecolor='#D3D3D3', alpha=0.98)
+binwid = dxr_arr[1] - dxr_arr[0]
+plt.bar(dxr_arr[:4]+0.5*binwid, proba[:4], width=binwid, edgecolor='k', linestyle='-',
+        facecolor='#40B14B', alpha=0.98)
+plt.bar(dxr_arr[4:-1]+0.5*binwid, proba[4:], width=binwid, edgecolor='k', linestyle='-',
+        facecolor='#F87E7D', alpha=0.98)
 # ax.set_xlim([-2.0, 2.0])
-ax.set_ylabel(r"$\mathcal{P}$", fontsize=textsize)
-ax.set_xlabel(r"$\mathrm{d} x_r/\mathrm{d} t$", fontsize=textsize)
+ax.set_ylabel(r"$P$", fontsize=textsize)
+ax.set_xlabel(r"$\mathrm{d} A/\mathrm{d} t$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF + "ProbGradientXr.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "ProbGradientXb_0.2hz.pdf", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %%############################################################################

@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Created on Wen May 11  22:39:40 2020
@@ -111,22 +112,22 @@ tl.plt_schlieren(dataset, slc, cont3, var3, val3, label=False)
 tp.export.save_png(pathF + 'L2_ffs.png', width=2048)
 
 # %% load data for DMD post-processing
-path = "/media/weibo/IM2/FFS_M1.7TB/3D_DMD/"
-freq = "0p1164"
+path = "/mnt/work/Fourth/FFS_M1.7TB1/3D_DMD/"
+freq = "0p0354"
 pathin = path + freq + "/"
 pathout = path + freq + "_ani/0/"
 file = '[' + freq + ']DMD'
 val1 = -0.2 # for u
-val2 = -0.03  # for p
-vr = 'u'
-val = val1
+val2 = -0.03 # for p
+vr = 'p'
+val = val2
 figout  = vr + file
 var = vr + '`'
 print(figout.replace(".", "p"))
 dirs = os.listdir(pathin)
 num = int(np.size(dirs)/2)
 # tp.session.connect()
-num = 32
+num = 8
 txtfl = open(pathout + 'levels.dat', "w")
 txtfl.writelines('u` = ' + str(val1) + '\n')
 txtfl.writelines('p` = ' + str(val2) + '\n')
@@ -140,6 +141,7 @@ for ii in range(num):
     datafile = [os.path.join(pathin, name) for name in filelist]
     dataset = tp.data.load_tecplot(datafile, read_data_option=2)
     SolTime = dataset.solution_times[0]
+    tl.rescale(ref=3.0)
 
     # % frame operation
     frame = tp.active_frame()
@@ -154,15 +156,16 @@ for ii in range(num):
     plot = frame.plot(PlotType.Cartesian3D)
     plot.axes.orientation_axis.show=False
     axes = plot.axes
-    axes_val = [-25, 10, 0, 5, -8, 8]  
+    # axes_val = [-25, 10, 0, 5, -8, 8]  
+    axes_val = [-8, 3, 0, 2, -2.5, 2.65] 
     tl.axis_set_ffs(axes, axes_val)
     axes.y_axis.ticks.auto_spacing=False
-    axes.y_axis.ticks.spacing=2
+    axes.y_axis.ticks.spacing=1
     axes.z_axis.tick_labels.offset=0.3
-    xpos = [61, 18.5]
-    ypos = [2.5, 58]
+    xpos = [60.5, 17.5]
+    ypos = [2.5, 59]
     zpos = [10, 11.5]
-    tl.axis_lab(xpos, ypos, zpos)
+    tl.axis_lab2(xpos, ypos, zpos)
     # tl.axis_lab()
 
     # 3d view settings
@@ -173,9 +176,9 @@ for ii in range(num):
     view.psi = 50
     view.theta = 145
     view.alpha = -135
-    view.position = (-61.5, 79.2, 79)
+    view.position = (-56.5, 78, 79)
     # view.distance = 300
-    view.width = 51
+    view.width = 54
     
     # limit values                                                                                                                          values
     tl.limit_val(dataset, 'u`')
@@ -188,16 +191,17 @@ for ii in range(num):
     tl.plt_isosurf(dataset, iso, cont, var, val)
 
     # create slices and its contour
-    plot.show_slices = True
+    # plot.show_slices = True
     cont1 = plot.contour(5)
     slices = plot.slice(0)
-    tl.plt_slice(dataset, slices, cont1, 'p`', val2)
+    # tl.plt_slice(dataset, slices, cont1, 'p`', val2)
 
     # tl.figure_ind()   # show figure index
-    tl.show_time()  # show solution time
-    tl.show_ffs_wall(plot)  # show the wall boundary
+    # tl.show_time()  # show solution time
+    tl.show_ffs_wall(plot, ref=3.0)  # show the wall boundary
     
-    blk_val = [-25, 10, 6]
+    # blk_val = [-25, 10, 6]
+    blk_val = [-8, 3, 2]
     plot.value_blanking.active=True
     plot.value_blanking.constraint(0).variable = dataset.variable('x')
     plot.value_blanking.constraint(0).comparison_operator=RelOp.LessThan

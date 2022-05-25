@@ -24,7 +24,7 @@ from planar_field import PlanarField as pf
 # host = "/run/user/1000/gvfs/sftp:host=cartesius.surfsara.nl,user="
 # path = host + "weibohu/nfs/home6/weibohu/weibo/FFS_M1.7TB/"
 # path = "/media/weibo/IM2/FFS_M1.7SFD120/"
-path = "/mnt/work/Fourth/FFS_M1.7TB1/"
+path = "/mnt/work/Fourth/FFS_M1.7SFD120/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -79,13 +79,13 @@ MeanFlow.add_walldist(StepHeight)
 lh = 3.0
 MeanFlow.rescale(lh)
 # %% Load laminar data for comparison
-path0 = "/media/weibo/IM2/FFS_M1.7TB1/"
+path0 = "/mnt/work/Fourth/FFS_M1.7TB1/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
 MeanFlow0.add_walldist(StepHeight)
 MeanFlow0.copy_meanval()
-
+MeanFlow0.rescale(lh)
 # %%############################################################################
 """
     boundary layer profile along streamwise direction
@@ -565,7 +565,7 @@ ax2 = fig.add_subplot(211)
 matplotlib.rc("font", size=numsize)
 xwall = WallFlow["x"].values
 ax2.plot(xwall[ind], Cf[ind], "k", linewidth=1.5)
-# ax2.plot(xwall0[ind0], Cf0[ind0], "b--", linewidth=1.5)
+ax2.plot(xwall0[ind0], Cf0[ind0], "b--", linewidth=1.5)
 # ax2.plot(xwall1[ind1], Cf1[ind1],
 #          color='gray', linestyle=':', linewidth=1.2) # 
 # ax2.plot(xwall2[ind2], Cf2[ind2],
@@ -576,8 +576,8 @@ ax2.set_xlim([-32.0, 8])
 ax2.set_ylim([-0.003, 0.005])
 ax2.set_yticks(np.arange(-0.002, 0.008, 0.002))
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax2.axvline(x=-11.6, color="gray", linestyle="--", linewidth=1.0)
-ax2.axvline(x=-4.2, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=-25, color="gray", linestyle=":", linewidth=1.5)
+ax2.axvline(x=-4.2, color="blue", linestyle=":", linewidth=1.5)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.09, 1.0), xycoords='axes fraction',
@@ -590,27 +590,27 @@ plt.show()
 ax1 = fig.add_subplot(212)
 matplotlib.rc("font", size=numsize)
 ax1.plot(xwall[ind], Cf[ind], "k", linewidth=1.5)
-# ax1.plot(xwall0[ind0], Cf0[ind0], "b--", linewidth=1.5)
+ax1.plot(xwall0[ind0], Cf0[ind0], "b--", linewidth=1.5)
 ax1.set_xlabel(r"$x/h$", fontsize=textsize)
 ax1.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
 ax1.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax1.set_xlim([-1.0, 1.0])
 ax1.set_ylim([-0.003, 0.005])
-ax1.axvline(x=0.16, color="gray", linestyle="--", linewidth=1.0)
-ax1.axvline(x=0.23, color="gray", linestyle="--", linewidth=1.0)
+ax1.axvline(x=0.16, color="gray", linestyle=":", linewidth=1.5)
+ax1.axvline(x=0.23, color="blue", linestyle=":", linewidth=1.5)
 ax1.grid(b=True, which="both", linestyle=":")
 ax1.annotate("(b)", xy=(-0.09, 0.98), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
-plt.savefig(pathF+'Cf_comp1.svg')
+plt.savefig(pathF+'Cf_comp.svg')
 
 # %% pressure coefficiency
 fa = 1.7 * 1.7 * 1.4
 fig3, ax3 = plt.subplots(figsize=(6.4, 2.4))
 # ax3 = fig.add_subplot(313)
-ax3.plot(WallFlow["x"]/3.0, WallFlow["p"] * fa, "k", linewidth=1.5)
-ax3.plot(WallFlow0["x"]/3.0, WallFlow0["p"] * fa, "b--", linewidth=1.5)
+ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
+ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "b--", linewidth=1.5)
 p_ref = np.loadtxt(pathM + "PressureRef1.dat", skiprows=4)
 lref = 1
 ax3.scatter(p_ref[:11, 0]/lref, p_ref[:11, 1],
@@ -626,10 +626,10 @@ ax3.set_xlabel(r"$x/h$", fontsize=textsize)
 ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
 ax3.set_xlim([-32.0, 8])
 ax3.set_ylim([0.2, 2.2])
-ax3.set_yticks(np.arange(0.2, 2.7, 0.5))
+ax3.set_yticks(np.arange(0.2, 2.6, 0.4))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax3.axvline(x=-11.6, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=-4.2, color="gray", linestyle="--", linewidth=1.0)
+ax3.axvline(x=-25, color="gray", linestyle=":", linewidth=1.5)
+ax3.axvline(x=-4.2, color="blue", linestyle=":", linewidth=1.5)
 ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)  
