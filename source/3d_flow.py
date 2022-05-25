@@ -8,7 +8,6 @@ Created on Thu Jun 28 17:39:31 2018
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import splprep, splev
 import matplotlib
 import pandas as pd
 from scipy.signal import savgol_filter
@@ -26,13 +25,13 @@ from timer import timer
 import matplotlib.patches as patches
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 import os
-from scipy.interpolate import interp1d
+from scipy.interpolate import splrep, splprep, splev, interp1d
 
 plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
-path = "/media/weibo/IM1/BFS_M1.7Tur/"
+path = "/media/weibo/IM2/FFS_M1.7SFD120/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -44,9 +43,9 @@ pathV = path + "Vortex/"
 pathSL = path + "Slice/"
 matplotlib.rcParams["xtick.direction"] = "out"
 matplotlib.rcParams["ytick.direction"] = "out"
-textsize = 13
-numsize = 10
-matplotlib.rc("font", size=textsize)
+tsize = 13
+nsize = 10
+matplotlib.rc("font", size=tsize)
 
 # %% Load Data for time- spanwise-averaged results
 # filter files
@@ -59,8 +58,10 @@ MeanFlow.load_meanflow(path, FileList=pltlist)
 # %% Load Data for time- spanwise-averaged results
 MeanFlow = pf()
 MeanFlow.load_meanflow(path)
+lh = 3.0
+MeanFlow.rescale(lh)
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
-corner = (x < 0.0) & (y < 0.0)
+corner = (x > 0.0) & (y < 1.0)
 
 # %%############################################################################
 """
@@ -73,7 +74,7 @@ df = temp.query("x>=-5.0 & x<=5.0 & y>=-3.0 & y<=1.0")
 ux = np.unique(df.x)
 uy = np.unique(df.y)
 fig, ax = plt.subplots(figsize=(6.4, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 for i in range(np.size(ux)):
     if i % 1 == 0: # 2
         df_x = df.loc[df['x']==ux[i]]
@@ -86,28 +87,86 @@ plt.gca().set_aspect("equal", adjustable="box")
 ax.set_xlim(-5.0, 10.0)
 ax.set_ylim(-3.0, 2.0)
 ax.set_xticks(np.linspace(-5.0, 5.0, 5))
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+ax.tick_params(labelsize=nsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=tsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
 plt.show()
     
 # %% dividing streamline
-points = np.array([[0.0], [3.0]])
-xyzone = np.array([[-100.0, 0.0, 40.0], [0.0, 3.0, 6.0]])
+MeanFlow.copy_meanval()
+points = np.array([[0.0], [2.0]])
+xyzone = np.array([[-80.0, 0.0, 20.0], [0.0, 3.0, 6.0]])
 va.streamline(pathM, MeanFlow.PlanarData, points, partition=xyzone, opt='up')
 # %% Mean flow isolines
-va.dividing_line(MeanFlow.PlanarData, pathM)
+va.dividing_line(MeanFlow.PlanarData, pathM, show=True)  # (MeanFlow.PlanarData, pathM, loc=2.5)
 # %% Save sonic line
 va.sonic_line(MeanFlow.PlanarData, pathM, option='velocity', Ma_inf=1.7)
-# %% Save boundary layer
-va.boundary_edge(MeanFlow.PlanarData, pathM, jump2=8.75)
 # %% Save shock line
-va.shock_line(MeanFlow.PlanarData, pathM)
+va.shock_line_ffs(MeanFlow.PlanarData, pathM, val=[0.065], show=True)  # 0.065 for TB, 0.06 for ZA
+# %% Save boundary layer
+# va.boundary_edge(MeanFlow.PlanarData, pathM, jump0=-25, jump1=-10,
+#                 jump2=6.0, val1=0.811, val2=0.95)
+va.boundary_edge(MeanFlow.PlanarData, pathM, jump0=-70, jump1=-10,
+                 jump3=6.0, val1=0.90, val3=0.98)
+# %%
+boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
+dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
+bsp = splrep(boundary[1200:1520, 0], boundary[1200:1520, 1], k=3, s=0.6, per=0.0)
+x_new = np.arange(np.min(boundary[1200:1520,0]), np.max(boundary[1200:1520,0]), 0.125)
+y_new = splev(x_new, bsp)
+xy_fit = np.vstack((x_new, y_new))
+np.savetxt(
+    pathM + "BoundaryEdgeFit2.dat",
+    xy_fit.T,
+    fmt="%.8e",
+    delimiter="  ",
+    header="x, y"
+)
+# %% 
+xy_fit = np.loadtxt(pathM + "BoundaryEdgeFit.dat", skiprows=1)
+fig, ax = plt.subplots(figsize=(6.6, 2.3))
+ax.plot(xy_fit[:, 0], xy_fit[:, 1], 'b-')
+ax.plot(boundary[:, 0], boundary[:, 1], 'r:')
+ax.plot(dividing[:, 0], dividing[:, 1], "g--", linewidth=1.5)
+bubble = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
+ax.plot(bubble[:, 0], bubble[:, 1], "k", linewidth=1.5)
+#shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
+#ax.plot(shock[:, 0], shock[:, 1], "k", linewidth=1.5)
+#shock = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
+#ax.plot(shock[:, 0], shock[:, 1], "k", linewidth=1.5)
+ax.set_xlim(-40, 10.0)
+ax.set_ylim(0, 5.0)
+plt.show()
 # %% 
 plt.close("All")
-
+# %%############################################################################
+"""
+    mean flow field contouring by velocity
+"""
+MeanFlow.copy_meanval()
+var = 'u'
+lh = 3.0
+u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
+print("u_max=", np.max(MeanFlow.u))
+print("u_min=", np.min(MeanFlow.u))
+u[corner] = np.nan
+cval1 = 0.0 # 0.3
+cval2 = 1.0 # 1.4
+fig, ax = plt.subplots(figsize=(7.3, 2.3))
+matplotlib.rc("font", size=tsize)
+rg1 = np.linspace(cval1, cval2, 41)
+cbar = ax.contourf(x, y, u, cmap="rainbow", levels=rg1, extend='both')  # rainbow_r
+cbar1 = ax.contour(x, y, u, levels=[0.0])
+ax.set_xlim(-15, 5.0)
+ax.set_ylim(0.0, 6.0)
+ax.set_yticks(np.linspace(0.0, 6.0, 4))
+ax.tick_params(labelsize=nsize)
+ax.set_xlabel(r"$x/h$", fontsize=tsize)
+ax.set_ylabel(r"$y/h$", fontsize=tsize)
+plt.gca().set_aspect("equal", adjustable="box")
+plt.show()
 # %%############################################################################
 """
     mean flow field contouring by density
@@ -116,47 +175,52 @@ plt.close("All")
 # MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
 MeanFlow.copy_meanval()
 var = 'rho'
+lh = 3.0
 rho = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 print("rho_max=", np.max(MeanFlow.rho_m))
 print("rho_min=", np.min(MeanFlow.rho_m))
 rho[corner] = np.nan
-cval1 = 0.28
-cval2 = 1.02
-fig, ax = plt.subplots(figsize=(6.4, 2.3))
-matplotlib.rc("font", size=textsize)
+cval1 = 0.4 # 0.3
+cval2 = 1.4 # 1.4
+fig, ax = plt.subplots(figsize=(7.3, 2.3))
+matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(-20.0, 30.0)
-ax.set_ylim(-3.0, 10.0)
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+ax.set_xlim(-15, 5.0)
+ax.set_ylim(0.0, 6.0)
+ax.set_yticks(np.linspace(0.0, 6.0, 4))
+ax.tick_params(labelsize=nsize)
+ax.set_xlabel(r"$x/h$", fontsize=tsize)
+ax.set_ylabel(r"$y/h$", fontsize=tsize)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(cval1, cval2, 3)
-cbaxes = fig.add_axes([0.17, 0.68, 0.16, 0.07])  # x, y, width, height
-cbaxes.tick_params(labelsize=numsize)
+cbaxes = fig.add_axes([0.17, 0.76, 0.16, 0.07])  # x, y, width, height
+cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, extendrect='False',
                     orientation="horizontal", ticks=rg2)
 cbar.set_label(
-    r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontsize=textsize
+    r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontsize=tsize
 )
+# Add boundary layer
+# boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
+boundary = np.loadtxt(pathM + "BoundaryEdgeFit.dat", skiprows=1)
+ax.plot(boundary[:, 0]/lh, boundary[:, 1]/lh, "k", linewidth=1.5)
 # Add shock wave
-shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
-ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
+#shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
+#ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
+#shock = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
+#ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
 # shock1 = np.loadtxt(pathM + "ShockLine1.dat", skiprows=1)
 # ax.plot(shock1[:, 0], shock1[:, 1], "w", linewidth=1.5)
 # shock2 = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
 # ax.plot(shock2[:, 0], shock2[:, 1], "w", linewidth=1.5)
 # Add sonic line
-sonic = np.loadtxt(pathM + "SonicLine.dat", skiprows=1)
-ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.5)
-# Add boundary layer
-boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
-ax.plot(boundary[:, 0], boundary[:, 1], "k", linewidth=1.5)
+sonic = np.loadtxt(pathM + "SonicLine.dat", skiprows=1) 
+ax.plot(sonic[:, 0]/lh, sonic[:, 1]/lh, "w--", linewidth=1.5)
 # Add dividing line(separation line)
-dividing = np.loadtxt(pathM + "DividingLine.dat", skiprows=1)
-ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.5)
+dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
+ax.plot(dividing[:, 0]/lh, dividing[:, 1]/lh, "k--", linewidth=1.5)
 # streamlines
 x1 = np.linspace(0.0, 12.0, 120)
 y1 = np.linspace(-3.0, -0.0, 100)
@@ -181,11 +245,8 @@ v = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.v, (xbox, ybox))
 #    maxlength=30.0,
 #    linewidth=1.0,
 #)
-
 plt.savefig(pathF + "MeanFlow.svg", bbox_inches="tight")
 plt.show()
-
-
 # %%############################################################################
 """
     instantaneous spanwise-average flow field
@@ -196,53 +257,58 @@ plt.show()
 # yy = np.arange(-3.0, 4.0 + 0.125, 0.125)
 # x, y = np.meshgrid(xx, yy)
 # corner = (x < 0.0) & (y < 0.0)
-InstFlow = pd.read_hdf(pathSL + 'Z_03/TP_2D_Z_03_01100.00.h5')
-var = 'u'
-var1 = '|gradp|'
-u = griddata((InstFlow.x, InstFlow.y), InstFlow[var], (x, y))
-gradp = griddata((InstFlow.x, InstFlow.y), InstFlow[var1], (x, y))
-print("u=", np.max(InstFlow.u))
-print("u=", np.min(InstFlow.u))
-u[corner] = np.nan
-cval1 = -0.4
-cval2 = 1.2
-fig, ax = plt.subplots(figsize=(6.0, 2.3))
-matplotlib.rc("font", size=textsize)
-rg1 = np.linspace(cval1, cval2, 21)
-cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
-ax.set_xlim(0.0, 20.0)
-ax.set_ylim(-3.0, 4.0)
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
-ax.set_title(r"$t u_\infty /\delta_0=1080$", fontsize=textsize-1, pad=0.1)
-ax.grid(b=True, which="both", linestyle=":")
-plt.gca().set_aspect("equal", adjustable="box")
+vtm = 700
+vtm = np.linspace(600, 700, 401)
+for i in range(np.size(vtm)):
+    stm = "%08.2f" % vtm[i]
+    InstFlow = pd.read_hdf(pathSL + 'video/TP_2D_Z_003_' + stm + '.h5')
+    var = 'u'
+    var1 = '|gradp|'
+    u = griddata((InstFlow.x, InstFlow.y), InstFlow[var], (x, y))
+    gradp = griddata((InstFlow.x, InstFlow.y), InstFlow[var1], (x, y))
+    print("u=", np.max(InstFlow.u))
+    print("u=", np.min(InstFlow.u))
+    u[corner] = np.nan
+    cval1 = -0.4
+    cval2 = 1.1
+    fig, ax = plt.subplots(figsize=(6.0, 2.3))
+    matplotlib.rc("font", size=tsize)
+    rg1 = np.linspace(cval1, cval2, 21)
+    cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
+    ax.set_xlim(-20.0, 5.0)
+    ax.set_ylim(0, 8.0)
+    ax.tick_params(labelsize=nsize)
+    ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
+    ax.set_ylabel(r"$y/\delta_0$", fontsize=tsize)
+    ax.set_title(r"$t u_\infty/\delta_0={:.2f}$".format(vtm[i]), fontsize=tsize-1, pad=0.1)
+    ax.grid(b=True, which="both", linestyle=":")
+    plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
-rg2 = np.linspace(cval1, cval2, 3)
-cbaxes = fig.add_axes([0.17, 0.75, 0.20, 0.07])  # x, y, width, height
-cbaxes.tick_params(labelsize=numsize)
-cbar = plt.colorbar(cbar, cax=cbaxes, extendrect='False',
-                    orientation="horizontal", ticks=rg2)
-cbar.set_label(
-    r"$u/u_{\infty}$", rotation=0, fontsize=textsize
-)
+    rg2 = np.linspace(cval1, cval2, 3)
+    cbaxes = fig.add_axes([0.16, 0.73, 0.20, 0.07])  # x, y, width, height
+    cbaxes.tick_params(labelsize=nsize)
+    cbar = plt.colorbar(cbar, cax=cbaxes, extendrect='False',
+                        orientation="horizontal", ticks=rg2)
+    cbar.set_label(
+            r"$u/u_{\infty}$", rotation=0, fontsize=tsize
+    )
 
 # Add dividing line
-cbar = ax.contour(x, y, u, levels=[0.0], colors='k', linewidths=1.0)
+    cbar = ax.contour(x, y, u, levels=[0.0], colors='k', linewidths=1.0)
 # Add shock wave, gradp = 0.1, alpha=0.8
-cbar = ax.contour(x, y, gradp, levels=[0.1], colors='w',
-                  alpha=0.8, linewidths=1.0, linestyles='--')
+    cbar = ax.contour(x, y, gradp, levels=[0.1], colors='w',
+                      alpha=0.8, linewidths=1.0, linestyles='--')
 # add mean bubble line
-dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
-ax.plot(dividing[:, 0], dividing[:, 1], "gray", linewidth=1.5)
+# dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
+# ax.plot(dividing[:, 0], dividing[:, 1], "gray", linewidth=1.5)
 # add mean shock line
-shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
-ax.plot(shock[:, 0], shock[:, 1], "gray", linewidth=1.5)
+# shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
+# ax.plot(shock[:, 0], shock[:, 1], "gray", linewidth=1.5)
 
-plt.savefig(pathF + "InstFlow2.svg", bbox_inches="tight")
-plt.show()
-
+    plt.savefig(pathF + "video/InstFlow_" + str(i) + ".jpg", bbox_inches="tight",
+                dpi=600, width=2048, supersample=3)
+    plt.show()
+    plt.close()
 
 # %%############################################################################
 """
@@ -250,7 +316,9 @@ plt.show()
 """
 # %% Plot contour of the instantaneous flow field with isolines
 # MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
-InstFlow = pd.read_hdf(pathSL + 'Z_03/TP_2D_Z_03_01295.00.h5')
+vtm = 700
+stm = "%08.2f" % vtm
+InstFlow = pd.read_hdf(pathSL + 'Z_003/TP_2D_Z_003_' + stm + '.h5')
 var = 'u'
 var1 = 'vorticity_3'
 u = griddata((InstFlow.x, InstFlow.y), InstFlow[var], (x, y))
@@ -258,7 +326,8 @@ gradp = griddata((InstFlow.x, InstFlow.y), InstFlow[var1], (x, y))
 print("u=", np.max(InstFlow[var]))
 print("u=", np.min(InstFlow[var]))
 u[corner] = np.nan
-cval1 = -0.2
+gradp[corner] = np.nan
+cval1 = -0.4
 cval2 = 1.1
 fig, ax = plt.subplots(figsize=(5.0, 2.5))
 matplotlib.rc("font", size=textsize)
@@ -276,7 +345,7 @@ ax.set_title(r"$t u_\infty /\delta_0=1295$", fontsize=textsize-1, pad=0.1)
 # Add colorbar
 rg2 = np.linspace(cval1, cval2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.025, pad=0.05)
-cbar.ax.tick_params(labelsize=numsize)
+cbar.ax.tick_params(labelsize=nsize)
 cbar.set_label(
     r"$u/u_{\infty}$", rotation=0, fontsize=textsize, labelpad=-30, y=1.1
 )
@@ -306,38 +375,38 @@ ax.streamplot(
 plt.savefig(pathF + "Shedding2.svg", bbox_inches="tight")
 plt.show()
 
-
 # %%############################################################################
 # 
 # Root Mean Square of velocity from the statistical flow
 # 
 # %% Plot rms contour of the mean flow field
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
-corner = (x < 0.0) & (y < 0.0)
-var = "<v`v`>"
+corner = (x > 0.0) & (y < 3.0)
+var = "<u`u`>"
 var_val = getattr(MeanFlow.PlanarData, var)
 uu = griddata((MeanFlow.x, MeanFlow.y), var_val, (x, y))
 print("uu_max=", np.max(np.sqrt(np.abs(var_val))))
 print("uu_min=", np.min(np.sqrt(np.abs(var_val))))
-corner = (x < 0.0) & (y < 0.0)
+corner = (x > 0.0) & (y < 3.0)
 uu[corner] = np.nan
-fig, ax = plt.subplots(figsize=(6.4, 2.2))
-matplotlib.rc("font", size=textsize)
+fig, ax = plt.subplots(figsize=(7.2, 2.4))
+matplotlib.rc("font", size=tsize)
 cb1 = 0.0
-cb2 = 0.18
-rg1 = np.linspace(cb1, cb2, 11) # 21)
+cb2 = 0.24
+rg1 = np.linspace(cb1, cb2, 21) # 21)
 cbar = ax.contourf(
-    x, y, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1, extend='both'
-)  # rainbow_r # jet
-ax.set_xlim(-10.0, 30.0)
-ax.set_ylim(-3.0, 10.0)
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontdict=font)
-ax.set_ylabel(r"$y/\delta_0$", fontdict=font)
+    x/lh, y/lh, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1, extend='both'
+)  # rainbow_r # jet # Spectral_r
+ax.set_xlim(-15.0, 5.0)
+ax.set_ylim(0.0, 6.0)
+ax.set_yticks(np.linspace(0.0, 6.0, 4))
+ax.tick_params(labelsize=nsize)
+ax.set_xlabel(r"$x/h$", fontdict=font)
+ax.set_ylabel(r"$y/h$", fontdict=font)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
 rg2 = np.linspace(cb1, cb2, 3)
-cbbox = fig.add_axes([0.14, 0.52, 0.24, 0.32], alpha=0.9)
+cbbox = fig.add_axes([0.14, 0.52, 0.22, 0.273], alpha=0.9)
 [cbbox.spines[k].set_visible(False) for k in cbbox.spines]
 cbbox.tick_params(
     axis="both",
@@ -352,29 +421,31 @@ cbbox.tick_params(
 )
 cbbox.set_facecolor([1, 1, 1, 0.7])
 # Add colorbar
-cbaxes = fig.add_axes([0.17, 0.75, 0.18, 0.07])  # x, y, width, height
-cbaxes.tick_params(labelsize=numsize)
+cbaxes = fig.add_axes([0.16, 0.72, 0.18, 0.055])  # x, y, width, height
+cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
                     extendrect='False', ticks=rg2)
 cbar.set_label(
-    r"$\sqrt{|\langle v^\prime v^\prime \rangle|}$",
+    r"$\sqrt{|\langle u^\prime u^\prime \rangle|}$",
     rotation=0,
-    fontsize=textsize,
+    fontsize=tsize,
 )
-# Add shock wave
-shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
-ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.0)
-# Add sonic line
-sonic = np.loadtxt(pathM + "SonicLine.dat", skiprows=1)
-#ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.2)
 # Add boundary layer
-boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
-ax.plot(boundary[:, 0], boundary[:, 1], "k", linewidth=1.0)
+boundary = np.loadtxt(pathM + "BoundaryEdgeFit.dat", skiprows=1)
+ax.plot(boundary[:, 0]/lh, boundary[:, 1]/lh, "k", linewidth=1.0)
+# Add shock wave
+#shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
+#ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.0)
+#shock = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
+#ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
+# Add sonic line
+# sonic = np.loadtxt(pathM + "SonicLine.dat", skiprows=1)
+# ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.2)
 # Add dividing line(separation line)
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
-ax.plot(dividing[:, 0], dividing[:, 1], "k--", linewidth=1.2)
+ax.plot(dividing[:, 0]/lh, dividing[:, 1]/lh, "k--", linewidth=1.2)
 
-plt.savefig(pathF + "MeanFlowRMSVV.svg", bbox_inches="tight")
+plt.savefig(pathF + "MeanFlowRMSUU.svg", bbox_inches="tight")
 plt.show()
 
 # %%############################################################################
@@ -407,8 +478,8 @@ omegaz = griddata((zslice.x, zslice.y), zslice.vorticity_3, (x, y))
 corner = (x < 0.0) & (y < 0.0)
 omegaz[corner] = np.nan
 fig, ax = plt.subplots(figsize=(6.4, 3.2))
-matplotlib.rc("font", size=textsize)
-plt.tick_params(labelsize=numsize)
+matplotlib.rc("font", size=tsize)
+plt.tick_params(labelsize=nsize)
 val1 = -0.2
 val2 = 0.2
 lev1 = np.linspace(val1, val2, 21)
@@ -436,7 +507,7 @@ box = patches.Rectangle(
     facecolor="none",
 )
 # ax.add_patch(box)
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 plt.savefig(pathF + "Vorticity3_z=0.svg", bbox_inches="tight")
 plt.show()
 
@@ -477,8 +548,8 @@ MeanFlowY.UserDataBin(path + "MeanFlowYN3.h5")
 x, z = np.meshgrid(np.unique(MeanFlowY.x), np.unique(MeanFlowY.z))
 omegaz = griddata((MeanFlowY.x, MeanFlowY.z), MeanFlowY.vorticity_1, (x, z))
 fig, ax = plt.subplots(figsize=(5, 3))
-matplotlib.rc("font", size=textsize)
-plt.tick_params(labelsize=numsize)
+matplotlib.rc("font", size=tsize)
+plt.tick_params(labelsize=nsize)
 lev1 = np.linspace(-0.1, 0.1, 2)
 lev1 = [-0.1, 0.1]
 # lev1 = [-0.1, 0.0, 0.1]
@@ -497,9 +568,9 @@ plt.gca().set_aspect("equal", adjustable="box")
 # ax1_divider = make_axes_locatable(ax)
 # cax1 = ax1_divider.append_axes("top", size="7%", pad="12%")
 # cbar = plt.colorbar(cbar1, cax=cax1, orientation="horizontal", ticks=rg2)
-# plt.tick_params(labelsize=numsize)
+# plt.tick_params(labelsize=nsize)
 # cax1.xaxis.set_ticks_position("top")
-# cbar.ax.tick_params(labelsize=numsize)
+# cbar.ax.tick_params(labelsize=nsize)
 # ax.set_aspect('auto')
 # cbar.set_label(r'$\omega_x$', rotation=0, fontdict=font)
 # Add isolines of Lambda2 criterion
@@ -514,8 +585,8 @@ xslice = fluc_flow.TriData.loc[fluc_flow.TriData['x']==-0.5]
 z, y = np.meshgrid(np.unique(xslice.z), np.unique(xslice.y))
 omega1 = griddata((xslice.z, xslice.y), xslice.vorticity_3, (z, y))
 fig, ax = plt.subplots(figsize=(3.2, 2.2))
-matplotlib.rc("font", size=textsize)
-plt.tick_params(labelsize=numsize)
+matplotlib.rc("font", size=tsize)
+plt.tick_params(labelsize=nsize)
 val1 = -0.2
 val2 = 0.2
 lev1 = np.linspace(val1, val2, 21)
@@ -536,9 +607,9 @@ rg2 = np.linspace(val1, val2, 3)
 ax1_divider = make_axes_locatable(ax)
 cax1 = ax1_divider.append_axes("top", size="7%", pad="13%")
 cbar = plt.colorbar(cbar1, cax=cax1, orientation="horizontal", ticks=rg2)
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 cax1.xaxis.set_ticks_position("top")
-cbar.set_label(r"$\omega_z$", rotation=0, fontsize=textsize)
+cbar.set_label(r"$\omega_z$", rotation=0, fontsize=tsize)
 # Add streamlines
 #zz = np.linspace(-8.0, 8.0, 20)
 #yy = np.linspace(0.0, 1.0, 10)
@@ -578,8 +649,8 @@ x, y = np.meshgrid(xval, yval)
 u = griddata((MeanFlowZ.x, MeanFlowZ.y), MeanFlowZ.u, (x, y))
 # Contour
 fig, ax = plt.subplots(figsize=(5, 3))
-matplotlib.rc("font", size=textsize)
-plt.tick_params(labelsize=numsize)
+matplotlib.rc("font", size=tsize)
+plt.tick_params(labelsize=nsize)
 lev1 = np.linspace(-0.4, 1.2, 30)
 cbar = ax.contourf(x, y, u, cmap="rainbow", levels=lev1)  # rainbow_r
 ax.set_xlim(2.0, 10.0)
@@ -609,11 +680,11 @@ cbbox.set_facecolor([1, 1, 1, 0.7])
 rg2 = np.linspace(-0.4, 1.2, 3)
 cax = fig.add_axes([0.6, 0.65, 0.25, 0.05])  # x, y, width, height
 cbar = plt.colorbar(cbar, cax=cax, orientation="horizontal", ticks=rg2)
-# cbar.ax.set_title(r'$u/u_\infty$', fontsize=textsize)
+# cbar.ax.set_title(r'$u/u_\infty$', fontsize=tsize)
 cbar.set_label(
-    r"$u/u_\infty$", rotation=0, x=-0.28, labelpad=-28, fontsize=textsize
+    r"$u/u_\infty$", rotation=0, x=-0.28, labelpad=-28, fontsize=tsize
 )
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 # Streamline
 v = griddata((MeanFlowZ.x, MeanFlowZ.y), MeanFlowZ.v, (x, y))
 # x, y must be equal spaced
@@ -660,18 +731,18 @@ ax3.plot(enstro['x'], f3/me, "b--", linewidth=1.2)
 ax3.plot(enstro['x'], enstro['enstrophy_x']/me, "r", linewidth=1.2)
 ax3.plot(enstro['x'], enstro['enstrophy_y']/me, "g", linewidth=1.2)
 ax3.plot(enstro['x'], enstro['enstrophy_z']/me, "b", linewidth=1.2)
-ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax3.set_ylabel(r"$\mathcal{E}/\mathcal{E}_\mathrm{max}$", fontsize=textsize)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
+ax3.set_ylabel(r"$\mathcal{E}/\mathcal{E}_\mathrm{max}$", fontsize=tsize)
 ax3.set_xlim([0.0, 25.0])
 ax3.set_ylim([0.0, 1.2])
 ax3.axvline(x=x1, color="gray", linestyle="--", linewidth=1.0)
 ax3.axvline(x=x2, color="gray", linestyle="--", linewidth=1.0)
 lab = [r"$\mathcal{E}$", r"$\mathcal{E}_x$",
        r"$\mathcal{E}_y$", r"$\mathcal{E}_z$"]
-ax3.legend(lab, ncol=2, fontsize=numsize)  # loc="lower right"
+ax3.legend(lab, ncol=2, fontsize=nsize)  # loc="lower right"
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 # plt.savefig(pathF + "enstrophy.pdf", dpi=300)
 plt.show()
@@ -734,9 +805,9 @@ def partial_term(df, ax, filt=False):
 fig3, ax3 = plt.subplots(figsize=(6.4, 2.6))
 partial_term(vortex3, ax3, filt=True)
 # partial_term(vortex3, ax3)
-ax3.legend(lab, ncol=2, loc="upper right", fontsize=numsize)
-ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax3.set_ylabel("Term", fontdict=font, fontsize=textsize)
+ax3.legend(lab, ncol=2, loc="upper right", fontsize=nsize)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
+ax3.set_ylabel("Term", fontdict=font, fontsize=tsize)
 ax3.set_xlim([0.0, 25.0])
 # ax3.set_ylim([0.0, 1.2])
 ax3.axvline(x=x1, color="gray", linestyle="--", linewidth=1.0)
@@ -744,7 +815,7 @@ ax3.axvline(x=x2, color="gray", linestyle="--", linewidth=1.0)
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + "vortex_dynamics_z.pdf", dpi=300)
 plt.show()
@@ -778,16 +849,16 @@ barhet2 = barhet2/barsum * 100
 # plot figure of vorticity contribution percent
 vlab = [r'$T_y$', r'$T_z$', r'$S$', r'$D$', r'$B$']
 fig, ax = plt.subplots(figsize=(3.2, 2.8))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 width = 0.4
 ax.bar(barloc, barhet1, width, color='C0', alpha=1.0)
 # ax.bar(barloc, barhet2, width, color='C2', alpha=1.0)
 ax.set_xticks(barloc)
-ax.set_xticklabels(vlab, fontsize=textsize)
+ax.set_xticklabels(vlab, fontsize=tsize)
 ax.set_ylabel(r'$\mathcal{E}_t(\%)$')
 ax.grid(b=True, which="both", linestyle=":", linewidth=0.6)
 ax.axhline(y=0.0, color="k", linestyle="-", linewidth=1.0)
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 plt.savefig(pathF + "vortex_term_zt4_0950.svg", bbox_inches="tight")
 plt.show()
 
@@ -810,14 +881,14 @@ print("rho_min=", np.min(plane[var]))
 schlieren[corner] = np.nan
 # %%
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(0, 3.0, 21)
 cbar = ax.contourf(x, y, schlieren, cmap="binary", levels=rg1, extend='both')  #binary #rainbow_r# bwr
 ax.set_xlim(-35.0, 25.0)
 ax.set_ylim(-3.0, 15.0)
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize)
+ax.tick_params(labelsize=nsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=tsize)
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(0, 3.0, 3)
@@ -837,13 +908,13 @@ cbbox.tick_params(
 cbbox.set_facecolor([1, 1, 1, 0.7])
 # Add colorbar
 cbaxes = fig.add_axes([0.17, 0.71, 0.18, 0.07])  # x, y, width, height
-cbaxes.tick_params(labelsize=numsize)
+cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
                     extendrect='False', ticks=rg2)
 cbar.set_label(
     r"$|\nabla \rho|$",
     rotation=0,
-    fontsize=textsize-1,
+    fontsize=tsize-1,
 )
 # Add boundary layer
 boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
@@ -869,14 +940,14 @@ print("rho_min=", np.min(df[var]))
 # rho[corner] = np.nan
 # %%
 fig, ax = plt.subplots(figsize=(6.4, 2.4))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(0, 2.0, 21)
 cbar = ax.contourf(x, z, rho, cmap="bwr", levels=rg1, extend='both')  # rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-8.0, 8.0)
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax.set_ylabel(r"$z/\delta_0$", fontsize=textsize)
+ax.tick_params(labelsize=nsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
+ax.set_ylabel(r"$z/\delta_0$", fontsize=tsize)
 ax.set_yticks(np.linspace(-8.0, 8.0, 5))
 plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
@@ -897,13 +968,13 @@ cbbox.tick_params(
 cbbox.set_facecolor([1, 1, 1, 0.7])
 # Add colorbar
 cbaxes = fig.add_axes([0.17, 0.18, 0.02, 0.55])  # x, y, width, height
-cbaxes.tick_params(labelsize=numsize)
+cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="vertical",
                     extendrect='False', ticks=rg2)
 cbar.set_label(
     r"$S_c$",
     rotation=0,
-    fontsize=textsize-1,
+    fontsize=tsize-1,
     labelpad=-16,
     y=1.15
 )

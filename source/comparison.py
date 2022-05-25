@@ -18,19 +18,21 @@ from timer import timer
 import warnings
 from glob import glob
 import os
+import sys
+
 from planar_field import PlanarField as pf
 from triaxial_field import TriField as tf
 
 
-path0 = "/media/weibo/VID2/BFS_M1.7L/"
+path0 = "/media/weibo/IM2/FFS_M1.7SFD120/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
-path1 = "/media/weibo/VID2/BFS_M1.7TS_LA/"
+path1 = "/media/weibo/IM2/FFS_M1.7LA/"
 path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)
-path2 = "/media/weibo/VID2/BFS_M1.7TS2_MA/"
+path2 = "/media/weibo/IM2/FFS_M1.7HA/"
 path2F, path2P, path2M, path2S, path2T, path2I = p2p.create_folder(path2)
-path3 = "/media/weibo/IM1/BFS_M1.7Tur/"
+path3 = "/media/weibo/IM2/FFS_M1.7TB1/"
 path3F, path3P, path3M, path3S, path3T, path3I = p2p.create_folder(path3)
-pathC = path2 + 'Comparison/'
+pathC = path0 + 'Comparison/'
 
 plt.close("All")
 plt.rc("text", usetex=True)
@@ -48,7 +50,7 @@ numsize = 10
 ###
 ###    load data
 ###
-StepHeight = 3.0
+StepHeight = -3.0
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
 MeanFlow0.add_walldist(StepHeight)
@@ -76,19 +78,24 @@ WallFlow2 = MeanFlow2.PlanarData.groupby("x", as_index=False).nth(1)
 MeanFlow3.copy_meanval()
 WallFlow3 = MeanFlow3.PlanarData.groupby("x", as_index=False).nth(1)
 # WallFlow = WallFlow[WallFlow.x != -0.0078125]
-xwall = WallFlow0["x"].values
+xwall0 = WallFlow0["x"].values
 mu0 = va.viscosity(13718, WallFlow0["T"])
 Cf0 = va.skinfriction(mu0, WallFlow0["u"], WallFlow0["walldist"]).values
-ind0 = np.where(Cf0[:] < 0.005)
+ind0 = np.where(Cf0[:] < 0.01)
+xwall1 = WallFlow1["x"].values
 mu1 = va.viscosity(13718, WallFlow1["T"])
 Cf1 = va.skinfriction(mu1, WallFlow1["u"], WallFlow1["walldist"]).values
-ind1 = np.where(Cf1[:] < 0.005)
+ind1 = np.where(Cf1[:] < 0.01)
+xwall2 = WallFlow2["x"].values
 mu2 = va.viscosity(13718, WallFlow2["T"])
 Cf2 = va.skinfriction(mu2, WallFlow2["u"], WallFlow2["walldist"]).values
-ind2 = np.where(Cf2[:] < 0.005)
+ind2 = np.where(Cf2[:] < 0.01)
+
+xwall3 = WallFlow3['x'].values
 mu3 = va.viscosity(13718, WallFlow3["T"])
 Cf3 = va.skinfriction(mu3, WallFlow3["u"], WallFlow3["walldist"]).values
-ind3 = np.where(Cf3[:] < 0.005)
+ind3 = (Cf3 < 0.01) & (xwall3>=-100.0)
+# ind3 = np.where(Cf3[:] < 0.01)
 
 # %% Plot streamwise skin friction
 # fig2, ax2 = plt.subplots(figsize=(5, 2.5))
@@ -96,20 +103,20 @@ fig = plt.figure(figsize=(6.4, 4.7))
 matplotlib.rc("font", size=textsize)
 ax2 = fig.add_subplot(211)
 matplotlib.rc("font", size=textsize)
-ax2.scatter(xwall[ind0][0::8], Cf0[ind0][0::8], s=10, marker='o',
+ax2.scatter(xwall0[ind0][0::8], Cf0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
-ax2.plot(xwall[ind1], Cf1[ind1], "k", linewidth=1.1)
-ax2.plot(xwall[ind2], Cf2[ind2], "k--", linewidth=1.1)
-ax2.plot(xwall[ind3], Cf3[ind3], "k:", linewidth=1.5)
+ax2.plot(xwall1[ind1], Cf1[ind1], "k", linewidth=1.1)
+ax2.plot(xwall2[ind2], Cf2[ind2], "k--", linewidth=1.1)
+ax2.plot(xwall3[ind3], Cf3[ind3], "k:", linewidth=1.5)
 # ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
-ax2.set_xlim([-40.0, 40.0])
+ax2.set_xlim([-2, 2.0])
 ax2.tick_params(axis='x',          # changes apply to the x-axis
                 which='both',      # both major and minor ticks are affected
                 bottom=True,      # ticks along the bottom edge are off
                 top=False,         # ticks along the top edge are off
-                labelbottom=False)  # labels along the bottom edge are off)
-ax2.set_ylim([-0.002, 0.006])
+                labelbottom=True)  # labels along the bottom edge are off)
+ax2.set_ylim([-0.004, 0.004])
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
@@ -131,18 +138,18 @@ tke3 = np.sqrt(WallFlow3['<p`p`>'].values)
 # fig3, ax3 = plt.subplots(figsize=(6.4, 2.3))
 ax3 = fig.add_subplot(212)
 matplotlib.rc("font", size=textsize)
-ax3.scatter(xwall[ind0][0::8], tke0[ind0][0::8], s=10, marker='o',
+ax3.scatter(xwall0[ind0][0::8], tke0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
-ax3.plot(xwall[ind1], tke1[ind1], "k", linewidth=1.1)
-ax3.plot(xwall[ind2], tke2[ind2], "k--", linewidth=1.1)
-ax3.plot(xwall[ind2], tke3[ind3], "k:", linewidth=1.5)
+ax3.plot(xwall1[ind1], tke1[ind1], "k", linewidth=1.1)
+ax3.plot(xwall2[ind2], tke2[ind2], "k--", linewidth=1.1)
+ax3.plot(xwall3[ind3], tke3[ind3], "k:", linewidth=1.5)
 ax3.set_yscale('log')
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ylab = r"$p_{\mathrm{rms}}$"  # 
 # ylab=r"$2\sqrt{\langle p^{\prime}p^{\prime} \rangle}/\rho_\infty u^2_\infty$"
 ax3.set_ylabel(ylab, fontsize=textsize)
-ax3.set_xlim([-40.0, 40.0])
-ax3.set_ylim([0.00003, 0.05])
+ax3.set_xlim([-100.0, 20.0])
+ax3.set_ylim([0.00003, 0.1])
 # ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
@@ -152,8 +159,63 @@ ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.subplots_adjust(hspace=0.2)  # adjust space between subplots
-outfile = os.path.join(pathC, 'CfPrms.svg')
+outfile = os.path.join(pathC, 'CfPrms_ffs.svg')
 plt.savefig(outfile, bbox_inches='tight', pad_inches=0.1)
+plt.show()
+
+# %%############################################################################
+"""
+    Temporal evolution & Power spectral density
+"""
+# %% probe within shear layer (Kelvin Helholmz fluctuation)
+# -- temporal evolution
+fa = 1.0 #1.7*1.7*1.4
+var = 'u'
+lh = 3.0
+dt = 0.25
+peri = np.arange(0.0, 500+0.25, 0.25)
+# probe = np.loadtxt(pathI + "ProbeKH.dat", skiprows=1)
+# func = interp1d(probe[:, 1], probe[:, 7])
+# Xk = func(timezone)  # probe[:, 8]
+probe0 = pd.read_csv(path0I + 'Xk1_new.dat', sep=' ',
+                     index_col=False, skipinitialspace=True)
+probe3 = pd.read_csv(path3I + 'Xk1.dat', sep=' ',
+                     index_col=False, skipinitialspace=True)
+if np.size(peri) != np.shape(probe0)[0]:
+    sys.exit("The NO of peri are not equal to the NO of timespoints!!!")
+Xk0 = probe0[var].values
+Xk3 = probe3[var].values
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
+# spl = splrep(timezone, xarr, s=0.35)
+# xarr1 = splev(timezone[0::5], spl)
+ax.plot(peri/lh, Xk0*fa, "k-", linewidth=0.8)
+ax.plot(peri/lh, Xk3*fa, "b--", linewidth=0.8)
+ax.set_xlim([peri[0]/lh, peri[-1]/lh]) # (950, 1350) # 
+ax.set_xlabel(r"$t_0 u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$u/u_\infty$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+xmean = np.mean(Xk0*fa)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathC + "Xk1.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+# -- FWPSD
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
+ax.set_ylabel(r"$f\mathcal{P}(f)/\mathcal{P}_\mathrm{max}$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+Fre0, FPSD0 = va.fw_psd(Xk0*fa, dt, 1/dt, opt=1, seg=8, overlap=4)
+Fre3, FPSD3 = va.fw_psd(Xk3*fa, dt, 1/dt, opt=1, seg=8, overlap=4)
+ax.semilogx(Fre0*lh, FPSD0/np.max(FPSD0), "k", linewidth=0.8)
+ax.semilogx(Fre3*lh, FPSD3/np.max(FPSD3), "b--", linewidth=0.8)
+ax.yaxis.offsetText.set_fontsize(numsize)
+# ax2nd = ax.secondary_xaxis('top', functions=(d2l, l2d))
+# ax2nd.set_xlabel(r'$f x_r / u_\infty$')
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(pathC + "XkFWPSD_new1.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %%############################################################################
@@ -252,32 +314,59 @@ plt.show()
 """
     frequency-weighted PSD
 """
+data0 = np.loadtxt(path0I + "Separate.dat", skiprows=1)
+data3 = np.loadtxt(path0I + "Reattach.dat", skiprows=1)
+temp = 0.5*np.abs(data0[:, 1])*data3[:, 1]
+data3[:, 1] = temp
+np.savetxt(
+path0I + "BubbleNew.dat",
+data3,
+fmt="%.8e",
+delimiter="  ",
+header="t, A",
+)
 # %% singnal of bubble
 # -- temporal evolution
-data1 = np.loadtxt(path1I + "BubbleArea.dat", skiprows=1)
-data3 = np.loadtxt(path3I + "BubbleArea.dat", skiprows=1)
+data0 = np.loadtxt(path0I + "NewSep.dat", skiprows=1)
+data3 = np.loadtxt(path3I + "Separate.dat", skiprows=1)
+fa = 1/3
 dt = 0.25
-Xb1 = data1[:, 1]
+Xb0 = data0[:, 1]
 Xb3 = data3[:, 1]
 Lr1 = 10.9
 Lr3 = 8.9
-# -- FWPSD
-fig, ax = plt.subplots(figsize=(3.0, 3.0))
-ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.set_xlabel(r"$f L_r/u_\infty$", fontsize=textsize)
-ax.set_ylabel(r"$f\ \mathcal{P}(f)$", fontsize=textsize)
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
+# spl = splrep(timezone, xarr, s=0.35)
+# xarr1 = splev(timezone[0::5], spl)
+ax.plot(peri/lh, Xb0*fa, "k-", linewidth=0.8)
+ax.plot(peri/lh, Xb3*fa, "b--", linewidth=0.8)
+ax.set_xlim([peri[0]/lh, peri[-1]/lh]) # (950, 1350) # 
+ax.set_xlabel(r"$t_0 u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$x_s/h$", fontsize=textsize)
 ax.grid(b=True, which="both", linestyle=":")
-Fre1, FPSD1 = va.fw_psd(Xb1, dt, 1/dt, opt=1, seg=8, overlap=4)
+xmean = np.mean(Xb0*fa)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathC + "Xs_com.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+# -- FWPSD
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
+ax.set_ylabel(r"$f\mathcal{P}(f)/\mathcal{P}_\mathrm{max}$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+Fre0, FPSD0 = va.fw_psd(Xb0, dt, 1/dt, opt=1, seg=8, overlap=4)
 Fre3, FPSD3 = va.fw_psd(Xb3, dt, 1/dt, opt=1, seg=8, overlap=4)
-ax.semilogx(Fre1*Lr1, FPSD1, "k-", linewidth=1.0)
+ax.semilogx(Fre0*lh, FPSD0/np.max(FPSD0), "k-", linewidth=0.8)
+ax.semilogx(Fre3*lh, FPSD3/np.max(FPSD3), "b--", linewidth=0.8)
 # ax.scatter(Fre1*Lr1, FPSD1, s=10, marker='o',
 #           facecolors='w', edgecolors='C7', linewidths=0.8)
-ax.semilogx(Fre3*Lr3, FPSD3, "k:", linewidth=1.5)
 # ax.set_xscale('log')
 ax.yaxis.offsetText.set_fontsize(numsize)
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathC + "XbFWPSD_com.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathC + "XsFWPSD_com.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% singnal of bubble

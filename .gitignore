@@ -1,2 +1,8 @@
 
 UGrad/__pycache__/
+
+*.pyc
+
+source/__pycache__/
+
+source/.vscode/

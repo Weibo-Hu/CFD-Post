@@ -21,7 +21,10 @@ from planar_field import PlanarField as pf
 
 
 # %% data path settings
-path = "/media/weibo/IM2/BFS_M1.7Tur1/"
+# host = "/run/user/1000/gvfs/sftp:host=cartesius.surfsara.nl,user="
+# path = host + "weibohu/nfs/home6/weibohu/weibo/FFS_M1.7TB/"
+# path = "/media/weibo/IM2/FFS_M1.7SFD120/"
+path = "/mnt/work/Fourth/FFS_M1.7SFD120/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -67,21 +70,22 @@ VarName = [
 ]
 
 timezone = np.arange(700, 999.75 + 0.25, 0.25)
-x1x2 = [700, 1000]
+x1x2 = [600, 1100]
 StepHeight = -3.0
 MeanFlow = pf()
 #MeanFlow.load_data(path + 'inca_out/')
 MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
-
+lh = 3.0
+MeanFlow.rescale(lh)
 # %% Load laminar data for comparison
-path0 = "/media/weibo/VID2/BFS_M1.7L/"
+path0 = "/mnt/work/Fourth/FFS_M1.7TB1/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
 MeanFlow0.add_walldist(StepHeight)
 MeanFlow0.copy_meanval()
-
+MeanFlow0.rescale(lh)
 # %%############################################################################
 """
     boundary layer profile along streamwise direction
@@ -94,13 +98,18 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-30, 2.0, 4.625, 6.25, 9.25, 10, 20, 30])
+xcoord = np.array([-18, -8, -4, -2, -1, 0, 1, 2])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df['walldist']
     q0 = df['u']
-    ax[i].plot(q0, y0, "k-")
-    ax[i].set_ylim([0, 3])
+    if xcoord[i] == 0.0:
+        ind = np.where(y0 >= 3.0)[0]
+        ax[i].plot(q0[ind], y0[ind], "k-")
+        ax[i].set_ylim([3, 7])
+    else:
+        ax[i].plot(q0, y0, "k-")
+        ax[i].set_ylim([0, 4])
     if i != 0:
         ax[i].set_yticklabels('')
         ax[i].set_title(r'${}$'.format(xcoord[i]), fontsize=numsize-2)
@@ -115,7 +124,6 @@ plt.show()
 plt.savefig(
     pathF + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
 )
-
 
 # %%############################################################################
 """
@@ -136,14 +144,14 @@ plt.savefig(
 # BLProf['<mu>'] = va.viscosity(13500, BLProf['<T>'])
 # %% comparison
 
-path1 = "/media/weibo/IM2/Sensitive/G1_b/"
+path1 = "/media/weibo/IM2/FFS_grid/GX/"
 pathM1 = path1 + 'MeanFlow/'
 MeanFlow1 = pf()
 MeanFlow1.load_meanflow(path1)
 MeanFlow1.add_walldist(StepHeight)
 MeanFlow1.copy_meanval()
 
-path2 = "/media/weibo/IM2/Sensitive/G2/"
+path2 = "/media/weibo/IM2/FFS_M1.7TB1/"
 pathM2 = path2 + 'MeanFlow/'
 MeanFlow2 = pf()
 MeanFlow2.load_meanflow(path2)
@@ -152,9 +160,9 @@ MeanFlow2.copy_meanval()
 
 
 # %%
-x1 = -20.0
-BLProf1 = MeanFlow1.yprofile('x', -30.0)  # -30.0
-CalUPlus1 = va.direst_transform(BLProf1, option='mean', grad=True)
+x1 = -50.0
+BLProf1 = MeanFlow1.yprofile('x', x1)  # -30.0
+CalUPlus1 = va.direst_transform(BLProf1, option='mean')
 BLProf1 = MeanFlow1.yprofile('x', x1)
 u_tau1 = va.u_tau(BLProf1, option='mean', grad=True)
 xi1 = np.sqrt(BLProf1['<rho>'] / BLProf1['<rho>'].values[1])
@@ -162,8 +170,8 @@ uu1 = np.sqrt(BLProf1['<u`u`>']) / u_tau1 * xi1
 vv1 = np.sqrt(BLProf1['<v`v`>']) / u_tau1 * xi1
 ww1 = np.sqrt(BLProf1['<w`w`>']) / u_tau1 * xi1
 uv1 = BLProf1['<u`v`>'] / u_tau1**2 * xi1**2
-BLProf2 = MeanFlow2.yprofile('x', -30.0)  # -30.0
-CalUPlus2 = va.direst_transform(BLProf2, option='mean', grad=True)
+BLProf2 = MeanFlow2.yprofile('x', x1)  # -30.0
+CalUPlus2 = va.direst_transform(BLProf2, option='mean')
 BLProf2 = MeanFlow2.yprofile('x', x1)
 u_tau2 = va.u_tau(BLProf2, option='mean', grad=True)
 xi2 = np.sqrt(BLProf2['<rho>'] / BLProf2['<rho>'].values[1])
@@ -171,13 +179,14 @@ uu2 = np.sqrt(BLProf2['<u`u`>']) / u_tau2 * xi2
 vv2 = np.sqrt(BLProf2['<v`v`>']) / u_tau2 * xi2
 ww2 = np.sqrt(BLProf2['<w`w`>']) / u_tau2 * xi2
 uv2 = BLProf2['<u`v`>'] / u_tau2**2 * xi2**2
+
 # %% velocity profile, computation
-x0 = -15.0# -0.3125  # -6.0, # -0.875 # -0.75
+x0 = -50.0
+incomp = True
 # results from LES
 MeanFlow.copy_meanval()
-BLProf = MeanFlow.yprofile('x', -10.0)  # -2.0
-
-u_tau = va.u_tau(BLProf, option='mean', grad=True)
+BLProf = MeanFlow.yprofile('x', x0)
+u_tau = va.u_tau(BLProf, option='mean')
 mu_inf = BLProf['<mu>'].values[-1]
 delta, u_inf = va.bl_thickness(BLProf['walldist'], BLProf['<u>'])
 delta_star, u_inf, rho_inf = va.bl_thickness(
@@ -205,11 +214,11 @@ matplotlib.rc('font', size=numsize)
 ax.plot(
     StdUPlus1[:, 0],
     StdUPlus1[:, 1],
-    "k--",
+    "k-.",
     StdUPlus2[:, 0],
     StdUPlus2[:, 1],
-    "k--",
-    linewidth=1.0,
+    "k-.",
+    linewidth=1.5,
 )
 ax.scatter(
     ExpUPlus[:, 0],
@@ -224,14 +233,13 @@ ax.scatter(
 # ax.plot(CalUPlus[:, 0], uplus, 'k', linewidth=1.5)
 # ax.scatter(CalUPlus[:, 0], CalUPlus[:, 1], s=15)
 ax.plot(CalUPlus[:, 0], CalUPlus[:, 1], "k", linewidth=1.0)
-# ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "k:", linewidth=1.0)
-# ax.plot(CalUPlus2[:, 0], CalUPlus2[:, 1], "k-.", linewidth=1.0)
-#ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "r:", linewidth=1.5)
+ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "k:", linewidth=1.0)
+ax.plot(CalUPlus2[:, 0], CalUPlus2[:, 1], "k--", linewidth=1.0)
 ax.set_xscale("log")
 ax.set_xlim([0.5, 2000])
 ax.set_ylim([0, 30])
 ax.set_ylabel(r"$\langle u_{VD}^+ \rangle$", fontsize=textsize)
-ax.set_xlabel(r"$\Delta y^+$", fontsize=textsize)
+ax.set_xlabel(r"$y^+$", fontsize=textsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax.grid(b=True, which="both", linestyle=":")
 ax.annotate("(a)", xy=(-0.16, 0.98),
@@ -245,8 +253,10 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 
 #  Reynolds stresses in Morkovin scaling
 # results from known DNS
-ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus, Xi = \
+ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus, XI = \
     va.ref_wall_law(Re_theta)
+if incomp==True:
+    XI = 1.0
 # results from current LES
 BLProf = MeanFlow.yprofile('x', x0)
 xi = np.sqrt(BLProf['<rho>'] / BLProf['<rho>'].values[1])
@@ -262,33 +272,33 @@ Xi = 1.0
 ax2 = fig.add_subplot(122)
 ax2.scatter(
     ExpUrmsPlus[:, 0],
-    ExpUrmsPlus[:, 1] *  Xi,
+    ExpUrmsPlus[:, 1] * XI,
     linewidth=0.8,
-    s=16,
+    s=18,
     facecolor="none",
     edgecolor="gray",
 )
 ax2.scatter(
     ExpVrmsPlus[:, 0],
-    ExpVrmsPlus[:, 1] * Xi,
+    ExpVrmsPlus[:, 1] * XI,
     linewidth=0.8,
-    s=16,
+    s=18,
     facecolor="none",
     edgecolor="gray",  # "r",
 )
 ax2.scatter(
     ExpWrmsPlus[:, 0],
-    ExpWrmsPlus[:, 1] * Xi,
+    ExpWrmsPlus[:, 1] * XI,
     linewidth=0.8,
-    s=16,
+    s=18,
     facecolor="none",
     edgecolor="gray",  # "b",
 )
 ax2.scatter(
     ExpUVPlus[:, 0],
-    ExpUVPlus[:, 1] * Xi,
+    ExpUVPlus[:, 1] * XI,
     linewidth=0.8,
-    s=16,
+    s=18,
     facecolor="none",
     edgecolor="gray",  # "gray",
 )
@@ -296,26 +306,26 @@ ax2.plot(CalUPlus[:, 0], uu[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], vv[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], ww[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], uv[1:], "k", linewidth=1.0)
-#ax2.plot(CalUPlus1[:, 0], uu1[1:], "k:", linewidth=1.0)
-#ax2.plot(CalUPlus1[:, 0], vv1[1:], "k:", linewidth=1.0)
-#ax2.plot(CalUPlus1[:, 0], ww1[1:], "k:", linewidth=1.0)
-#ax2.plot(CalUPlus1[:, 0], uv1[1:], "k:", linewidth=1.0)
-#ax2.plot(CalUPlus2[:, 0], uu2[1:], "k-.", linewidth=1.0)
-#ax2.plot(CalUPlus2[:, 0], vv2[1:], "k-.", linewidth=1.0)
-#ax2.plot(CalUPlus2[:, 0], ww2[1:], "k-.", linewidth=1.0)
-#ax2.plot(CalUPlus2[:, 0], uv2[1:], "k-.", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], uu1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], vv1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], ww1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus1[:, 0], uv1[1:], "k:", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], uu2[1:], "k--", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], vv2[1:], "k--", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], ww2[1:], "k--", linewidth=1.0)
+ax2.plot(CalUPlus2[:, 0], uv2[1:], "k--", linewidth=1.0)
 ax2.set_xscale("log")
 ax2.set_ylim([-1.5, 3.5])
 ax2.set_xlim([1, 2000])
+ax2.set_ylim([-1.5, 3.5])
 vna1 = r'$u^\prime u^\prime$'
 vna2 = r'$w^\prime w^\prime$'
 vna3 = r'$v^\prime v^\prime$'
 vna4 = r'$u^\prime v^\prime$'
-ax2.text(100, 3.0, vna1, fontsize=numsize)
-ax2.text(400, 3.0, vna2, fontsize=numsize)
-ax2.text(100, 2.5, vna3, fontsize=numsize)
-ax2.text(400, 2.5, vna4, fontsize=numsize)
-
+ax2.text(3.5, 3.0, vna1, fontsize=numsize+1)
+ax2.text(12, 1.5, vna2, fontsize=numsize+1)
+ax2.text(65, 0.5, vna3, fontsize=numsize+1)
+ax2.text(55, -0.6, vna4, fontsize=numsize+1)
 ax2.set_ylabel(r"$\sqrt{\langle u^{\prime}_i u^{\prime}_j\rangle^{+}}$",
                fontsize=textsize)
 ax2.set_xlabel(r"$y^+$", fontsize=textsize)
@@ -338,30 +348,28 @@ plt.show()
     y+ along streamwise
 """
 # %% calculate yplus ahead/behind the step
-
-
 def yplus(MeanFlow, dy, wallval, opt):
     if opt == 1:
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData['x'] < 0.0]
     elif opt == 2:
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData['x'] > 0.0]
-    frame = TempFlow.loc[TempFlow['y'] == dy]
-    frame1 = TempFlow.loc[TempFlow['y'] == wallval]
+    frame = TempFlow.loc[np.round(TempFlow['y'], 8) == np.round(dy, 8)]
+    frame1 = TempFlow.loc[np.round(TempFlow['y'], 8) == np.round(wallval, 8)]
     x = frame['x'].values
     rho = frame1['<rho>'].values
     mu = frame1['<mu>'].values
     delta_u = (frame['<u>'].values-frame1['<u>'].values) / (dy - wallval)
     tau = mu * delta_u
     u_tau = np.sqrt(np.abs(tau / rho))
-    yplus = (dy - wallval) * u_tau * rho / mu
-    return (x, yplus)
+    y_plus = (dy - wallval) * u_tau * rho / mu
+    frame.assign(yplus=y_plus)
+    return (x, y_plus, frame)
 
-
-x1, yplus1 = yplus(MeanFlow, 0.001953125, 0.0, opt=1)  # upsteam the step
-x2, yplus2 = yplus(MeanFlow, -2.997037172317505, -3.0, opt=2)  # downstream
+x1, yplus1, frame1 = yplus(MeanFlow, 0.004956212, 0.002300256, opt=1)  # 0.002300256 upsteam the step
+x2, yplus2, frame2 = yplus(MeanFlow, 3.003906250, 3.001953125, opt=2)  # 3.001953125 downstream
 res = np.vstack((np.hstack((x1, x2)), np.hstack((yplus1, yplus2))))
-frame2 = pd.DataFrame(data=res.T, columns=['x', 'yplus'])
-frame2.to_csv(pathM + 'YPLUS.dat',
+frame3 = pd.DataFrame(data=res.T, columns=['x', 'yplus'])
+frame3.to_csv(pathM + 'YPLUS.dat',
               index=False, float_format='%1.8e', sep=' ')
 
 # %% plot yplus along streamwise
@@ -371,7 +379,7 @@ fig3, ax3 = plt.subplots(figsize=(6.4, 3.0))
 ax3.plot(yp['x'], yp['yplus'], "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\Delta y^{+}$", fontsize=textsize)
-ax3.set_xlim([-40.0, 70.0])
+ax3.set_xlim([-80.0, 40.0])
 ax3.set_ylim([0.0, 2.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
@@ -380,6 +388,22 @@ ax3.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + "yplus.svg", dpi=300)
+plt.show()
+# %% plot u along streamwise
+fig3, ax3 = plt.subplots(figsize=(6.4, 3.0))
+ax3.plot(frame1['x'], frame1['<u>'], "k", linewidth=1.5)
+ax3.plot(frame2['x'], frame2['<u>'], "k", linewidth=1.5)
+ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax3.set_ylabel(r"$u / u_\infty$", fontsize=textsize)
+ax3.set_xlim([-70.0, 40.0])
+# ax3.set_ylim([0.0, 2.0])
+# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
+ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax3.axhline(y=0.0, color="gray", linestyle="--", linewidth=1.5)
+ax3.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + "u_stream2.svg", dpi=300)
 plt.show()
 
 # %%############################################################################
@@ -517,77 +541,108 @@ MeanFlow2.add_walldist(StepHeight)
 WallFlow2 = MeanFlow2.PlanarData.groupby("x", as_index=False).nth(1)
 mu2 = va.viscosity(13718, WallFlow1["T"])
 Cf2 = va.skinfriction(mu2, WallFlow2["u"], WallFlow2["walldist"]).values
-ind2 = np.where(Cf1[:] < 0.008)
+ind2 = np.where(Cf1[:] < 0.006)
 xwall2 = WallFlow2["x"].values
 # %% comparison with laminar case
 WallFlow0 = MeanFlow0.PlanarData.groupby("x", as_index=False).nth(1)
+if np.size(np.unique(WallFlow0['y'])) > 2:
+    maxy = np.max(WallFlow0['y'])
+    WallFlow0 = WallFlow0.drop(WallFlow0[WallFlow0['y']==maxy].index)
 mu0 = va.viscosity(13718, WallFlow0["T"])
 Cf0 = va.skinfriction(mu0, WallFlow0["u"], WallFlow0["walldist"]).values
-ind0 = np.where(Cf0[:] < 0.005)
+ind0 = np.where(Cf0[:] < 0.008)
 xwall0 = WallFlow0['x'].values
 # %% Plot streamwise skin friction
 MeanFlow.copy_meanval()
 WallFlow = MeanFlow.PlanarData.groupby("x", as_index=False).nth(1)
-# WallFlow = WallFlow[WallFlow.x != -0.0078125]
+if np.size(np.unique(WallFlow['y'])) > 2:
+    maxy = np.max(WallFlow['y'])
+    WallFlow = WallFlow.drop(WallFlow[WallFlow['y']==maxy].index)
 mu = va.viscosity(13718, WallFlow["T"])
 Cf = va.skinfriction(mu, WallFlow["u"], WallFlow["walldist"]).values
-ind = np.where(Cf[:] < 0.005)
-# fig2, ax2 = plt.subplots(figsize=(5, 2.5))
-fig = plt.figure(figsize=(6.4, 3.1))
-matplotlib.rc("font", size=textsize)
-ax2 = fig.add_subplot(121)
-matplotlib.rc("font", size=textsize)
+ind = np.where(Cf[:] < 0.008)
+# fig2, ax2 = plt.subplots(figsize=(6.4, 2.4))
+fig = plt.figure(figsize=(6.4, 4.6))
+matplotlib.rc("font", size=numsize)
+ax2 = fig.add_subplot(211)
+matplotlib.rc("font", size=numsize)
 xwall = WallFlow["x"].values
 ax2.plot(xwall[ind], Cf[ind], "k", linewidth=1.5)
-ax2.plot(xwall0[ind0], Cf0[ind0], "k:", linewidth=1.5)
-ax2.plot(xwall1[ind1], Cf1[ind1],
-         color='gray', linestyle=':', linewidth=1.2) # 
-ax2.plot(xwall2[ind2], Cf2[ind2],
-         color='gray', linestyle=':', linewidth=1.2) # 
-ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax2.plot(xwall0[ind0], Cf0[ind0], "b--", linewidth=1.5)
+# ax2.plot(xwall1[ind1], Cf1[ind1],
+#          color='gray', linestyle=':', linewidth=1.2) # 
+# ax2.plot(xwall2[ind2], Cf2[ind2],
+#          color='gray', linestyle=':', linewidth=1.2) # 
+ax2.set_xlabel(r"$x/h$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
-ax2.set_xlim([-20.0, 40.0])
-ax2.set_ylim([-0.002, 0.006])
+ax2.set_xlim([-32.0, 8])
+ax2.set_ylim([-0.003, 0.005])
 ax2.set_yticks(np.arange(-0.002, 0.008, 0.002))
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax2.axvline(x=9.2, color="gray", linestyle="--", linewidth=1.0)
+ax2.axvline(x=-25, color="gray", linestyle=":", linewidth=1.5)
+ax2.axvline(x=-4.2, color="blue", linestyle=":", linewidth=1.5)
 ax2.grid(b=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(numsize)
-ax2.annotate("(a)", xy=(-0.15, 1.0), xycoords='axes fraction',
+ax2.annotate("(a)", xy=(-0.09, 1.0), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.savefig(pathF+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
+# plt.savefig(pathF+'Cf_comp.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
-# % pressure coefficiency
-fa = 1.7 * 1.7 * 1.4
-# fig3, ax3 = plt.subplots(figsize=(5, 2.5))
-ax3 = fig.add_subplot(122)
-ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
-ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "k:", linewidth=1.5)
-ax3.plot(WallFlow1['x'], WallFlow1['p']*fa,
-         color='gray', linestyle=':', linewidth=1.2) # 
-ax3.plot(WallFlow2['x'], WallFlow2['p']*fa,
-         color='gray', linestyle=':', linewidth=1.2) # 
-ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
-ax3.set_xlim([-20.0, 40.0])
-ax3.set_ylim([0.25, 1.25])
-# ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
-ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.axvline(x=9.2, color="gray", linestyle="--", linewidth=1.0)
-ax3.grid(b=True, which="both", linestyle=":")
-ax3.annotate("(b)", xy=(-0.17, 1.0), xycoords='axes fraction',
+# % zoom part
+ax1 = fig.add_subplot(212)
+matplotlib.rc("font", size=numsize)
+ax1.plot(xwall[ind], Cf[ind], "k", linewidth=1.5)
+ax1.plot(xwall0[ind0], Cf0[ind0], "b--", linewidth=1.5)
+ax1.set_xlabel(r"$x/h$", fontsize=textsize)
+ax1.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
+ax1.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax1.set_xlim([-1.0, 1.0])
+ax1.set_ylim([-0.003, 0.005])
+ax1.axvline(x=0.16, color="gray", linestyle=":", linewidth=1.5)
+ax1.axvline(x=0.23, color="blue", linestyle=":", linewidth=1.5)
+ax1.grid(b=True, which="both", linestyle=":")
+ax1.annotate("(b)", xy=(-0.09, 0.98), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-# plt.savefig(path2 + "Cp.svg", dpi=300)
-plt.savefig(pathF + "CfCp_all.svg", dpi=300)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
+plt.savefig(pathF+'Cf_comp.svg')
+
+# %% pressure coefficiency
+fa = 1.7 * 1.7 * 1.4
+fig3, ax3 = plt.subplots(figsize=(6.4, 2.4))
+# ax3 = fig.add_subplot(313)
+ax3.plot(WallFlow["x"], WallFlow["p"] * fa, "k", linewidth=1.5)
+ax3.plot(WallFlow0["x"], WallFlow0["p"] * fa, "b--", linewidth=1.5)
+p_ref = np.loadtxt(pathM + "PressureRef1.dat", skiprows=4)
+lref = 1
+ax3.scatter(p_ref[:11, 0]/lref, p_ref[:11, 1],
+            linewidth=0.8,
+            s=20.0,
+            edgecolor="gray",
+            facecolor="none")
+# ax3.plot(WallFlow1['x'], WallFlow1['p']*fa,
+#          color='gray', linestyle=':', linewidth=1.2) # 
+# ax3.plot(WallFlow2['x'], WallFlow2['p']*fa,
+#          color='gray', linestyle=':', linewidth=1.2) # 
+ax3.set_xlabel(r"$x/h$", fontsize=textsize)
+ax3.set_ylabel(r"$\langle p_w \rangle/p_{\infty}$", fontsize=textsize)
+ax3.set_xlim([-32.0, 8])
+ax3.set_ylim([0.2, 2.2])
+ax3.set_yticks(np.arange(0.2, 2.6, 0.4))
+ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax3.axvline(x=-25, color="gray", linestyle=":", linewidth=1.5)
+ax3.axvline(x=-4.2, color="blue", linestyle=":", linewidth=1.5)
+ax3.grid(b=True, which="both", linestyle=":")
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)  
+# plt.savefig(pathF + "Cp_comp.svg", dpi=300)
+plt.savefig(pathF + "Cp_comp.svg", dpi=300)
 plt.show()
 
 # % turbulent kinetic energy
+
+
 #tke = va.tke(WallFlow).values
 #ax3 = fig.add_subplot(122)
 #matplotlib.rc("font", size=textsize)
@@ -597,7 +652,7 @@ plt.show()
 #ax3.set_xlim([-20.0, 40.0])
 ## ax3.set_ylim([-0.001, 0.002])
 #ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-#ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
+#ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)delta
 #ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
 #ax3.grid(b=True, which="both", linestyle=":")
 # ax3.yaxis.offsetText.set_fontsize(numsize)

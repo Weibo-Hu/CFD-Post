@@ -182,3 +182,9 @@ class LineField(object):
         ind = (self._data_field['time'] - val).abs().argsort()[:1]
         df = self._data_field.iloc[ind]
         return(df)
+        
+    def rescale(self, new_length):
+        df = self._data_field.apply(lambda a: a/new_length 
+                                    if a.name in ['x', 'y', 'z'] else a) 
+        self._data_field = df
+        return(df)

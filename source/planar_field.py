@@ -184,7 +184,7 @@ class PlanarField(LineField):
     def yprofile(self, var_name, var_val):
         df1 = self.PlanarData.loc[self.PlanarData[var_name] == var_val]
         
-        # df2 = df1.drop_duplicates(subset=['y'], keep='first', inplace=True)   
+        # df2 = df1.drop_duplicates(subset=['y'], keep='last', inplace=True)   
         grouped = df1.groupby(['y'])
         df2 = grouped.mean().reset_index()
         # df1 = PlanarField.uniq1d(df1, 'y')

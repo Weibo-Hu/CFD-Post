@@ -60,7 +60,7 @@ VarName = [
     "L2-criterion",
 ]
 
-StepHeight = 3.0
+StepHeight = -3.0
 
 # %%
 MeanFlow = pf()
@@ -74,14 +74,16 @@ stat = MeanFlow.PlanarData
 """
 # %% save dividing line coordinates
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)[:-2, :]
-x2 = np.arange(dividing[-1, 0], 50.0+0.125, 0.125)
-y2 = np.ones(np.size(x2))*(-2.99342)
-x3 = np.concatenate((dividing[:,0], x2), axis=0)
-y3 = np.concatenate((dividing[:,1], y2), axis=0) # streamline
+x1 = np.arange(-120.0, dividing[0, 0], 0.125)
+y1 = np.ones(np.size(x1)) * 0.0023
+x2 = np.arange(dividing[-1, 0], 20.0+0.125, 0.125)
+y2 = np.ones(np.size(x2)) * 3.001953
+x3 = np.concatenate((x1, dividing[:,0], x2), axis=0)
+y3 = np.concatenate((y1, dividing[:,1], y2), axis=0) # streamline
 xx = np.zeros(np.size(x3))
 yy = np.zeros(np.size(y3))
 frame1 = stat.loc[stat['z'] == 0, ['x', 'y']]
-frame2 = frame1.query("x>=0.0 & y<=3.0")
+frame2 = frame1.query("y<=3.1")
 xmesh = frame2['x'].values
 ymesh = frame2['y'].values
 for i in range(np.size(x3)):
@@ -114,7 +116,7 @@ if varn == '<u`u`>':
     savenm = "MaxRMS_u.dat"
 elif varn =='<p`p`>':
     savenm = "MaxRMS_p.dat"
-xnew = np.arange(-40.0, 40.0+0.125, 0.125)
+xnew = np.arange(-110.0, 40.0+0.125, 0.125)
 znew = np.zeros(np.size(xnew))
 varv = np.zeros(np.size(xnew))
 ynew = np.zeros(np.size(xnew))
@@ -129,10 +131,10 @@ df.to_csv(pathM + savenm, sep=' ',
           float_format='%1.8e', index=False)
 
 # %% save the grid points on the wall
-xnew = np.arange(-40.0, 40.0+0.125, 0.125)
-ynew = 0.001953125 * np.ones(np.size(xnew))
+xnew = np.arange(-110.0, 40.0+0.125, 0.125)
+ynew = 0.0023 * np.ones(np.size(xnew))
 ind = np.where(xnew >= 0.0)
-ynew[ind] = -2.997037172
+ynew[ind] = 3.001953
 data = np.vstack((xnew, ynew))
 df = pd.DataFrame(data.T, columns=['x', 'y'])
 df.to_csv(pathM + 'WallGrid.dat', sep=' ', float_format='%1.8e', index=False)
@@ -166,7 +168,7 @@ matplotlib.rc('font', size=14)
 ax.set_ylabel(r"$\sqrt{w^{\prime 2}}/u_{\infty}$", fontsize=textsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.plot(pert['x'], np.sqrt(pert[varnm]), 'k')
-ax.set_xlim([0.0, 30])
+ax.set_xlim([-40.0, 20])
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.grid(b=True, which="both", linestyle=":")
 plt.show()
@@ -175,7 +177,9 @@ plt.savefig(
 )
 
 # %% Plot RMS of velocity on the wall along streamwise direction
-xynew = pd.read_csv(pathM + 'MaxRMS.dat', sep=' ')
+thick = pd.read_csv(pathM + 'fit_thickness.dat', sep=' ')
+shape_fa = thick['displace'] / thick['momentum']
+xynew = pd.read_csv(pathM + 'MaxRMS_u.dat', sep=' ')
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=numsize)
 ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
@@ -183,11 +187,16 @@ ax.set_ylabel(ylab, fontsize=textsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax.plot(xynew['x'], xynew['<u`u`>'], 'k')
 ax.set_yscale('log')
-ax.set_xlim([-5, 30])
+ax.set_xlim([-100, 20])
 # ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
 ax.grid(b=True, which="both", linestyle=":")
 ax.tick_params(labelsize=numsize)
 ax.yaxis.offsetText.set_fontsize(numsize-1)
+
+ax2 = ax.twinx()
+ax2.plot(thick['x'], shape_fa, 'k--')
+ax2.set_ylabel(r"$H$", fontsize=textsize)
+
 plt.show()
 plt.savefig(
     pathF + "MaxRMS_x.svg", bbox_inches="tight", pad_inches=0.1
@@ -195,7 +204,7 @@ plt.savefig(
 
 # %% Plot RMS of velocity along wall-normal direction
 loc = ['x', 'z']
-val = [10.0, 0.0]
+val = [-10.0, 0.0]
 pert = va.pert_at_loc(stat, varnm, loc, val)
 fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=14)
@@ -474,13 +483,13 @@ ax.plot(xval, max_freq, 'C7:', linewidth=1.2)
 ax.axvline(x=0.0, linewidth=1.0, linestyle='--', color='k')
 # ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
-ax.set_xlim([-5, 20.0])
+ax.set_xlim([-30, 15.0])
 rg = np.linspace(cb1, cb2, 3)
 cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
 cbar.ax.xaxis.offsetText.set_fontsize(numsize)
 cbar.ax.tick_params(labelsize=numsize)
 cbar.update_ticks()
-barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{min} ]$'
+barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/ \mathcal{P}(f)_\mathrm{max} ]$'
 # barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
 ax.set_title(barlabel, pad=3, fontsize=numsize-1)
 # cbar.set_label(barlabel, rotation=90, fontsize=numsize)
@@ -491,7 +500,7 @@ plt.savefig(pathF + var + "_FWPSDMap_max" + sp + ".svg",
 plt.show()
 
 # %% Plot multiple frequency-weighted PSD curve along streamwise
-xr = 8.9
+xr = 13
 def d2l(x):
     return x * xr
 
@@ -507,7 +516,7 @@ matplotlib.rcParams['ytick.direction'] = 'in'
 # xcoord = np.array([-2.0, 2.75, 3.0, 6.0, 6.375, 9.0, 10.0])
 xcoord = np.array([-3.0, 1.0, 3.0, 5.0, 8.0, 9.25, 20.0])
 for i in range(np.size(xcoord)):
-    ind = np.where(xval[:] == xcoord[i])[0]
+    ind = np.where(xval[:]/lh == xcoord[i])[0]
     fpsd_x = FPSD[:, ind]
     ax[i].plot(fpsd_x, freq, "k-", linewidth=1.0)
     ax[i].set_yscale('log')

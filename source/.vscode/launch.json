@@ -11,9 +11,9 @@
             "request": "launch",
             "program": "${file}",
             "stopOnEntry": true,
-            "pythonPath": "${config:python.interpreterPath}",
-            //"pythonPath": "${config:python.interpreterPath}",
-            //"pythonPath": "/home/weibo/APP/anaconda3/bin/python",
+            "python": "${command:python.interpreterPath}",
+            //"python": "${command:python.interpreterPath}",
+            //"python": "/home/weibo/APP/anaconda3/bin/python",
             "console": "integratedTerminal"
         },
 
@@ -22,7 +22,7 @@
             "type": "python",
             "request": "launch",
             "stopOnEntry": false,
-            "pythonPath": "${config:python.interpreterPath}",
+            "python": "${command:python.interpreterPath}",
             "program": "${file}",
             "cwd": "",
             "console": "integratedTerminal",

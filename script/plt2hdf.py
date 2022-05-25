@@ -14,7 +14,7 @@ from timer import timer
 import tecplot as tp
 import plt2pandas as p2p
 from glob import glob
-
+import numpy as np
 
 # %% Convert .plt to .h5
 VarList = [
@@ -32,8 +32,8 @@ VarList = [
     'Q-criterion',
     'L2-criterion',
     '|grad(rho)|',
-    'T',
-    '|gradp|',
+    'T'
+    # '|gradp|'
     #    'ux',
     #    'uy',
     #    'uz',
@@ -50,27 +50,34 @@ VarList = [
     #    'py',
     #    'pz'
 ]
-sp = "S_010"
+sp = ["Z_003", "Y_007", "Y_008", "S_009"]
 equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2)']
 # FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/" + sp + "/"
-FoldPath = "/media/weibo/VID1/BFS_M1.7TS/Slice/S_10/"
-OutFolder = "/media/weibo/VID2/BFS_M1.7TS_LA/Slice/" + sp + "/"
-# subzone = [(-10.0, 30.0), (-3.0, 30.0), (-8.0, 8.0)]
-if not os.path.exists(OutFolder):
-    os.mkdir(OutFolder)
+# path = "/media/weibo/IM2/FFS_M1.7TB1/snapshots/"
+path = '/home/weibohu/weibo/FFS_M1.7TB1/snapshots/'
+InPath = path + 'temp/'
 
-subzone = [(-40.0, 70.0), (-3.0, 10.0), (-8.0, 8.0)]  # for 2D snapshots
-dirs = os.scandir(FoldPath)
+for j in range(np.size(sp)):
+    OutPath = path + sp[j] + '/'
+    if not os.path.exists(OutPath):
+        os.mkdir(OutPath)
+
+# subzone = [(-10.0, 30.0), (-3.0, 30.0), (-8.0, 8.0)]
+# %%
+subzone = [(-70.0, 40.0), (0.0, 12.0), (-8.0, 8.0)]  # for 2D snapshots
+dirs = os.scandir(InPath)
 for folder in dirs:
-    file = FoldPath + folder.name
-    # file = FoldPath + folder.name + '/TP_2D_' + sp + '.szplt'
-    # outfile = os.path.splitext(folder.name)[0]
-    outfile = 'TP_2D_' + sp
-    with timer("Read " + folder.name + " data"):
-        DataFrame, time = \
-            p2p.ReadINCAResults(FoldPath, VarList, SubZone=subzone,
-                                FileName=file, SavePath=OutFolder,
-                                OutFile=outfile, Equ=equ, opt=2)
+    for j in range(np.size(sp)):
+        OutPath = path + sp[j] + "/"
+        flnm = 'TP_2D_' + sp[j]
+        file = InPath + folder.name + '/' + flnm + '.szplt'
+        # file = FoldPath + folder.name + '/TP_2D_' + sp + '.szplt'
+        # outfile = os.path.splitext(folder.name)[0]
+        with timer("Read " + folder.name + " data"):
+            df, st = p2p.ReadINCAResults(InPath, VarList, # , SubZone=subzone,
+                                         FileName=file,
+                                         SavePath=OutPath, # Equ=equ, 
+                                         OutFile=flnm, opt=2)
 
 # p2p.ReadINCAResults(FoldPath, VarList, FileName=FoldPath + 'TP_912.plt',
 #                     Equ=equ, SavePath=OutFolder, OutFile='TP_912')
