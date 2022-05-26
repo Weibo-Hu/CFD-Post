@@ -1,13 +1,16 @@
-import os
-from timer import timer
-import tecplot as tp
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 20 14:48:11 2022
+    This code for coverting tecplot format to plot3d format
+
+@author: weibo
+"""
+# %% Load necessary module
 import numpy as np
-from glob import glob
-import sys
 import pandas as pd
 import numpy as np
 from scipy.interpolate import griddata
-from scipy import interpolate
 from scipy.io import FortranFile
 
 # %%
@@ -15,7 +18,7 @@ def csv2plot3d(path, filenm, vars, option='2d'):
     data = pd.read_csv(path + filenm, sep='\t')
     vars = ['x', 'y', 'u', 'v', 'w', 'rho', 'p', 'T']
     grid = 'grid.grd'
-    solu = 'uvw.dat'
+    solu = 'uvw.q'
     xa = np.unique(data['x'])
     ya = np.unique(data['y'])
     xmat, ymat = np.meshgrid(xa, ya)
