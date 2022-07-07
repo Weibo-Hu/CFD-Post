@@ -210,7 +210,14 @@ class PlanarField(LineField):
         self._data_field['rho'] = self.rho_m
         self._data_field['p'] = self.p_m
         self._data_field['T'] = self.T_m
-        self._data_field['mu'] = self.mu_m
-        self._data_field['vorticity_1'] = self.vorticity_1_m
-        self._data_field['vorticity_2'] = self.vorticity_2_m
-        self._data_field['vorticity_3'] = self.vorticity_3_m
+        if 'mu' in self._data_field.columns:
+            self._data_field['mu'] = self.mu_m
+        if 'vorticity_1' in self._data_field.columns:
+            self._data_field['vorticity_1'] = self.vorticity_1_m
+        if 'vorticity_2' in self._data_field.columns:
+            self._data_field['vorticity_2'] = self.vorticity_2_m
+        if 'vorticity_3' in self._data_field.columns:
+            self._data_field['vorticity_3'] = self.vorticity_3_m
+        
+        
+
