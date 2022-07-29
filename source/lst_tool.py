@@ -12,8 +12,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
+
 import matplotlib.ticker as ticker
-from scipy.interpolate import interp1d, splev, splrep, spline
+from scipy.interpolate import interp1d, splev, splrep #, spline
 from data_post import DataPost
 import variable_analysis as fv
 from timer import timer
@@ -146,9 +147,34 @@ ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "TS_mode_spectrum.svg", bbox_inches="tight")
 plt.show()
-
+# %% BL profiles to a specific format
+path = 'E:/Data/project/LST/export/x270/'
+col = [
+       'y', 'u_r', 'u_i', 'v_r', 'v_i', 'w_r', 'w_i', 
+       't_r', 't_i', 'p_r', 'p_i', 'rho_r', 'rho_i'
+       ]
+ts_profile = pd.read_csv(path + 'profiles.dat', sep='\t',
+                         names=col, header=0,
+                         index_col=False, skiprows=0,
+                         skipinitialspace=True)
+myfile = path + 'UnstableMode.dat'
+omega_r = 0.700000
+omega_i = -0.021951
+alpha = 0.758735
+beta = 0.0
+with open(myfile, 'w') as file:
+    # file.write(col[:11]+'\t')
+    file.write('alpha = ' + str(alpha) + '\n')
+    file.write('beta = ' + str(beta) + '\n')
+    file.write('omega_r = ' + str(omega_r) + '\n')
+    file.write('omega_i = ' + str(omega_i) + '\n')
+    file.write("\t".join(col[:11]) + '\n')
+    input_mode = ts_profile[col[:11]]
+    input_mode.to_csv(myfile, sep='\t', index=False, # header=0, #columns=col[:11], # mode='a', # 
+                      float_format='%1.8e')
 # %% Plot LST perturbations profiles
-ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep=' ',
+path = 'E:/Data/project/LST/export/x270/'
+ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep='\t',
                          index_col=False, skiprows=4,
                          skipinitialspace=True)
 ts_profile['u'] = np.sqrt(ts_profile['u_r']**2+ts_profile['u_i']**2)
@@ -157,12 +183,13 @@ ts_profile['w'] = np.sqrt(ts_profile['w_r']**2+ts_profile['w_i']**2)
 ts_profile['t'] = np.sqrt(ts_profile['t_r']**2+ts_profile['t_i']**2)
 ts_profile['p'] = np.sqrt(ts_profile['p_r']**2+ts_profile['p_i']**2)
 # normalized
+fct = 4
 var_ref = np.max(ts_profile['u'])
 ts_profile['u'] = ts_profile['u'] / var_ref
 ts_profile['v'] = ts_profile['v'] / var_ref
 ts_profile['w'] = ts_profile['w'] / var_ref
 ts_profile['p'] = ts_profile['p'] / var_ref
-ts_profile['t'] = ts_profile['t'] / var_ref
+ts_profile['t'] = ts_profile['t'] / var_ref / fct
 fig, ax = plt.subplots(figsize=(3.2, 3.2))
 matplotlib.rc("font", size=textsize)
 # plot lines
@@ -174,16 +201,17 @@ ax.plot(ts_profile.t, ts_profile.y, 'c', linewidth=1.2)
 # plot scatter
 #ax.scatter(ts_profile.u[0::4], ts_profile.y[0::4], s=15, marker='x',
 #           facecolors='k', edgecolors='k', linewidths=0.5, label=r'$u$')
-ax.set_xlim(0.0, 1.0)
+ax.set_xlim(0.0, 4.0)
 ax.tick_params(axis='x', which='major', pad=5)
-ax.set_ylim(0.0, 5.0)
-ax.set_xlabel(r'$|\tilde{q}|/|\tilde{q}|_\mathrm{max}$', fontsize=textsize)
-ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
+ax.set_ylim(0.0, 10.0)
+ax.set_xlabel(r'$|\tilde{q}|/|\tilde{u}|_\mathrm{max}$', fontsize=textsize)
+ax.set_ylabel(r'$y\mathrm{(mm)}$', fontsize=textsize)
+# ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
 ax.grid(b=True, which="both", linestyle=":")
-plt.legend( (r'$u$', r'$v$', r'$w$', r'$p$', r'$T$'),
+plt.legend( (r'$u$', r'$v$', r'$w$', r'$p$', r'$T/4$'),
             fontsize=numsize, framealpha=0.5 )
-plt.savefig(pathF + "TS_mode_profile.svg", bbox_inches="tight")
+plt.savefig(path + "2nd_mode_profile.png", dpi=300, bbox_inches="tight")
 plt.show()
 
 # %% omega-Rex
@@ -404,4 +432,31 @@ ax1.annotate("(b)", xy=(-0.21, 1.00), xycoords='axes fraction',
              fontsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.6, h_pad=1)
 plt.savefig(pathF + "Re_alpha.svg")
+plt.show()
+
+# %% plot amplitude along x
+path1 = 'E:/cases/large_oblique/'
+var_x = pd.read_csv(path1 + 'var_x.dat', sep='\t', skipinitialspace=True)
+path = 'E:/cases/project/LST/export/'
+cols = ['x', 'omega_r', 'omega_i', 'alpha_r', 'alpha_i', 'beta_r', 'beta_i']
+x_profile = pd.read_csv(path + 'x-eigenvalue.dat', sep=' ', names=cols,
+                         index_col=False, skiprows=1,
+                         skipinitialspace=True)
+x_profile = x_profile.sort_values(by=['x'])
+x1_profile = x_profile.iloc[540:941]
+a0 = 1
+fluc = a0*np.exp(x1_profile['alpha_i']*x1_profile['x'])
+fig, ax = plt.subplots(figsize=(6.4, 6.4))
+matplotlib.rc("font", size=textsize)
+# plot lines
+ax.scatter(x1_profile['x'], fluc, s=15, marker='o',
+           facecolors='k', edgecolors='k', linewidths=0.5)
+ax.plot(var_x['x']+270, np.sqrt(var_x['<T`T`>']), 'b-')
+ax.set_xlim([280, 480])
+# ax.set_ylim([-0.1, 0.3])
+ax.set_xlabel(r'$x$', fontsize=textsize)
+ax.set_ylabel(r'$q^\prime$', fontsize=textsize)
+ax.tick_params(labelsize=numsize)
+ax.grid(b=True, which="both", linestyle=":")
+plt.savefig(path + "amplidue_x.svg", bbox_inches="tight")
 plt.show()
