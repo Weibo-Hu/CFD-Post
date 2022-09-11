@@ -24,7 +24,7 @@ from planar_field import PlanarField as pf
 # host = "/run/user/1000/gvfs/sftp:host=cartesius.surfsara.nl,user="
 # path = host + "weibohu/nfs/home6/weibohu/weibo/FFS_M1.7TB/"
 # path = "/media/weibo/IM2/FFS_M1.7SFD120/"
-path = "/mnt/work/Fourth/FFS_M1.7SFD120/"
+path = "E:/Data/test_wavy5/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -34,7 +34,6 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathSL = path + "Slice/"
 
-# figures properties settings
 plt.close("All")
 plt.rc("text", usetex=True)
 font = {
@@ -46,7 +45,8 @@ matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 13
 numsize = 10
-
+df = pd.read_csv(pathM + 'MeanFlow.dat', sep=',')
+df.to_hdf(pathM+ "MeanFlow.h5", 'w', format='fixed')
 # %% Load Data
 VarName = [
     "x",
@@ -71,12 +71,12 @@ VarName = [
 
 timezone = np.arange(700, 999.75 + 0.25, 0.25)
 x1x2 = [600, 1100]
-StepHeight = -3.0
+StepHeight = 0.0
 MeanFlow = pf()
 #MeanFlow.load_data(path + 'inca_out/')
 MeanFlow.load_meanflow(path)
 MeanFlow.add_walldist(StepHeight)
-lh = 3.0
+lh = 1.0
 MeanFlow.rescale(lh)
 # %% Load laminar data for comparison
 path0 = "/mnt/work/Fourth/FFS_M1.7TB1/"
@@ -92,37 +92,38 @@ MeanFlow0.rescale(lh)
 """
 # %% plot BL profile along streamwise
 MeanFlow.copy_meanval()
-fig, ax = plt.subplots(1, 8, figsize=(6.4, 2.4))
+fig, ax = plt.subplots(1, 7, figsize=(6.4, 2.4), dpi=500)
 fig.subplots_adjust(hspace=0.5, wspace=0.18)
 matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-18, -8, -4, -2, -1, 0, 1, 2])
+xcoord = np.array([20, 30, 37, 39.5, 42.5, 44, 46])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df['walldist']
     q0 = df['u']
     if xcoord[i] == 0.0:
-        ind = np.where(y0 >= 3.0)[0]
+        ind = np.where(y0 >= 0.0)[0]
         ax[i].plot(q0[ind], y0[ind], "k-")
-        ax[i].set_ylim([3, 7])
+        ax[i].set_ylim([3, 6])
     else:
-        ax[i].plot(q0, y0, "k-")
-        ax[i].set_ylim([0, 4])
+        ind = np.where(y0 >= 0.0)[0]
+        ax[i].plot(q0[ind], y0[ind], "k-")
+        ax[i].set_ylim([0, 6])
     if i != 0:
         ax[i].set_yticklabels('')
         ax[i].set_title(r'${}$'.format(xcoord[i]), fontsize=numsize-2)
     ax[i].set_xticks([0, 0.5, 1], minor=True)
     ax[i].tick_params(axis='both', which='major', labelsize=numsize)
-    ax[i].grid(b=True, which="both", linestyle=":")
+    ax[i].grid(visible=True, which="both", linestyle=":")
 ax[0].set_title(r'$x/\delta_0={}$'.format(xcoord[0]), fontsize=numsize-2)
-ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
-ax[4].set_xlabel(r'$u /u_\infty$', fontsize=textsize)
+ax[0].set_ylabel(r"$ y/\delta_0$", fontsize=textsize)
+ax[3].set_xlabel(r'$u /u_\infty$', fontsize=textsize)
 plt.tick_params(labelsize=numsize)
 plt.show()
 plt.savefig(
-    pathF + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1
+    pathF + "BLProfile.pdf", bbox_inches="tight", pad_inches=0.1
 )
 
 # %%############################################################################
