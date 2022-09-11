@@ -31,67 +31,69 @@ class PlanarField(LineField):
 
     @property
     def u_m(self):
-        return self._data_field['<u>'].values
+        return(self._data_field['<u>'].values)
 
     @property
     def v_m(self):
-        return self._data_field['<v>'].values
+        return(self._data_field['<v>'].values)
 
     @property
     def w_m(self):
-        return self._data_field['<w>'].values
+        return(self._data_field['<w>'].values)
 
     @property
     def rho_m(self):
-        return self._data_field['<rho>'].values
+        return(self._data_field['<rho>'].values)
 
     @property
     def p_m(self):
-        return self._data_field['<p>'].values
+        return(self._data_field['<p>'].values)
 
     @property
     def T_m(self):
-        return self._data_field['<T>'].values
+        return(self._data_field['<T>'].values)
 
     @property
     def mu_m(self):
-        return self._data_field['<mu>'].values
+        return(self._data_field['<mu>'].values)
 
     @property
     def vorticity_1_m(self):
-        return self._data_field['<vorticity_1>'].values
+        return(self._data_field['<vorticity_1>'].values)
 
     @property
     def vorticity_2_m(self):
-        return self._data_field['<vorticity_2>'].values
+        return(self._data_field['<vorticity_2>'].values)
 
     @property
     def vorticity_3_m(self):
-        return self._data_field['<vorticity_3>'].values
+        return(self._data_field['<vorticity_3>'].values)
 
     @property
     def R11(self):
-        return self._data_field['<u`u`>'].values
+        return(self._data_field['<u`u`>'].values)
 
     @property
     def R22(self):
-        return self._data_field['<v`v`>'].values
+        return(self._data_field['<v`v`>'].values)
 
     @property
     def R33(self):
-        return self._data_field['<w`w`>'].values
+        return(self._data_field['<w`w`>'].values)
 
     @property
     def R12(self):
-        return self._data_field['<u`v`>'].values
+        return(self._data_field['<u`v`>'].values)
 
     @property
     def R13(self):
-        return self._data_field['<u`w`>'].values
+        return(self._data_field['<u`w`>'].values)
 
     @property
     def R23(self):
-        return self._data_field['<v`w`>'].values
+        return(self._data_field['<v`w`>'].values)
+
+
 
     def load_data(self, path, FileList=None, NameList=None):
         # nfiles = np.size(os.listdir(path))
@@ -196,6 +198,11 @@ class PlanarField(LineField):
         self._data_field.loc[self._data_field['x'] > 0.0, 'walldist'] \
             += StepHeight
 
+    def add_energy(self):
+        tke = 0.5 * (self.R11 + self.R22 + self.R33)
+        self._data_field['tke'] = tke
+        return(tke)
+
     def copy_meanval(self):
         self._data_field['u'] = self.u_m
         self._data_field['v'] = self.v_m
@@ -203,7 +210,14 @@ class PlanarField(LineField):
         self._data_field['rho'] = self.rho_m
         self._data_field['p'] = self.p_m
         self._data_field['T'] = self.T_m
-        self._data_field['mu'] = self.mu_m
-        self._data_field['vorticity_1'] = self.vorticity_1_m
-        self._data_field['vorticity_2'] = self.vorticity_2_m
-        self._data_field['vorticity_3'] = self.vorticity_3_m
+        if 'mu' in self._data_field.columns:
+            self._data_field['mu'] = self.mu_m
+        if 'vorticity_1' in self._data_field.columns:
+            self._data_field['vorticity_1'] = self.vorticity_1_m
+        if 'vorticity_2' in self._data_field.columns:
+            self._data_field['vorticity_2'] = self.vorticity_2_m
+        if 'vorticity_3' in self._data_field.columns:
+            self._data_field['vorticity_3'] = self.vorticity_3_m
+        
+        
+

@@ -3,6 +3,7 @@ UGrad/__pycache__/
 
 *.pyc
 
-source/__pycache__/
+source/__pycache__/*
 
 source/.vscode/
+source/__pycache__/data_post.cpython-38.pyc

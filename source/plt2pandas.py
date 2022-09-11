@@ -5,6 +5,7 @@ Created on Sat Jun 9 10:24:50 2018
     Convert data to pandas dataframe
 @author: Weibo Hu
 """
+# %%
 import tecplot as tp
 import pandas as pd
 import os
@@ -16,10 +17,14 @@ from timer import timer
 from time import time
 import logging as log
 from glob import glob
+import ctypes
+from ctypes import *
 
 log.basicConfig(level=log.INFO)
-
+# tp.session.start_roaming(30)
+# tp.session.stop_roaming()
 #   Show Progress of code loop
+# %%
 def progress(count, total, status=''):
     bar_len = 50
     filled_len = int(round(bar_len * count / float(total)))
@@ -672,6 +677,11 @@ def create_folder(path):
     pathT = path + "TimeAve/"
     pathI = path + "Instant/"
     return(pathF, pathP, pathM, pathS, pathT, pathI)
+
+# %%
+if __name__ == '__main__':
+    tecio = cdll.LoadLibrary('../lib/tecio.dll')
+    # tecio.
 
 
 

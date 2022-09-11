@@ -7,12 +7,13 @@ Created on Thu Jun 28 17:39:31 2018
 """
 # %%
 import numpy as np
+import plt2pandas as p2p
 import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 from scipy.signal import savgol_filter
 # import modin.pandas as pd
-import plt2pandas as p2p
+
 import variable_analysis as va
 from line_field import LineField as lf
 from planar_field import PlanarField as pf
@@ -31,6 +32,9 @@ plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 
+# %%
+path = 'e:/cases/large_oblique/TP_stat/'
+df = p2p.ReadPlt(path)
 path = "/media/weibo/IM2/FFS_M1.7SFD120/"
 p2p.create_folder(path)
 pathP = path + "probes/"
