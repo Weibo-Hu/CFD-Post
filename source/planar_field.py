@@ -10,6 +10,7 @@ from line_field import LineField
 from timer import timer
 import os
 import plt2pandas as p2p
+import pytecio as pytec
 from glob import glob
 import numpy as np
 
@@ -117,7 +118,7 @@ class PlanarField(LineField):
         df = grouped.mean().reset_index()
         self._data_field = df
 
-    def load_meanflow(self, path, FileList=None, OutFile=None):
+    def load_meanflow(self, path, FileList=None, lib='tecio'):
         exists = os.path.isfile(path + 'MeanFlow/MeanFlow.h5')
         if exists:
             df = pd.read_hdf(path + 'MeanFlow/MeanFlow.h5')
@@ -130,18 +131,33 @@ class PlanarField(LineField):
             print('try to calculate data')
             with timer('load mean flow from tecplot data'):
                 if FileList is None:
-                    df = p2p.ReadAllINCAResults(path + 'TP_stat/',
-                                                path + 'MeanFlow/',
-                                                SpanAve=True,
-                                                Equ=equ,
-                                                OutFile='MeanFlow')
+                    if lib=='tecio':
+                        df, SolTime = pytec.ReadINCAResults(path + 'TP_stat/',
+                        SavePath=path + 'MeanFlow/',
+                        SpanAve=True,
+                        OutFile='MeanFlow')
+
+                    else:
+                        df = p2p.ReadAllINCAResults(path + 'TP_stat/',
+                                                    path + 'MeanFlow/',
+                                                    SpanAve=True,
+                                                    Equ=equ,
+                                                    OutFile='MeanFlow')                        
                 else:
-                    df = p2p.ReadAllINCAResults(path + 'TP_stat/',
-                                                path + 'MeanFlow/',
-                                                FileName=FileList,
-                                                SpanAve=True,
-                                                Equ=equ,
-                                                OutFile='MeanFlow')
+                    if lib=='tecio':
+                        df, SolTime = pytec.ReadINCAResults(path + 'TP_stat/',
+                        SavePath=path + 'MeanFlow/',
+                        FileName=FileList,
+                        SpanAve=True,
+                        OutFile='MeanFlow')
+                    else:
+                        df = p2p.ReadAllINCAResults(path + 'TP_stat/',
+                                                    path + 'MeanFlow/',
+                                                    FileName=FileList,
+                                                    SpanAve=True,
+                                                    Equ=equ,
+                                                    OutFile='MeanFlow')
+
             print('done with saving data')
         self._data_field = df
 
