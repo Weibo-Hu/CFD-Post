@@ -84,7 +84,7 @@ import os
 
 def basic_var(opt):
     """generate name list for the dataframe
-       
+
        Args:
         opt: if include vorticity or walldist
 
@@ -106,7 +106,7 @@ def basic_var(opt):
     equ = ['{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)']
     if opt == 'vorticity':
         varlist.extend([
-            'vorticity_1', 
+            'vorticity_1',
             'vorticity_2',
             'vorticity_3',
             'Q-criterion',
@@ -119,7 +119,7 @@ def basic_var(opt):
 
 def mean_var(opt):
     """generat name list for the meanflow dataframe
-       
+
        Args:
         opt: if include vorticity, velocity gradient or walldist
 
@@ -141,7 +141,7 @@ def mean_var(opt):
     equ = ['{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)']
     if opt == 'vorticity':
         varlist.extend([
-            '<vorticity_1>', 
+            '<vorticity_1>',
             '<vorticity_2>',
             '<vorticity_3>',
             '<Q-criterion>',
@@ -174,10 +174,10 @@ def mean_var(opt):
         ])
     return(varlist, equ)
 
-    
+
 def intermittency(sigma, Pressure0, WallPre, TimeZone):
     """Obtain intermittency factor from pressure
-       
+
        Args:
         sigma: standard deviation of undisturbed wall pressure
         pressure0: undisturbed wall pressure
@@ -258,16 +258,16 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None, up=0.95):
         return(delta, u_d)
     elif opt == 'displacement':
         rho1 = rho[:bc]
-        rho_d = np.max(rho1) # rho1[bl] # 
-        u_d = np.max(u1) # u1[bl] # 
+        rho_d = np.max(rho1)  # rho1[bl] #
+        u_d = np.max(u1)  # u1[bl] #
         a1 = rho1*u1/rho_d/u_d
         var = 1-a1
         delta_star = np.trapz(var, y1)
         return(delta_star, u_d, rho_d)
     elif opt == 'momentum':
         rho1 = rho[:bc]
-        rho_d = np.max(rho1) # rho1[bl]  # 
-        u_d = np.max(u1) # u1[bl]  # 
+        rho_d = np.max(rho1)  # rho1[bl]  #
+        u_d = np.max(u1)  # u1[bl]  #
         a1 = 1-u1/u_d
         a2 = rho1*u1/rho_d/u_d
         var = a1 * a2
@@ -315,9 +315,9 @@ def gortler(Re_inf, x, y, theta, scale=0.001, radi=None):
 def gortler_tur(theta, delta_star, radi, opt='radius'):
     # radi = Radius(x, y)
     a1 = theta / 0.018 / delta_star
-    if opt=='radius':
+    if opt == 'radius':
         a2 = np.sqrt(theta / np.abs(radi))
-    elif opt=='curvature':
+    elif opt == 'curvature':
         a2 = np.sqrt(theta * np.abs(radi))
     gortler = a1 * a2  # * np.sign(radi)
     return gortler
@@ -336,7 +336,7 @@ def curvature_r(df, opt='mean'):
     dvdy = df['dvdy']
     numerator = u**2 * dvdx - v**2 * dudy + u*v*(dvdy - dudx)
     denominator = np.power(u**2+v**2, 3.0/2.0)
-    radius = numerator / denominator 
+    radius = numerator / denominator
     return radius
 
 
@@ -468,7 +468,7 @@ def cro_psd(Var1, Var2, dt, Freq_samp, opt=1, seg=8, overlap=4):
     if opt == 1:
         ns = TotalNo // seg
         Freq, Cpsd = signal.csd(
-            NVar1, NVar2, Freq_samp, nperseg=ns, 
+            NVar1, NVar2, Freq_samp, nperseg=ns,
             nfft=TotalNo, noverlap=ns // overlap
         )
         Freq = Freq[1:]
@@ -624,13 +624,13 @@ def u_tau(frame, option='mean', grad=False):
         u_grad = np.gradient(frame['u'].values, frame['walldist'].values,
                              edge_order=2)
     walldist2 = frame['walldist'].values[1]
-    
+
 #    if(frame['walldist'].values[1] > 0.005):
 #        print('Interpolate for u_wall')
 #        func = interp1d(frame['walldist'].values, frame['u'].values, kind='cubic')
 #        delta_u = func(0.004)
 #        walldist2 = 0.004
-    if(grad==True):
+    if(grad == True):
         tau_wall = mu_wall * u_grad[1]
     else:
         tau_wall = mu_wall * delta_u / walldist2
@@ -678,8 +678,8 @@ def direst_transform(frame, option='mean', grad=False):
     u_plus_van = u_van / shear_velocity
     y_plus = shear_velocity * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
-    y_plus = y_plus[1:] # y_plus[0] = 1 # 
-    u_plus_van = u_plus_van[1:] # u_plus_van[0] = 1 #
+    y_plus = y_plus[1:]  # y_plus[0] = 1 #
+    u_plus_van = u_plus_van[1:]  # u_plus_van[0] = 1 #
     UPlusVan = np.column_stack((y_plus, u_plus_van))
     return (UPlusVan)
 
@@ -744,7 +744,7 @@ def reattach_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
     return (reatt)
 
 
-# obtain separation location with time 
+# obtain separation location with time
 def separate_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
     dirs = sorted(os.listdir(InFolder))
     xarr = np.zeros(np.size(timezone))
@@ -759,7 +759,7 @@ def separate_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
         ywall = np.unique(NewFrame['y'])[1]
         TemFrame = NewFrame.loc[NewFrame["y"] == ywall]
         ind = TemFrame.index.values
-        
+
         NewFrame1 = data.query("y<=3.0 & x<=0")
         xwall = np.unique(NewFrame1['x'])[-2]
         TemFrame1 = NewFrame1.loc[NewFrame1['x'] == xwall]
@@ -772,7 +772,7 @@ def separate_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
                     # aa = frame0.iloc[frame0['Cf'].abs().argsort()]
                     aa = frame0.loc[frame0["u"] < 0.0, "x"].head(16)
                     xarr[j] = aa.values[-1]
-                    
+
                     frame1 = frame.iloc[ind1]
                     yarr[j] = frame1.loc[frame1['u'] < 0.0, 'y'].tail(1)
                     j = j + 1
@@ -785,7 +785,7 @@ def separate_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
                     frame = grouped.mean().reset_index()
                     xy = dividing_line(frame, loc=loc)
                     xarr[j] = np.min(xy[:, 0])
-                    ind = np.argwhere(xy[:, 0]==0.0)[0]
+                    ind = np.argwhere(xy[:, 0] == 0.0)[0]
                     yarr[j] = xy[ind, 1]
                     j = j + 1
     separate = np.vstack((timezone, xarr)).T
@@ -805,6 +805,7 @@ def separate_loc(InFolder, OutFolder, timezone, loc=-0.015625, skip=1, opt=2):
         header="t, y",
     )
     return (separate)
+
 
 def extract_point(InFolder, OutFolder, timezone, xy, skip=1, col=None):
     if col is None:
@@ -910,9 +911,9 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
                         # ydif = xycor[:, 1] - yarr
                     yarr1 = np.ones(np.shape(xycor)[0]) * ys1
                     ydif1 = xycor[:, 1] - yarr1
-                    ind0 = np.where(ydif1[:]>=0.0)[0]  # upper half
+                    ind0 = np.where(ydif1[:] >= 0.0)[0]  # upper half
                     xy_n0 = xycor[ind0, :]
-                    ind1 = (xy_n0[:, 0] >=-15.5) & (xy_n0[:, 0] <=-13.5)
+                    ind1 = (xy_n0[:, 0] >= -15.5) & (xy_n0[:, 0] <= -13.5)
                     xy_n1 = xy_n0[ind1, :]
                     xy_n1 = xy_n1[xy_n1[:, 1].argsort()]  # most close two
                     xtm1 = (xy_n1[0, 0] + xy_n1[1, 0])/2
@@ -920,10 +921,10 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
 
                     yarr2 = np.ones(np.shape(xycor)[0]) * ys2
                     ydif2 = xycor[:, 1] - yarr2
-                    ind2 = np.where(ydif2[:]>=0.0)[0]
+                    ind2 = np.where(ydif2[:] >= 0.0)[0]
                     xy_n02 = xycor[ind2, :]
-                    ind01 = (xy_n02[:, 0] >=-13) & (xy_n02[:, 0] <=-10)
-                    xy_n2 = xy_n02[ind01, :]                  
+                    ind01 = (xy_n02[:, 0] >= -13) & (xy_n02[:, 0] <= -10)
+                    xy_n2 = xy_n02[ind01, :]
                     xy_n2 = xy_n2[xy_n2[:, 1].argsort()]
                     xtm2 = (xy_n2[0, 0] + xy_n2[1, 0])/2
                     x2 = np.append(x2, xtm2)
@@ -942,8 +943,10 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
                     ax1.axhline(y=ys1)
                     ax1.plot(x2, ys2, "b^")
                     ax1.axhline(y=ys2)
-                    shock1 = np.append(shock1, [[timepoints[j],x1,ys1]], axis=0)
-                    shock2 = np.append(shock2, [[timepoints[j],x2,ys2]], axis=0)
+                    shock1 = np.append(
+                        shock1, [[timepoints[j], x1, ys1]], axis=0)
+                    shock2 = np.append(
+                        shock2, [[timepoints[j], x2, ys2]], axis=0)
                     j = j + 1
                     plt.show()
                     # plt.close()
@@ -957,14 +960,15 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
                     NewFrame1 = frame.loc[frame['y'] == ys1]
                     temp1 = NewFrame1.loc[NewFrame1['u'] <= val[0], 'x']
                     x1 = temp1.head(1)
-                
+
                     NewFrame2 = frame.loc[frame['y'] == ys2]
                     temp2 = NewFrame2.loc[NewFrame2['u'] <= val[1], 'x']
                     x2 = temp2.head(1)
-                    shock1 = np.append(shock1, [[timepoints[j],x1,ys1]], axis=0)
-                    shock2 = np.append(shock2, [[timepoints[j],x2,ys2]], axis=0)
+                    shock1 = np.append(
+                        shock1, [[timepoints[j], x1, ys1]], axis=0)
+                    shock2 = np.append(
+                        shock2, [[timepoints[j], x2, ys2]], axis=0)
                     j = j + 1
-
 
     np.savetxt(
         OutFolder + "ShockA.dat",
@@ -1088,7 +1092,7 @@ def shock_line_ffs(dataframe, path, val=[0.06], show=False):
     )
 
 
-def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
+def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7, mask=True):
     # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
@@ -1109,8 +1113,9 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
     else:
         Ma = griddata((dataframe.x, dataframe.y), dataframe.Mach, (x, y))
         # sys.exit("Mach number is not in the dataframe")
-    corner = (x < 0.0) & (y < 0.0)
-    Ma[corner] = np.nan
+    if mask is True:
+        corner = (x < 0.0) & (y < 0.0)
+        Ma[corner] = np.nan
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -1122,9 +1127,35 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7):
                delimiter='  ', header=header)
 
 
+def wall_line(dataframe, path, mask=True):
+    # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
+    grouped = dataframe.groupby(['x', 'y'])
+    dataframe = grouped.mean().reset_index()
+    x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    try:
+        'walldist' in dataframe.columns
+    except:
+        sys.exit('find no bubble line!!!')
+
+    walldist = griddata((dataframe.x, dataframe.y), dataframe.walldist, (x, y))
+
+    if mask is True:
+        corner = (x < 0.0) & (y < 0.0)
+        walldist[corner] = np.nan
+    header = "x, y"
+    xycor = np.empty(shape=[0, 2])
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(x, y, walldist, levels=[0.0], linewidths=1.5, colors='k')
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+    np.savetxt(path + "WallBoundary.dat", xycor, fmt='%.8e',
+               delimiter='  ', header=header)
+
+
 def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
     """Obtain dividing line
-       
+
        Args:
         dataframe: dataframe
         path: path of saving data
@@ -1132,13 +1163,13 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
 
        Return:
         array of coordinates
-    
+
        Raises:
         data error: find no bubble line
     """
     grouped = dataframe.groupby(['x', 'y'])
-    dataframe = grouped.mean().reset_index()
-    NewFrame = dataframe.query("x>=-70.0 & x<=0.0 & y<=10.0")
+    NewFrame = grouped.mean().reset_index()
+    # NewFrame = dataframe.query("x>=-70.0 & x<=0.0 & y<=10.0")
     x, y = np.meshgrid(np.unique(NewFrame.x), np.unique(NewFrame.y))
     if 'u' not in NewFrame.columns:
         NewFrame['u'] = NewFrame['<u>']
@@ -1186,7 +1217,7 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
     return xy
 
 
-def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump3=16.0, 
+def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump3=16.0,
                   val1=0.81, val3=0.98):  # jump = reattachment location
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     grouped = dataframe.groupby(['x', 'y'])
@@ -1199,7 +1230,7 @@ def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump3=16.0,
     umax = u[-1, :]
     umax[:] = 0.99
     # range1
-    rg1 = (x[1, :] <= jump1) & (x[1, :] >= jump0) # between two shocks 
+    rg1 = (x[1, :] <= jump1) & (x[1, :] >= jump0)  # between two shocks
     uinterp = np.interp(x[1, rg1], [jump0, jump1], [0.99, val1+0.000])
     umax[rg1] = uinterp
     # range2
@@ -1285,10 +1316,10 @@ def streamline(InFolder, df, seeds, OutFile=None,
     else:
         if np.shape(partition) != (2, 3):
             sys.exit("the shape of partition does not match (2,3)!")
-        xa1 = np.arange(partition[0,0], partition[0,1]+0.0625, 0.0625)
-        xa2 = np.arange(partition[0,1], partition[0,2]+0.0625, 0.0625)
-        ya1 = np.arange(partition[1,0], partition[1,1]+0.015625, 0.015625)
-        ya2 = np.arange(partition[1,1], partition[1,2]+0.015625, 0.015625)
+        xa1 = np.arange(partition[0, 0], partition[0, 1]+0.0625, 0.0625)
+        xa2 = np.arange(partition[0, 1], partition[0, 2]+0.0625, 0.0625)
+        ya1 = np.arange(partition[1, 0], partition[1, 1]+0.015625, 0.015625)
+        ya2 = np.arange(partition[1, 1], partition[1, 2]+0.015625, 0.015625)
 
     xb1, yb1 = np.meshgrid(xa1, ya1)
     xb2, yb2 = np.meshgrid(xa2, ya2)
@@ -1300,9 +1331,9 @@ def streamline(InFolder, df, seeds, OutFile=None,
     strm2 = np.empty([0, 2])
     fig, ax = plt.subplots(figsize=(6.4, 2.3))
     for j in range(np.shape(seeds)[1]):
-        point = np.reshape(seeds[:,j], (1, 2))
+        point = np.reshape(seeds[:, j], (1, 2))
         # upstream the step
-        if (opt == 'up') or (opt=='both'):
+        if (opt == 'up') or (opt == 'both'):
             stream1 = ax.streamplot(
                 xb1,
                 yb1,
@@ -1316,10 +1347,10 @@ def streamline(InFolder, df, seeds, OutFile=None,
                 linewidth=1.0,
             )
             seg = stream1.lines.get_segments()
-            strm1 = np.asarray([i[0] for i in seg])  
-            ax.plot(strm1[:,0], strm1[:,1], 'b:') 
+            strm1 = np.asarray([i[0] for i in seg])
+            ax.plot(strm1[:, 0], strm1[:, 1], 'b:')
         # downstream the step
-        if (opt == 'down') or (opt=='both'):
+        if (opt == 'down') or (opt == 'both'):
             stream2 = ax.streamplot(
                 xb2,
                 yb2,
@@ -1334,7 +1365,7 @@ def streamline(InFolder, df, seeds, OutFile=None,
             )
             seg = stream2.lines.get_segments()
             strm2 = np.asarray([i[0] for i in seg])
-            ax.plot(strm2[:,0], strm2[:,1], 'r--')
+            ax.plot(strm2[:, 0], strm2[:, 1], 'r--')
         # save data
         frame = pd.DataFrame(data=np.vstack((strm1, strm2)),
                              columns=['x', 'y'])
