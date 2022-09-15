@@ -974,14 +974,15 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
         OutFolder + "ShockA.dat",
         shock1,
         fmt="%.8e",
-        delimiter="  ",
+        delimiter=", ",
+        comments='',
         header="t, x, y",
     )
     np.savetxt(
         OutFolder + "ShockB.dat",
         shock2,
-        fmt="%.8e",
-        delimiter="  ",
+        delimiter=", ",
+        comments='',
         header="t, x, y",
     )
 
@@ -1018,14 +1019,16 @@ def shock_line(dataframe, path):
         path + "ShockLine.dat",
         xycor,
         fmt="%.8e",
-        delimiter="  ",
+        delimiter=", ",
+        comments='',
         header=header
     )
     np.savetxt(
         path + "ShockLineFit.dat",
         xy_fit.T,
         fmt="%.8e",
-        delimiter="  ",
+        delimiter=", ",
+        comments='',
         header=header
     )
 
@@ -1073,21 +1076,24 @@ def shock_line_ffs(dataframe, path, val=[0.06], show=False):
         path + "ShockLine1.dat",
         xycor1,
         fmt="%.8e",
-        delimiter="  ",
+        delimiter=", ",
+        comments='',
         header=header
     )
     np.savetxt(
         path + "ShockLineFit.dat",
         xy_fit.T,
         fmt="%.8e",
-        delimiter="  ",
+        delimiter=", ",
+        comments='',
         header=header
     )
     np.savetxt(
         path + "ShockLine2.dat",
         xycor2,
         fmt="%.8e",
-        delimiter="  ",
+        delimiter=", ",
+        comments='',
         header=header
     )
 
@@ -1124,7 +1130,7 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7, mask=True):
         xy = isoline.vertices
         xycor = np.vstack((xycor, xy))
     np.savetxt(path + "SonicLine.dat", xycor, fmt='%.8e',
-               delimiter='  ', header=header)
+               delimiter=', ', comments='', header=header)
 
 
 def wall_line(dataframe, path, mask=True):
@@ -1150,7 +1156,7 @@ def wall_line(dataframe, path, mask=True):
         xy = isoline.vertices
         xycor = np.vstack((xycor, xy))
     np.savetxt(path + "WallBoundary.dat", xycor, fmt='%.8e',
-               delimiter='  ', header=header)
+               delimiter=', ', comments='', header=header)
 
 
 def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
@@ -1207,18 +1213,20 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
         plt.close()
     if path is not None:
         np.savetxt(
-            path + "DividingLine.dat", xycor, fmt="%.8e", delimiter="  ",
+            path + "DividingLine.dat", xycor, fmt="%.8e",
+            delimiter=', ', comments='',
             header=header
         )
         np.savetxt(
-            path + "BubbleLine.dat", xy, fmt="%.8e", delimiter="  ",
+            path + "BubbleLine.dat", xy, fmt="%.8e",
+            delimiter=', ',  comments='',
             header=header
         )
     return xy
 
 
-def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump3=16.0,
-                  val1=0.81, val3=0.98):  # jump = reattachment location
+def boundary_edge(dataframe, path, shock=True, mask=True, jump0=-18,
+                  jump1=-15.0, jump3=16.0, val1=0.81, val3=0.98):  # jump = reattachment location
     # dataframe = dataframe.query("x<=30.0 & y<=3.0")
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
@@ -1228,24 +1236,26 @@ def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump3=16.0,
         # dataframe['u'] = dataframe['<u>']
     u = griddata((dataframe.x, dataframe.y), dataframe.u, (x, y))
     umax = u[-1, :]
-    umax[:] = 0.99
-    # range1
-    rg1 = (x[1, :] <= jump1) & (x[1, :] >= jump0)  # between two shocks
-    uinterp = np.interp(x[1, rg1], [jump0, jump1], [0.99, val1+0.000])
-    umax[rg1] = uinterp
-    # range2
-    rg2 = (x[1, :] > jump1) & (x[1, :] < -0.5)
-    umax[rg2] = val1
-    # range3
-    rg3 = (x[1, :] >= -0.5) & (x[1, :] < jump3)
-    uinterp1 = np.interp(x[1, rg3], [-0.5, jump3], [val1, val3+0.003])
-    umax[rg3] = uinterp1
-    # range4
-    rg4 = (x[1, :] >= jump3)
-    umax[rg4] = val3
+    umax[:] = 1.0
+    if shock is True:
+        # range1
+        rg1 = (x[1, :] <= jump1) & (x[1, :] >= jump0)  # between two shocks
+        uinterp = np.interp(x[1, rg1], [jump0, jump1], [0.99, val1+0.000])
+        umax[rg1] = uinterp
+        # range2
+        rg2 = (x[1, :] > jump1) & (x[1, :] < -0.5)
+        umax[rg2] = val1
+        # range3
+        rg3 = (x[1, :] >= -0.5) & (x[1, :] < jump3)
+        uinterp1 = np.interp(x[1, rg3], [-0.5, jump3], [val1, val3+0.003])
+        umax[rg3] = uinterp1
+        # range4
+        rg4 = (x[1, :] >= jump3)
+        umax[rg4] = val3
     u = u / (np.transpose(umax))
-    corner = (x > 0.0) & (y < 3.0)
-    u[corner] = np.nan
+    if mask is True:
+        corner = (x > 0.0) & (y < 3.0)
+        u[corner] = np.nan
     header = 'x, y'
     fig, ax = plt.subplots(figsize=(10, 4))
     cs = ax.contour(
@@ -1257,7 +1267,8 @@ def boundary_edge(dataframe, path, jump0=-18, jump1=-15.0, jump3=16.0,
         xy = isoline.vertices
         xycor = np.vstack((xycor, xy))
     np.savetxt(
-        path + "BoundaryEdge.dat", xycor, fmt="%.8e", delimiter="  ",
+        path + "BoundaryEdge.dat", xycor, fmt="%9.6f",
+        delimiter=", ", comments='',
         header=header
     )
 
@@ -1300,7 +1311,8 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
         OutFolder + "BubbleArea.dat",
         area_arr,
         fmt="%.8e",
-        delimiter="  ",
+        delimiter=', '
+        comments='',
         header="area",
     )
     return area
