@@ -94,8 +94,6 @@ class PlanarField(LineField):
     def R23(self):
         return(self._data_field['<v`w`>'].values)
 
-
-
     def load_data(self, path, FileList=None, NameList=None):
         # nfiles = np.size(os.listdir(path))
         if FileList is None:
@@ -131,25 +129,25 @@ class PlanarField(LineField):
             print('try to calculate data')
             with timer('load mean flow from tecplot data'):
                 if FileList is None:
-                    if lib=='tecio':
+                    if lib == 'tecio':
                         df, SolTime = pytec.ReadINCAResults(path + 'TP_stat/',
-                        SavePath=path + 'MeanFlow/',
-                        SpanAve=True,
-                        OutFile='MeanFlow')
+                                                            SavePath=path + 'MeanFlow/',
+                                                            SpanAve=True,
+                                                            OutFile='MeanFlow')
 
                     else:
                         df = p2p.ReadAllINCAResults(path + 'TP_stat/',
                                                     path + 'MeanFlow/',
                                                     SpanAve=True,
                                                     Equ=equ,
-                                                    OutFile='MeanFlow')                        
+                                                    OutFile='MeanFlow')
                 else:
-                    if lib=='tecio':
+                    if lib == 'tecio':
                         df, SolTime = pytec.ReadINCAResults(path + 'TP_stat/',
-                        SavePath=path + 'MeanFlow/',
-                        FileName=FileList,
-                        SpanAve=True,
-                        OutFile='MeanFlow')
+                                                            SavePath=path + 'MeanFlow/',
+                                                            FileName=FileList,
+                                                            SpanAve=True,
+                                                            OutFile='MeanFlow')
                     else:
                         df = p2p.ReadAllINCAResults(path + 'TP_stat/',
                                                     path + 'MeanFlow/',
@@ -201,8 +199,17 @@ class PlanarField(LineField):
 
     def yprofile(self, var_name, var_val):
         df1 = self.PlanarData.loc[self.PlanarData[var_name] == var_val]
-        
-        # df2 = df1.drop_duplicates(subset=['y'], keep='last', inplace=True)   
+        up_boundary = np.max(self.PlanarData['y'])
+        if np.max(df1['y']) < up_boundary:
+            y_all = np.unique(self.PlanarData['y'])
+            y_fill = y_all[y_all > np.max(df1['y'])]
+            x_fill = var_val * np.ones(np.size(y_fill))
+            xy_fill = np.transpose(np.vstack((x_fill, y_fill)))
+            df_fill = pd.DataFrame(data=xy_fill, columns=['x', 'y'])
+            df_all = pd.concat((self.PlanarData, df_fill), ignore_index=True)
+            df_all = df_all.interpolate(axis='rows')
+            df1 = df_all.loc[df_all[var_name] == var_val]
+        # df2 = df1.drop_duplicates(subset=['y'], keep='last', inplace=True)
         grouped = df1.groupby(['y'])
         df2 = grouped.mean().reset_index()
         # df1 = PlanarField.uniq1d(df1, 'y')
@@ -234,6 +241,3 @@ class PlanarField(LineField):
             self._data_field['vorticity_2'] = self.vorticity_2_m
         if 'vorticity_3' in self._data_field.columns:
             self._data_field['vorticity_3'] = self.vorticity_3_m
-        
-        
-
