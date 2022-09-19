@@ -981,6 +981,7 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
     np.savetxt(
         OutFolder + "ShockB.dat",
         shock2,
+        fmt="%.8e",
         delimiter=", ",
         comments='',
         header="t, x, y",
@@ -1141,16 +1142,22 @@ def wall_line(dataframe, path, mask=True):
     try:
         'walldist' in dataframe.columns
     except:
-        sys.exit('find no bubble line!!!')
-
-    walldist = griddata((dataframe.x, dataframe.y), dataframe.walldist, (x, y))
+        sys.exit('there is no walldist!!!')
+ 
+    walldist = griddata((dataframe.x, dataframe.y), dataframe.walldist, (x, y), method='cubic')
+    if np.any(np.isnan(walldist)):
+        cover = np.isnan(walldist)
+        walldist = np.ma.array(walldist, mask=cover) 
 
     if mask is True:
-        corner = (x < 0.0) & (y < 0.0)
-        walldist[corner] = np.nan
+        # corner = (x < 0.0) & (y < 0.0)
+        # walldist[corner] = np.nan
+        cover = walldist < 0
+        walldist = np.ma.array(walldist, mask=cover)  # mask=cover
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     fig, ax = plt.subplots(figsize=(10, 4))
+    # cs = ax.contourf(x, y, walldist, extend='min')    
     cs = ax.contour(x, y, walldist, levels=[0.0], linewidths=1.5, colors='k')
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
@@ -1311,7 +1318,7 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
         OutFolder + "BubbleArea.dat",
         area_arr,
         fmt="%.8e",
-        delimiter=', '
+        delimiter=', ',
         comments='',
         header="area",
     )

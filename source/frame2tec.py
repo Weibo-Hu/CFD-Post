@@ -15,7 +15,7 @@ filename = 'MeanFlow'
 # %% 0.0<= x <=20.0
 # nz = 80
 with timer("Read dataframe"):
-    dataframe = pd.read_hdf(FoldPath + filename + '.h5')
+    dataframe = pd.read_hdf(FoldPath + filename + '.h5') 
     newframe = dataframe.query("x>=0.0 & x<=20.0 & y<=0.0")
 z = np.linspace(-2.5, 2.5, 81)
 with timer("Convert .h5 to tecplot .szplt"):
