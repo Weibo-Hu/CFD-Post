@@ -981,6 +981,7 @@ def shock_loc(InFolder, OutFolder, timepoints, skip=1, opt=1,
     np.savetxt(
         OutFolder + "ShockB.dat",
         shock2,
+        fmt="%.8e",
         delimiter=", ",
         comments='',
         header="t, x, y",
@@ -1098,7 +1099,7 @@ def shock_line_ffs(dataframe, path, val=[0.06], show=False):
     )
 
 
-def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7, mask=True):
+def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7, mask=None):
     # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
@@ -1119,9 +1120,8 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7, mask=True):
     else:
         Ma = griddata((dataframe.x, dataframe.y), dataframe.Mach, (x, y))
         # sys.exit("Mach number is not in the dataframe")
-    if mask is True:
-        corner = (x < 0.0) & (y < 0.0)
-        Ma[corner] = np.nan
+    if mask is not None:
+        Ma = np.ma.array(Ma, mask=mask)
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -1133,7 +1133,7 @@ def sonic_line(dataframe, path, option='Mach', Ma_inf=1.7, mask=True):
                delimiter=', ', comments='', header=header)
 
 
-def wall_line(dataframe, path, mask=True):
+def wall_line(dataframe, path, mask=None):
     # NewFrame = dataframe.query("x>=0.0 & x<=15.0 & y<=0.0")
     grouped = dataframe.groupby(['x', 'y'])
     dataframe = grouped.mean().reset_index()
@@ -1141,16 +1141,19 @@ def wall_line(dataframe, path, mask=True):
     try:
         'walldist' in dataframe.columns
     except:
-        sys.exit('find no bubble line!!!')
+        sys.exit('there is no walldist!!!')
+ 
+    walldist = griddata((dataframe.x, dataframe.y), dataframe.walldist, (x, y), method='cubic')
 
-    walldist = griddata((dataframe.x, dataframe.y), dataframe.walldist, (x, y))
-
-    if mask is True:
-        corner = (x < 0.0) & (y < 0.0)
-        walldist[corner] = np.nan
+    if mask is not None:
+        # corner = (x < 0.0) & (y < 0.0)
+        # walldist[corner] = np.nan
+        # cover1 = walldist < -0.003
+        walldist = np.ma.array(walldist, mask=mask)  # mask=cover
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     fig, ax = plt.subplots(figsize=(10, 4))
+    # cs = ax.contourf(x, y, walldist, extend='min')    
     cs = ax.contour(x, y, walldist, levels=[0.0], linewidths=1.5, colors='k')
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
@@ -1159,7 +1162,7 @@ def wall_line(dataframe, path, mask=True):
                delimiter=', ', comments='', header=header)
 
 
-def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
+def dividing_line(dataframe, path=None, loc=-0.015625, show=False, mask=None):
     """Obtain dividing line
 
        Args:
@@ -1180,6 +1183,8 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
     if 'u' not in NewFrame.columns:
         NewFrame['u'] = NewFrame['<u>']
     u = griddata((NewFrame.x, NewFrame.y), NewFrame.u, (x, y))
+    if mask is not None:
+        u = np.ma.array(u, mask=mask)  # mask=cover    
     fig, ax = plt.subplots(figsize=(10, 4))
     cs1 = ax.contour(
         x, y, u, levels=[0.0], linewidths=1.5, linestyles="--", colors="k"
@@ -1201,6 +1206,12 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False):
                 ind = i
         xylist.append(xy)
         xycor = np.vstack((xycor, xy))
+        key_id = 'zone_' + "%03d" % i
+        df = pd.DataFrame(data=xy, columns=['x', 'y'])  
+        if i==0: 
+            df.to_hdf(path + 'DividingLine.h5', mode='w', key=key_id, format='fixed')
+        else:
+            df.to_hdf(path + 'DividingLine.h5', mode='a', key=key_id, format='fixed')
     try:
         ind
     except:
@@ -1311,7 +1322,7 @@ def bubble_area(InFolder, OutFolder, timezone, loc=-0.015625,
         OutFolder + "BubbleArea.dat",
         area_arr,
         fmt="%.8e",
-        delimiter=', '
+        delimiter=', ',
         comments='',
         header="area",
     )
