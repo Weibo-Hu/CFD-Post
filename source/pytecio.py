@@ -549,7 +549,6 @@ class SzpltData(dict):
                     return
 
     def GenerateDataFromOtherFormat(self, dataset):
-        # 将其他类型的数据转化为SzpltData类型
         if isinstance(dataset, SzpltData):
             self = SzpltData
             return
@@ -684,12 +683,11 @@ class write_tecio:
             zone_set = dataset[zone_name]
             varTypes = self._list_to_int_array(info["varTypes"])
 
-            # 因为这里有个bug所以我加了这样一句转化,原因是第一个zone共享了第一个zone 在创建的时候会导致失败，所以在写文件时强制取消shared
             shareVarFromZone = self._list_to_int_array(
                 info["shareVarFromZone"])
             valueLocation = self._list_to_int_array(info["valueLocation"])
             info["passiveVarList"] = [
-                0 if zone_set.get(i, empty).size > 0 else 1 for i in dataset.nameVars
+                0 if np.size(zone_set[i]) > 0 else 1 for i in dataset.nameVars
             ]
             passiveVarList = self._list_to_int_array(info["passiveVarList"])
 
@@ -755,13 +753,19 @@ class write_tecio:
             for j, var_name in enumerate(dataset.nameVars):
 
                 var_n = j + 1
-                data = zone_set[var_name].copy(order="C")
+                data = zone_set[var_name]  # .copy(order="C")
                 if info["zoneType"] is Structed_Grid:
-                    if data.ndim == 2:
-                        shape = data.shape
-                        data.shape = 1, shape[0], shape[1]
+                    # if data.ndim == 1:
+                        # data.shape = dataset.zone_info[i]['IJK']
+                    # if data.ndim == 2:
+                        # shape = data.shape
+                        # data.shape = 1, shape[0], shape[1]
                     if data.size > 0:
-                        data = data.transpose((2, 1, 0)).copy()
+                        data.shape = dataset.zone_info[i]['IJK']
+                        data = np.reshape(data, data.shape, order='F')
+                        # print(data.shape)
+                        # data = data.transpose((2, 1, 0)).copy()
+                        
                 ff = [min(i, j) for j in info["shareVarFromZone"]]
                 if info["passiveVarList"][var_n - 1] == 0 and ff[var_n - 1] == 0:
 
@@ -870,7 +874,6 @@ class write_tecio:
             name, title_str, var_list_str, fileFormat, fileType, 2, None, filehandle
         )
 
-        # 官方例子中有这么一个东西，看名字叫debug 感觉不用也可以,就是在输出szplt文件时输出一些信息
         if self.verbose:
             outputDebugInfo = 1
             self.dll.tecFileSetDiagnosticsLevel(filehandle[0], outputDebugInfo)
@@ -1047,11 +1050,66 @@ def ReadINCAResults(FoldPath, VarList=None, SubZone=None, FileName=None,
         df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
     return(df, SolTime)
 
+def create_fluc_hdf(path, path_m, outpath):
+    df1, st = ReadINCAResults(path)
+    df2, _ = ReadINCAResults(path_m)
+    df = df1
+    df['u`'] = df1['u'] - df2['<u>']
+    df['v`'] = df1['v'] - df2['<v>']
+    df['w`'] = df1['w'] - df2['<w>']
+    df['rho`'] = df1['rho'] - df2['<rho>']
+    df['p`'] = df1['p'] - df2['<p>']
+    df['T`'] = df1['T'] - df2['<T>']    
+    if SpanAve is True:
+        grouped = df.groupby(['x', 'y'])
+        df = grouped.mean().reset_index()
+    if SpanAve is None:
+        grouped = df.groupby(['x', 'y', 'z'])
+        df = grouped.mean().reset_index()    
+    st = "%08.2f" % SolTime
+    df.to_hdf(outpath + 'TP_data_' + st + ".h5", 'w', format='fixed')
+    
+def create_fluc_tec(file, file_m, outpath):
+    ds1 = SzpltData(file)
+    ds2 = SzpltData(file_m)
+    for i in range(ds1.numZones):
+        z_nm = ds1.nameZones[i]
+        z_nm_m = ds2.nameZones[i]
+        ds1[z_nm]['u`'] = ds1[z_nm]['u'] - ds2[z_nm_m]['<u>']
+        ds1[z_nm]['v`'] = ds1[z_nm]['v'] - ds2[z_nm_m]['<v>']
+        ds1[z_nm]['w`'] = ds1[z_nm]['w'] - ds2[z_nm_m]['<w>']
+        ds1[z_nm]['rho`'] = ds1[z_nm]['rho'] - ds2[z_nm_m]['<rho>']
+        ds1[z_nm]['p`'] = ds1[z_nm]['p'] - ds2[z_nm_m]['<p>']
+        ds1[z_nm]['T`'] = ds1[z_nm]['T'] - ds2[z_nm_m]['<T>']
+    t = write_tecio(outpath + os.path.basename(file), ds1, verbose=True)
+    t.close()
+    
+    
+def create_fluc_inca(path, path_m, outpath):
+    files = sorted(os.listdir(path))
+    file_nm = [os.path.join(path, name) for name in files]
+    files_m = sorted(os.listdir(path_m))
+    file_m_nm = [os.path.join(path_m, name) for name in files_m]
 
+    szplt = [x for x in file_nm if x.endswith('.szplt')]
+    szplt_m = [x for x in file_m_nm if x.endswith('.szplt')]
+
+    for i in range(np.size(szplt)):
+        file1 = szplt[i]
+        file2 = szplt_m[i]
+        create_fluc_tec(file1, file2, outpath)
+    
+    
+    
+"""  
 if __name__ == "__main__":
-    path = "/mnt/work/cases/wavy_0804/TP_data_00079310/"
+    path = "/mnt/work/cases/wavy_0922/TP_data_00093047/"
     finm = path + "TP_dat_000001.szplt"
     var_list = ["x", "y", "z", "u"]
-    df, s_time = ReadSinglePlt(finm, var_list)
-    df, s_time = ReadMultiPlt(path, var_list)
-    df, s_time = ReadMultiPlt(path, var_list)
+    # df, s_time = ReadSinglePlt(finm, var_list)
+    # df, s_time = ReadMultiPlt(path, var_list)
+    df, s_time = ReadINCAResults(path, var_list, SpanAve=True)
+    df.to_hdf(path + 'TP_data_.h5', 'w', format='fixed')
+    file = pt.SzpltData(filename=path + 'TP_dat_000002.szplt')
+    t = pt.write_tecio(path+'test.szplt', file, verbose=True)
+"""
