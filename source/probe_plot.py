@@ -19,7 +19,8 @@ from line_field import LineField as lf
 
 # -- data path settings
 # path = "/media/weibo/IM2/FFS_M1.7SFD120/"
-path = "/mnt/work/Fourth/FFS_M1.7TB1/"
+#path = 'E:/cases/wavy_1009/'
+path='/mnt/work/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -47,15 +48,15 @@ numsize = 10
 """
 # %% Time evolution of a specific variable at several streamwise locations
 probe = lf()
-lh = 3.0
+lh = 1.0
 fa = 1.0
-var = 'p'
+var = 'u'
 ylab = r"$u^\prime/u_\infty$"
 if var == 'p':
-    fa = 1.7 * 1.7 * 1.4
+    fa = 6.0 * 6.0 * 1.4
     ylab = r"$p^\prime/p_\infty$"
-timezone = np.arange(900, 1300 + 0.125, 0.125)
-xloc = [-36, -33, -30, -27, -24]# [-50.0, -30.0, -20.0, -10.0, 4.0]
+timezone = np.arange(1750, 2000 + 0.125, 0.125)
+xloc = [10, 54.25, 96.25, 160, 380]# [-50.0, -30.0, -20.0, -10.0, 4.0]
 yloc =  [0.0, 0.0, 0.0, 0.0, 0.0]
 zloc = 0.0
 fig, ax = plt.subplots(np.size(xloc), 1, figsize=(6.4, 5.6))
@@ -91,8 +92,8 @@ plt.savefig(pathF + var + '_TimeEvolveX' + str(zloc) + '.svg',
 probe = lf()
 fa = 1.0  # 1.7 * 1.7 * 1.4
 var = 'u'
-timeval = 0.60001185E+03  # 0.60000985E+03 #
-xloc = np.arange(-70.0, 0.0, 1.0)
+timeval = 0.18000284E+04  # 0.60000985E+03 #
+xloc = np.arange(0.0, 400.0, 5.0)
 yloc = 0.0
 zloc = 0.0
 var_val = np.zeros(np.size(xloc))
@@ -104,7 +105,7 @@ for i in range(np.size(xloc)):
 fig, ax = plt.subplots(figsize=(6.4, 2.8))
 matplotlib.rc('font', size=numsize)
 ax.plot(xloc, var_val, 'k')
-ax.set_xlim([-70.0, 0.0])
+ax.set_xlim([0, 400.0])
 # ax.set_ylim([-0.001, 0.001])
 ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
 ax.set_ylabel(r'$u^\prime/u_\infty$', fontsize=textsize)
@@ -120,19 +121,19 @@ plt.savefig(pathF + var + '_StreamwiseEvolve.svg',
     frequency weighted power spectral density
 """
 # %% Frequency Weighted Power Spectral Density
-Lsep = 11.6 # for 34.8 laminar # 12.6 for turbulent
+Lsep = 1.0 # for 34.8 laminar # 12.6 for turbulent
 def d_l(x):
     return x / Lsep
 def l_d(x):
     return x * Lsep
 
-sh = 3.0
+sh = 1.0
 def d_h(x):
     return x / sh
 def h_d(x):
     return x * sh
 
-Hsep = 4.2 # 11.6 for laminar # 4.2 for turbulent
+Hsep = 1.0 # 11.6 for laminar # 4.2 for turbulent
 def h_l(x):
     return x / Hsep
 
@@ -144,8 +145,8 @@ freq_samp = 1/dt  # 50
 var = 'p'
 
 probe = lf()
-x0 = -3
-t1, t2 = [600, 1100]
+x0 = 160
+t1, t2 = [1750, 2000]
 probe.load_probe(pathP, (x0, 0.0, 0.0))
 probe.extract_series((t1, t2))
 freq, fpsd = va.fw_psd(getattr(probe, var), probe.time, freq_samp,
@@ -158,16 +159,17 @@ ax1 = fig.add_subplot(121)
 matplotlib.rc('font', size=numsize)
 ax1.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax1.grid(b=True, which='both', linestyle=':')
-ax1.set_xlabel(r"$f h /u_\infty$", fontsize=textsize)
+ax1.set_xlabel(r"$f l /u_\infty$", fontsize=textsize)
 ax1.semilogx(h_d(freq), fpsd, 'k', linewidth=1.0)
 ax1.set_ylabel('Weighted PSD, unitless', fontsize=textsize - 4)
 ax1b = ax1.secondary_xaxis('top', functions=(l_h, h_l))
 ax1b.tick_params(axis='x', which='major', pad=1)
-ax1b.set_xlabel(r'$f L_r/u_\infty$', fontsize=textsize)
-ax1.annotate("(a)", xy=(-0.15, 1.1), xycoords='axes fraction',
+ax1b.xaxis.set_ticklabels([])
+# ax1b.set_xlabel(r'$f L_r/u_\infty$', fontsize=textsize)
+ax1.annotate("(a)", xy=(-0.15, 1.05), xycoords='axes fraction',
              fontsize=numsize)
-ax1.set_title(r"$x/h={:.1f}$".format(x0/sh), fontsize=numsize, 
-              position=(0.3, 0.78) ) # pad=0.1)
+ax1.set_title(r"$x={:.1f}$".format(x0/sh), fontsize=numsize, 
+              position=(0.5, 0.78) ) # pad=0.1)
 ax1.get_yaxis().get_offset_text().set_visible(False)
 ax_max = max(ax1.get_yticks())
 exponent_axis = np.floor(np.log10(ax_max)).astype(int)
@@ -179,8 +181,8 @@ ax1.yaxis.offsetText.set_fontsize(numsize)
 # plt.show()
 
 probe1 = lf()
-x1 = 2
-probe1.load_probe(pathP, (x1, 3.0, 0.0))
+x1 = 380
+probe1.load_probe(pathP, (x1, 0.0, 0.0))
 probe1.extract_series((t1, t2))
 freq1, fpsd1 = va.fw_psd(getattr(probe1, var), probe1.time, freq_samp,
                          opt=1, seg=8, overlap=4)
@@ -188,15 +190,16 @@ ax2 = fig.add_subplot(122)
 matplotlib.rc('font', size=numsize)
 ax2.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
 ax2.grid(b=True, which='both', linestyle=':')
-ax2.set_xlabel(r"$f h /u_\infty$", fontsize=textsize)
+ax2.set_xlabel(r"$f l /u_\infty$", fontsize=textsize)
 ax2.semilogx(h_d(freq1), fpsd1, 'k', linewidth=1.0)
 ax2b = ax2.secondary_xaxis('top', functions=(l_h, h_l))
 ax2b.tick_params(axis='x', which='major', pad=1)
-ax2b.set_xlabel(r'$f L_r / u_\infty$', fontsize=textsize)
-ax2.annotate("(b)", xy=(-0.12, 1.1), xycoords='axes fraction',
+ax2b.xaxis.set_ticklabels([])
+# ax2b.set_xlabel(r'$f L_r / u_\infty$', fontsize=textsize)
+ax2.annotate("(b)", xy=(-0.12, 1.05), xycoords='axes fraction',
              fontsize=numsize)
-ax2.set_title(r"$x/h={:.1f}$".format(x1/sh), fontsize=numsize,
-              position=(0.3, 0.78) ) # pad=0.1)
+ax2.set_title(r"$x={:.1f}$".format(x1/sh), fontsize=numsize,
+              position=(0.5, 0.78) ) # pad=0.1)
 ax2.get_yaxis().get_offset_text().set_visible(False)
 ax_max = max(ax2.get_yticks())
 exponent_axis = np.floor(np.log10(ax_max)).astype(int)
@@ -204,7 +207,7 @@ ax2.annotate(r'$\times$10$^{%i}$'%(exponent_axis),
              xy=(.05, .92), xycoords='axes fraction')
 plt.tick_params(labelsize=numsize)
 ax2.yaxis.offsetText.set_fontsize(numsize)
-plt.savefig(pathF + var + '_ProbeFWPSD_05.svg', bbox_inches='tight')
+plt.savefig(pathF + var + '_ProbeFWPSD_04.svg', bbox_inches='tight')
 plt.show()
 
 # %%############################################################################
@@ -212,8 +215,8 @@ plt.show()
 Multiple FWPSD Map
 """
 # %% Plot multiple frequency-weighted PSD curve along streamwise
-sh = 3.0
-t1, t2 = [600, 1100] # [600, 1100] # turbulent
+sh = 1.0
+t1, t2 = [1750, 2000] # [600, 1100] # turbulent
 var = 'p'
 freq_samp = 1/0.125
 fig, ax = plt.subplots(1, 7, figsize=(7.2, 2.4))
@@ -222,9 +225,9 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([-60.0, -36, -24, -12.0, -3.0, 2.0, 6.0])
-ycoord = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0])
-pow_arr = [-6, -6, -6, -5, -6, -5, -6] # [-7, -7, -6, -5, -4, -5, -5]
+xcoord = np.array([10, 54.25, 96.25, 120, 160, 260, 380])
+ycoord = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+pow_arr = [-7, -8, -8, -7, -7, -7, -7] # [-7, -7, -6, -5, -4, -5, -5]
 for i in range(np.size(xcoord)):
     probe.load_probe(pathP, (xcoord[i], ycoord[i], 0.0))
     probe.extract_series((t1, t2))
@@ -251,7 +254,7 @@ for i in range(np.size(xcoord)):
     # ax[i].set_xticks(np.linspace(0, 1, 11)*10**(-4), minor=True)
     # ax[i].set_xlim([0, 3*10**(-4)])
     ax[i].set_xlim([0, 10])
-    ax[i].set_xticks([0, 15, 30])
+    ax[i].set_xticks([0, 5, 10])
     xloc = np.round(xcoord[i]/sh, 1)
     ax[i].set_title(r'${}$'.format(xloc), fontsize=numsize-1, loc='left')
     ax[i].annotate(r'$\times 10^{{{}}}$'.format(int(pownm)), 
@@ -280,9 +283,9 @@ for i in range(np.size(xcoord)):
 ax[0].spines['right'].set_visible(False)
 ax[0].ticklabel_format(axis='x', style='sci', scilimits=(-2, 2))
 # ax[0].set_xticklabels([r'$10^{-8}$','',r'$10^{-6}$','', r'$10^{-4}$'])
-ax[0].annotate(r'$x/h=$', xy=(-0.48, 1.04), xycoords='axes fraction')
+ax[0].annotate(r'$x/l=$', xy=(-0.48, 1.04), xycoords='axes fraction')
 ax[3].set_xlabel(r'$f \mathcal{P}(f)$', fontsize=textsize, labelpad=10)
-ax[0].set_ylabel(r"$f h /u_\infty$", fontsize=textsize)
+ax[0].set_ylabel(r"$f l /u_\infty$", fontsize=textsize)
 ax2 = ax[-1].secondary_yaxis('right', functions=(l_h, h_l)) 
 ax2.set_ylabel(r"$f L_r /u_\infty$", fontsize=textsize)
 plt.tick_params(labelsize=numsize)
@@ -295,26 +298,26 @@ plt.savefig(
     intermittency factor
 """
 # %% Compute intermittency factor
-probe.load_probe(pathP, (-10.0, 0.0, 0.0))
-xzone = np.linspace(-40.0, 40.0, 41)
+probe.load_probe(pathP, (0.0, 0.0, 0.0))
+xzone = np.linspace(00.0, 400.0, 41)
 gamma = np.zeros(np.size(xzone))
 alpha = np.zeros(np.size(xzone))
 sigma = np.std(probe.p)
 p0 = probe.p
-t1 = 400
-t2 = 600
+t1 = 1750
+t2 = 2000
 for j in range(np.size(xzone)):
     if xzone[j] <= 0.0:
         probe.load_probe(pathP, (xzone[j], 0.0, 0.0))
     else:
-        probe.load_probe(pathP, (xzone[j], -3.0, 0.0))
+        probe.load_probe(pathP, (xzone[j], 0.0, 0.0))
     probe.extract_series((t1, t2))
     gamma[j] = va.intermittency(sigma, p0, probe.p, probe.time)
     alpha[j] = va.alpha3(probe.p)
 # -- plot
 fig3, ax3 = plt.subplots(figsize=(6.4, 3.0))
 ax3.plot(xzone, gamma, 'ko')
-ax3.set_xlabel(r'$x/\delta_0$', fontdict=textsize)
+ax3.set_xlabel(r'$x/l$', fontdict=textsize)
 ax3.set_ylabel(r'$\gamma$', fontdict=textsize)
 # ax3.set_ylim([0.0, 1.0])
 ax3.grid(b=True, which='both', linestyle=':')

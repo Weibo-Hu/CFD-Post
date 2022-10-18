@@ -122,11 +122,9 @@ class SzpltData(dict):
                 i + 1
             )
             d["faceNeighborMode"] = self._tecZoneFaceNbrGetMode(i + 1)
-            d["numFaceConnections"] = self._tecZoneFaceNbrGetNumConnections(
-                i + 1)
+            d["numFaceConnections"] = self._tecZoneFaceNbrGetNumConnections(i + 1)
             if d["numFaceConnections"] > 0:
-                d["faceConnections"] = self._tecZoneFaceNbrGetConnections(
-                    i + 1)
+                d["faceConnections"] = self._tecZoneFaceNbrGetConnections(i + 1)
             d["parentZone"] = self._tecZoneGetParentZone(i + 1)
             d["name"] = zone_name
             d["aux"] = self._retrieve_aux_data(i + 1)
@@ -136,14 +134,12 @@ class SzpltData(dict):
             cal_zone(i, zone_name) for i, zone_name in enumerate(self.nameZones)
         ]
         self.update(
-            {name: zone_data(self, i + 1)
-             for i, name in enumerate(self.nameZones)}
+            {name: zone_data(self, i + 1) for i, name in enumerate(self.nameZones)}
         )
         # self._retrieve_zone_node_map(1)
         # self._retrieve_aux_data(1)
         if isread:
-            [zone[var_name] for zone in self.values()
-             for var_name in self.nameVars]
+            [zone[var_name] for zone in self.values() for var_name in self.nameVars]
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -382,8 +378,7 @@ class SzpltData(dict):
         return shareConnectivityFromZone
 
     def _tecZoneFaceNbrGetMode(self, zone_n):
-        faceNeighborMode = self._return_1_int(
-            zone_n, self.dll.tecZoneFaceNbrGetMode)
+        faceNeighborMode = self._return_1_int(zone_n, self.dll.tecZoneFaceNbrGetMode)
         return faceNeighborMode
 
     def _tecZoneFaceNbrGetNumConnections(self, zone_n):
@@ -393,8 +388,7 @@ class SzpltData(dict):
         return numFaceConnections
 
     def _tecZoneFaceNbrGetConnections(self, zone_n):
-        numFaceValues = self._return_1_int(
-            zone_n, self.dll.tecZoneFaceNbrGetNumValues)
+        numFaceValues = self._return_1_int(zone_n, self.dll.tecZoneFaceNbrGetNumValues)
         are64Bit = self._return_1_int(zone_n, self.dll.tecZoneFaceNbrsAre64Bit)
         if are64Bit:
             faceConnections = self._return_n_array(
@@ -431,8 +425,7 @@ class SzpltData(dict):
         return parentZone
 
     def _tecZoneVarGetNumValues(self, zone_n, var_n):
-        numValues = self._return_2_int(
-            zone_n, var_n, self.dll.tecZoneVarGetNumValues)
+        numValues = self._return_2_int(zone_n, var_n, self.dll.tecZoneVarGetNumValues)
 
         return numValues
 
@@ -594,8 +587,7 @@ class SzpltData(dict):
                             if location == 1:
                                 t = np.zeros((I, J, K), dtype=dtype)
                             else:
-                                t = np.zeros(
-                                    (I - 1, J - 1, K - 1), dtype=dtype)
+                                t = np.zeros((I - 1, J - 1, K - 1), dtype=dtype)
                         else:
                             if location == 1:
                                 t = np.zeros((I, J, K), dtype=dtype)
@@ -618,8 +610,7 @@ class SzpltData(dict):
                 zoneType = 1
             elif len(shape) == 2:
                 shape = 1, shape[0], shape[1]
-            d["varTypes"] = [self.get_varTypes(
-                name_zone, j) for j in self.nameVars]
+            d["varTypes"] = [self.get_varTypes(name_zone, j) for j in self.nameVars]
             d["passiveVarList"] = [
                 0 if zone_value.get(i, empty).size > 0 else 1 for i in self.nameVars
             ]
@@ -641,8 +632,7 @@ class SzpltData(dict):
         value_location = [sum(temp_zone[key].shape) for key in self.nameVars]
         max_location = max(value_location)
         value_location = [0 if i < max_location else 1 for i in value_location]
-        self.zone_info = [cal_zone_info(i, value_location)
-                          for i in self.nameZones]
+        self.zone_info = [cal_zone_info(i, value_location) for i in self.nameZones]
         self.fileType = 0
         self.added_new_zone = False
 
@@ -683,8 +673,7 @@ class write_tecio:
             zone_set = dataset[zone_name]
             varTypes = self._list_to_int_array(info["varTypes"])
 
-            shareVarFromZone = self._list_to_int_array(
-                info["shareVarFromZone"])
+            shareVarFromZone = self._list_to_int_array(info["shareVarFromZone"])
             valueLocation = self._list_to_int_array(info["valueLocation"])
             info["passiveVarList"] = [
                 0 if np.size(zone_set[i]) > 0 else 1 for i in dataset.nameVars
@@ -756,16 +745,15 @@ class write_tecio:
                 data = zone_set[var_name]  # .copy(order="C")
                 if info["zoneType"] is Structed_Grid:
                     # if data.ndim == 1:
-                        # data.shape = dataset.zone_info[i]['IJK']
+                    # data.shape = dataset.zone_info[i]['IJK']
                     # if data.ndim == 2:
-                        # shape = data.shape
-                        # data.shape = 1, shape[0], shape[1]
+                    # shape = data.shape
+                    # data.shape = 1, shape[0], shape[1]
                     if data.size > 0:
-                        data.shape = dataset.zone_info[i]['IJK']
-                        data = np.reshape(data, data.shape, order='F')
+                        data.shape = dataset.zone_info[i]["IJK"]
+                        data = np.reshape(data, data.shape, order="F")
                         # print(data.shape)
                         # data = data.transpose((2, 1, 0)).copy()
-                        
                 ff = [min(i, j) for j in info["shareVarFromZone"]]
                 if info["passiveVarList"][var_n - 1] == 0 and ff[var_n - 1] == 0:
 
@@ -817,8 +805,7 @@ class write_tecio:
                         )
                     else:
                         print(fieldDataType, "iiiiiiiiiiiii")
-                        raise Exception(
-                            "FieldDataType Error:not defined data type")
+                        raise Exception("FieldDataType Error:not defined data type")
             self._write_zone_node_map(outputZone, info, zone_set)
 
     def _write_zone_node_map(self, zone_n, info, zone_set):
@@ -977,8 +964,7 @@ def cal_zone(number, g, q):
     g = g[number]
     q = q[number]
     k = {i: g[i] for i in "XYZ"}
-    y = {"VAR{}".format(key): val for key, val in q.items()
-         if isinstance(key, int)}
+    y = {"VAR{}".format(key): val for key, val in q.items() if isinstance(key, int)}
     k.update(y)
     return k
 
@@ -1010,106 +996,120 @@ def ReadMultiPlt(folder, var_list=None):
     return (df, SolTime)
 
 
-def ReadINCAResults(FoldPath, VarList=None, SubZone=None, FileName=None,
-                    SpanAve=None, SavePath=None, OutFile=None, opt=1):
+def ReadINCAResults(
+    FoldPath,
+    VarList=None,
+    SubZone=None,
+    FileName=None,
+    SpanAve=None,
+    SavePath=None,
+    OutFile=None,
+    opt=1,
+):
     if FileName is None:
         files = sorted(os.listdir(FoldPath))
         FileName = [os.path.join(FoldPath, name) for name in files]
-    if(isinstance(FileName, list)):
-        szplt = FileName[0].find('szplt')
+    if isinstance(FileName, list):
+        szplt = FileName[0].find("szplt")
     else:
-        szplt = FileName.find('szplt')
-    if(szplt != -1):
+        szplt = FileName.find("szplt")
+    if szplt != -1:
         df, SolTime = ReadSinglePlt(FileName[0], VarList)
         for i in range(np.size(FileName) - 1):
-            df1, _ = ReadSinglePlt(FileName[i+1], VarList)
+            df1, _ = ReadSinglePlt(FileName[i + 1], VarList)
             df = pd.concat([df, df1])
     else:
-        print('There is no szplt files!!!')
+        print("There is no szplt files!!!")
     # if Equ is not None:
     #     for i in range(np.size(Equ)):
     #        tp.data.operate.execute_equation(Equ[i])
 
     # df = df.drop_duplicates(keep='last')  # if on,spanwise-average may wrong
     if SpanAve is True:
-        grouped = df.groupby(['x', 'y'])
+        grouped = df.groupby(["x", "y"])
         df = grouped.mean().reset_index()
     if SpanAve is None:
-        grouped = df.groupby(['x', 'y', 'z'])
+        grouped = df.groupby(["x", "y", "z"])
         df = grouped.mean().reset_index()
-
     if opt == 2:
-        df['x'] = df['x'].astype(float)
-        df['y'] = df['y'].astype(float)
-        df['z'] = df['z'].astype(float)
+        df["x"] = df["x"].astype(float)
+        df["y"] = df["y"].astype(float)
+        df["z"] = df["z"].astype(float)
         if SubZone is not None:
-            df = df.query("x>={0} & x<={1} & y<={2}".format(
-                          SubZone[0][0], SubZone[0][1], SubZone[1][1]))
+            df = df.query(
+                "x>={0} & x<={1} & y<={2}".format(
+                    SubZone[0][0], SubZone[0][1], SubZone[1][1]
+                )
+            )
     if SavePath is not None and OutFile is not None:
         st = "%08.2f" % SolTime
-        df.to_hdf(SavePath+OutFile+'_'+st+".h5", 'w', format='fixed')
-    return(df, SolTime)
+        df.to_hdf(SavePath + OutFile + "_" + st + ".h5", "w", format="fixed")
+    return (df, SolTime)
+
 
 def create_fluc_hdf(path, path_m, outpath):
     df1, st = ReadINCAResults(path)
     df2, _ = ReadINCAResults(path_m)
     df = df1
-    df['u`'] = df1['u'] - df2['<u>']
-    df['v`'] = df1['v'] - df2['<v>']
-    df['w`'] = df1['w'] - df2['<w>']
-    df['rho`'] = df1['rho'] - df2['<rho>']
-    df['p`'] = df1['p'] - df2['<p>']
-    df['T`'] = df1['T'] - df2['<T>']    
+    df["u`"] = df1["u"] - df2["<u>"]
+    df["v`"] = df1["v"] - df2["<v>"]
+    df["w`"] = df1["w"] - df2["<w>"]
+    df["rho`"] = df1["rho"] - df2["<rho>"]
+    df["p`"] = df1["p"] - df2["<p>"]
+    df["T`"] = df1["T"] - df2["<T>"]
     if SpanAve is True:
-        grouped = df.groupby(['x', 'y'])
+        grouped = df.groupby(["x", "y"])
         df = grouped.mean().reset_index()
     if SpanAve is None:
-        grouped = df.groupby(['x', 'y', 'z'])
-        df = grouped.mean().reset_index()    
+        grouped = df.groupby(["x", "y", "z"])
+        df = grouped.mean().reset_index()
     st = "%08.2f" % SolTime
-    df.to_hdf(outpath + 'TP_data_' + st + ".h5", 'w', format='fixed')
-    
+    df.to_hdf(outpath + "TP_data_" + st + ".h5", "w", format="fixed")
+
+
 def create_fluc_tec(file, file_m, outpath):
     ds1 = SzpltData(file)
     ds2 = SzpltData(file_m)
     for i in range(ds1.numZones):
         z_nm = ds1.nameZones[i]
         z_nm_m = ds2.nameZones[i]
-        ds1[z_nm]['u`'] = ds1[z_nm]['u'] - ds2[z_nm_m]['<u>']
-        ds1[z_nm]['v`'] = ds1[z_nm]['v'] - ds2[z_nm_m]['<v>']
-        ds1[z_nm]['w`'] = ds1[z_nm]['w'] - ds2[z_nm_m]['<w>']
-        ds1[z_nm]['rho`'] = ds1[z_nm]['rho'] - ds2[z_nm_m]['<rho>']
-        ds1[z_nm]['p`'] = ds1[z_nm]['p'] - ds2[z_nm_m]['<p>']
-        ds1[z_nm]['T`'] = ds1[z_nm]['T'] - ds2[z_nm_m]['<T>']
+        ds1[z_nm]["u`"] = ds1[z_nm]["u"] - ds2[z_nm_m]["<u>"]
+        ds1[z_nm]["v`"] = ds1[z_nm]["v"] - ds2[z_nm_m]["<v>"]
+        ds1[z_nm]["w`"] = ds1[z_nm]["w"] - ds2[z_nm_m]["<w>"]
+        ds1[z_nm]["rho`"] = ds1[z_nm]["rho"] - ds2[z_nm_m]["<rho>"]
+        ds1[z_nm]["p`"] = ds1[z_nm]["p"] - ds2[z_nm_m]["<p>"]
+        ds1[z_nm]["T`"] = ds1[z_nm]["T"] - ds2[z_nm_m]["<T>"]
     t = write_tecio(outpath + os.path.basename(file), ds1, verbose=True)
     t.close()
-    
-    
+
+
 def create_fluc_inca(path, path_m, outpath):
     files = sorted(os.listdir(path))
     file_nm = [os.path.join(path, name) for name in files]
     files_m = sorted(os.listdir(path_m))
     file_m_nm = [os.path.join(path_m, name) for name in files_m]
 
-    szplt = [x for x in file_nm if x.endswith('.szplt')]
-    szplt_m = [x for x in file_m_nm if x.endswith('.szplt')]
+    szplt = [x for x in file_nm if x.endswith(".szplt")]
+    szplt_m = [x for x in file_m_nm if x.endswith(".szplt")]
 
     for i in range(np.size(szplt)):
         file1 = szplt[i]
         file2 = szplt_m[i]
         create_fluc_tec(file1, file2, outpath)
-    
-    
-    
-"""  
+
+
 if __name__ == "__main__":
     path = "/mnt/work/cases/wavy_0922/TP_data_00093047/"
     finm = path + "TP_dat_000001.szplt"
     var_list = ["x", "y", "z", "u"]
     # df, s_time = ReadSinglePlt(finm, var_list)
     # df, s_time = ReadMultiPlt(path, var_list)
-    df, s_time = ReadINCAResults(path, var_list, SpanAve=True)
-    df.to_hdf(path + 'TP_data_.h5', 'w', format='fixed')
-    file = pt.SzpltData(filename=path + 'TP_dat_000002.szplt')
-    t = pt.write_tecio(path+'test.szplt', file, verbose=True)
-"""
+    # df, s_time = ReadINCAResults(path, var_list, SpanAve=True)
+    # df.to_hdf(path + 'TP_data_.h5', 'w', format='fixed')
+    # file = pt.SzpltData(filename=path + 'TP_dat_000002.szplt')
+    # t = pt.write_tecio(path+'test.szplt', file, verbose=True)
+    create_fluc_inca(
+        "/mnt/work/cases/wavy_1009/TP_data_00116735/",
+        "/mnt/work/cases/wavy_1009/TP_stat/",
+        "/mnt/work/cases/wavy_1009/TP_fluc_00116735/",
+    )

@@ -32,10 +32,10 @@ from scipy.interpolate import splrep, splprep, splev, interp1d
 plt.close("All")
 plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
-
+cm2in = 1 / 2.54
 # %%
-path = "/mnt/work/cases/wavy_0922/"
-# path = 'E:/cases/wavy_0804/'
+path = "/mnt/work/cases/wavy_1009/"
+# path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -67,7 +67,7 @@ MeanFlow.rescale(lh)
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 corner1 = (x < 25) & (y < 0.0)
 corner2 = (x > 110) & (y < 0.0)
-corner = (corner1 | corner2)
+corner = corner1 | corner2
 
 # %%############################################################################
 """
@@ -86,13 +86,11 @@ matplotlib.rc("font", size=tsize)
 for i in range(np.size(ux)):
     if i % 1 == 0:
         df_x = df.loc[df["x"] == ux[i]]
-        ax.plot(df_x["x"], df_x["y"], color='gray',
-                linestyle="-", linewidth=0.4)
+        ax.plot(df_x["x"], df_x["y"], color="gray", linestyle="-", linewidth=0.4)
 for j in range(np.size(uy)):
     if j % 1 == 0:  # 4
         df_y = df.loc[df["y"] == uy[j]]
-        ax.plot(df_y["x"], df_y["y"], color='gray',
-                linestyle="-", linewidth=0.4)
+        ax.plot(df_y["x"], df_y["y"], color="gray", linestyle="-", linewidth=0.4)
 # plt.gca().set_aspect("equal", adjustable="box")
 ax.set_xlim(np.min(df.x), np.max(df.x))
 ax.set_ylim(np.min(df.y), np.max(df.y))
@@ -101,11 +99,17 @@ ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontsize=tsize)
 ax.set_ylabel(r"$y$", fontsize=tsize)
 # wavy = temp.loc[np.round(temp['walldist'], 3) == 0.001]
-wavy = pd.read_csv(pathM + 'wavy.dat', skipinitialspace=True)
-ax.plot(wavy['x'], wavy['y'], "b--", linewidth=1.5)
-wavy = pd.read_csv(pathM + 'WallBoundary.dat', skipinitialspace=True)
-ax.scatter(wavy['x'][::10], wavy['y'][::10], linewidth=0.8,
-           s=18.0, facecolor='red', edgecolor='red')
+wavy = pd.read_csv(pathM + "wavy.dat", skipinitialspace=True)
+ax.plot(wavy["x"], wavy["y"], "b--", linewidth=1.5)
+wavy = pd.read_csv(pathM + "WallBoundary.dat", skipinitialspace=True)
+ax.scatter(
+    wavy["x"][::10],
+    wavy["y"][::10],
+    linewidth=0.8,
+    s=18.0,
+    facecolor="red",
+    edgecolor="red",
+)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 # plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
 plt.show()
@@ -118,7 +122,7 @@ va.streamline(pathM, MeanFlow.PlanarData, points, partition=xyzone, opt="up")
 # %% Mean flow isolines
 # dataframe = MeanFlow.PlanarData
 # NewFrame = dataframe.query("x>=-70.0 & x<=0.0 & y<=10.0")
-walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y), method='cubic')
+walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y), method="cubic")
 cover = (walldist < 0.0) | corner
 NewFrame = MeanFlow.PlanarData
 va.dividing_line(
@@ -137,10 +141,8 @@ va.boundary_edge(MeanFlow.PlanarData, pathM, shock=False, mask=False)
 # %%
 boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
 dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
-bsp = splrep(boundary[1200:1520, 0],
-             boundary[1200:1520, 1], k=3, s=0.6, per=0.0)
-x_new = np.arange(np.min(boundary[1200:1520, 0]), np.max(
-    boundary[1200:1520, 0]), 0.125)
+bsp = splrep(boundary[1200:1520, 0], boundary[1200:1520, 1], k=3, s=0.6, per=0.0)
+x_new = np.arange(np.min(boundary[1200:1520, 0]), np.max(boundary[1200:1520, 0]), 0.125)
 y_new = splev(x_new, bsp)
 xy_fit = np.vstack((x_new, y_new))
 np.savetxt(
@@ -172,9 +174,9 @@ x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 var = "u"
 lh = 3.0
 u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
-walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y), method='cubic')
+walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y), method="cubic")
 cover1 = walldist < 0.0  # np.where(walldist[:,:] < 0.0)
-cover = (cover1 | corner)
+cover = cover1 | corner
 u = np.ma.array(u, mask=cover)  # mask=cover
 # u[cover] = np.ma.masked
 print("u_max=", np.max(MeanFlow.u))
@@ -185,8 +187,7 @@ cval2 = 1.0  # 1.4
 fig, ax = plt.subplots(figsize=(7.3, 2.3))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 41)
-cbar = ax.contourf(x, y, u, cmap="rainbow", levels=rg1,
-                   extend="both")  # rainbow_r
+cbar = ax.contourf(x, y, u, cmap="rainbow", levels=rg1, extend="both")  # rainbow_r
 # cbar1 = ax.contour(x, y, u, levels=[0.0])
 ax.set_xlim(20, 120.0)
 ax.set_ylim(np.min(y), 10.0)
@@ -235,15 +236,14 @@ cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(
     cbar, cax=cbaxes, extendrect="False", orientation="horizontal", ticks=rg2
 )
-cbar.set_label(
-    r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontsize=tsize)
+cbar.set_label(r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontsize=tsize)
 # Add boundary layer
 # boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
-boundary = pd.read_csv(pathM + "BoundaryEdgeFit.dat", skipinitialspace=True)
+boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
 ax.plot(boundary.x / lh, boundary.y / lh, "k", linewidth=1.5)
 # Add shock wave
 # shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
-# ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5) 
+# ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
 # shock = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
 # ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
 # shock1 = np.loadtxt(pathM + "ShockLine1.dat", skiprows=1)
@@ -310,8 +310,7 @@ for i in range(np.size(vtm)):
     fig, ax = plt.subplots(figsize=(6.0, 2.3))
     matplotlib.rc("font", size=tsize)
     rg1 = np.linspace(cval1, cval2, 21)
-    cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1,
-                       extend="both")  # rainbow_r
+    cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1, extend="both")  # rainbow_r
     ax.set_xlim(-20.0, 5.0)
     ax.set_ylim(0, 8.0)
     ax.tick_params(labelsize=nsize)
@@ -398,8 +397,7 @@ ax.set_title(r"$t u_\infty /\delta_0=1295$", fontsize=textsize - 1, pad=0.1)
 rg2 = np.linspace(cval1, cval2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.025, pad=0.05)
 cbar.ax.tick_params(labelsize=nsize)
-cbar.set_label(r"$u/u_{\infty}$", rotation=0,
-               fontsize=textsize, labelpad=-30, y=1.1)
+cbar.set_label(r"$u/u_{\infty}$", rotation=0, fontsize=textsize, labelpad=-30, y=1.1)
 
 # Add isolines
 # cbar = ax.contour(x, y, gradp, levels=[-3.6], colors='k',
@@ -453,8 +451,8 @@ ax.set_xlim(10, 200.0)
 ax.set_ylim(np.min(y), 10.0)
 ax.set_yticks(np.linspace(0.0, 10.0, 5))
 ax.tick_params(labelsize=nsize)
-ax.set_xlabel(r"$x$", fontdict=font)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
-ax.set_ylabel(r"$y$", fontdict=font) 
+ax.set_xlabel(r"$x$", fontdict=font)
+ax.set_ylabel(r"$y$", fontdict=font)
 # plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
 rg2 = np.linspace(cb1, cb2, 3)
@@ -482,7 +480,7 @@ cbar.set_label(
     r"$\sqrt{\langle v^\prime v^\prime \rangle}$", rotation=0, fontsize=tsize,
 )
 # Add boundary layer
-boundary = pd.read_csv(pathM + "BoundaryEdgeFit.dat", skipinitialspace=True)
+boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
 ax.plot(boundary.x / lh, boundary.y / lh, "k", linewidth=1.0)
 # Add shock wave
 # shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
@@ -493,7 +491,9 @@ ax.plot(boundary.x / lh, boundary.y / lh, "k", linewidth=1.0)
 # sonic = np.loadtxt(pathM + "SonicLine.dat", skiprows=1)
 # ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.2)
 # Add dividing line(separation line)
-cbar = ax.contour(x, y, u, levels=[0.0], colors="k", linewidths=1.0, linestyles='dashed')
+cbar = ax.contour(
+    x, y, u, levels=[0.0], colors="k", linewidths=1.0, linestyles="dashed"
+)
 # dividing = pd.read_csv(pathM + "DividingLine.dat", skipinitialspace=True)
 # ax.plot(dividing.x / lh, dividing.y / lh, "k--", linewidth=1.2)
 
@@ -520,8 +520,7 @@ MeanFlowZ0.to_hdf(pathF + "MeanFlowZ0.h5", "w", format="fixed")
 
 # %% Load data
 fluc_flow = tf()
-fluc_flow.load_3data(path, FileList=path +
-                     "/ZFluctuation_900.0.h5", NameList="h5")
+fluc_flow.load_3data(path, FileList=path + "/ZFluctuation_900.0.h5", NameList="h5")
 # %% Plot contour of the fluctuation flow field in the xy plane
 zslice = fluc_flow.TriData.loc[fluc_flow.TriData["z"] == 0.0]
 x, y = np.meshgrid(np.unique(zslice.x), np.unique(zslice.y))
@@ -583,8 +582,7 @@ plt.savefig(pathF + "V3ZoomBox.svg", bbox_inches="tight", pad_inches=0.0)
 plt.show()
 
 # %% Preprocess the data in the xz plane (y=-0.5)
-MeanFlowY = MeanFlow.DataTab.loc[MeanFlow.DataTab["y"]
-                                 == -1.5].reset_index(drop=True)
+MeanFlowY = MeanFlow.DataTab.loc[MeanFlow.DataTab["y"] == -1.5].reset_index(drop=True)
 MeanFlowY.to_hdf(path + "MeanFlowYN3.h5", "w", format="fixed")
 MeanFlowY = DataPost()
 MeanFlowY.UserDataBin(path + "MeanFlowYN3.h5")
@@ -673,8 +671,7 @@ cbar.set_label(r"$\omega_z$", rotation=0, fontsize=tsize)
 #    integration_direction="both",
 # )
 plt.show()
-plt.savefig(pathF + "vorticity3_x=0.1.svg",
-            bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "vorticity3_x=0.1.svg", bbox_inches="tight", pad_inches=0.1)
 
 # %%############################################################################
 ###
@@ -726,8 +723,7 @@ rg2 = np.linspace(-0.4, 1.2, 3)
 cax = fig.add_axes([0.6, 0.65, 0.25, 0.05])  # x, y, width, height
 cbar = plt.colorbar(cbar, cax=cax, orientation="horizontal", ticks=rg2)
 # cbar.ax.set_title(r'$u/u_\infty$', fontsize=tsize)
-cbar.set_label(r"$u/u_\infty$", rotation=0, x=-
-               0.28, labelpad=-28, fontsize=tsize)
+cbar.set_label(r"$u/u_\infty$", rotation=0, x=-0.28, labelpad=-28, fontsize=tsize)
 plt.tick_params(labelsize=nsize)
 # Streamline
 v = griddata((MeanFlowZ.x, MeanFlowZ.y), MeanFlowZ.v, (x, y))
@@ -743,8 +739,7 @@ ax.streamplot(
     linewidth=0.6,
     integration_direction="both",
 )
-plt.savefig(pathF + "StreamVortex" + time + ".svg",
-            bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "StreamVortex" + time + ".svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %%############################################################################
@@ -755,8 +750,7 @@ plt.show()
 dirs = glob(pathV + "Enstrophy_*dat")
 tab_new = pd.read_csv(dirs[0], sep=" ", index_col=False, skipinitialspace=True)
 for j in range(np.size(dirs) - 1):
-    tab_dat = pd.read_csv(dirs[j + 1], sep=" ",
-                          index_col=False, skipinitialspace=True)
+    tab_dat = pd.read_csv(dirs[j + 1], sep=" ", index_col=False, skipinitialspace=True)
     tab_new = tab_new.add(tab_dat, fill_value=0)
 # %%
 x1 = 4.0
@@ -765,8 +759,7 @@ enstro = tab_new / np.size(dirs)
 # enstro = enstro.iloc[1:,:]
 fx = np.arange(0.2, 25 + 0.5, 0.5)
 f3 = savgol_filter(enstro["enstrophy"], 41, 4)
-f1 = interp1d(enstro["x"], enstro["enstrophy"],
-              kind="cubic", fill_value="extrapolate")
+f1 = interp1d(enstro["x"], enstro["enstrophy"], kind="cubic", fill_value="extrapolate")
 f2 = interp1d(
     enstro["x"], enstro["enstrophy_x"], kind="cubic", fill_value="extrapolate"
 )
@@ -783,8 +776,7 @@ ax3.set_xlim([0.0, 25.0])
 ax3.set_ylim([0.0, 1.2])
 ax3.axvline(x=x1, color="gray", linestyle="--", linewidth=1.0)
 ax3.axvline(x=x2, color="gray", linestyle="--", linewidth=1.0)
-lab = [r"$\mathcal{E}$", r"$\mathcal{E}_x$",
-       r"$\mathcal{E}_y$", r"$\mathcal{E}_z$"]
+lab = [r"$\mathcal{E}$", r"$\mathcal{E}_x$", r"$\mathcal{E}_y$", r"$\mathcal{E}_z$"]
 ax3.legend(lab, ncol=2, fontsize=nsize)  # loc="lower right"
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
@@ -801,8 +793,7 @@ plt.show()
 dirs = glob(pathV + "vortex_z_*dat")
 tab_new = pd.read_csv(dirs[0], sep=" ", index_col=False, skipinitialspace=True)
 for j in range(np.size(dirs) - 1):
-    tab_dat = pd.read_csv(dirs[j + 1], sep=" ",
-                          index_col=False, skipinitialspace=True)
+    tab_dat = pd.read_csv(dirs[j + 1], sep=" ", index_col=False, skipinitialspace=True)
     tab_new = tab_new.add(tab_dat, fill_value=0)
 
 if dirs[0].find("_x_") > 0:
@@ -992,8 +983,7 @@ print("rho_min=", np.min(df[var]))
 fig, ax = plt.subplots(figsize=(6.4, 2.4))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(0, 2.0, 21)
-cbar = ax.contourf(x, z, rho, cmap="bwr", levels=rg1,
-                   extend="both")  # rainbow_r
+cbar = ax.contourf(x, z, rho, cmap="bwr", levels=rg1, extend="both")  # rainbow_r
 ax.set_xlim(-10.0, 30.0)
 ax.set_ylim(-8.0, 8.0)
 ax.tick_params(labelsize=nsize)

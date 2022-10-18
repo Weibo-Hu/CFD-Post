@@ -96,7 +96,8 @@ def basic_var(opt):
     equ = ["{|gradp|}=sqrt(ddx({p})**2+ddy({p})**2+ddz({p})**2)"]
     if opt == "vorticity":
         varlist.extend(
-            ["vorticity_1", "vorticity_2", "vorticity_3", "Q-criterion", "L2-criterion"]
+            ["vorticity_1", "vorticity_2", "vorticity_3",
+                "Q-criterion", "L2-criterion"]
         )
     elif opt == "walldist":
         varlist.append("walldist")
@@ -112,7 +113,8 @@ def mean_var(opt):
        Return:
         namelist and the corresponding equations
     """
-    varlist = ["x", "y", "z", "<u>", "<v>", "<w>", "<p>", "<rho>", "<T>", "|grad(<p>)|"]
+    varlist = ["x", "y", "z", "<u>", "<v>", "<w>",
+               "<p>", "<rho>", "<T>", "|grad(<p>)|"]
     equ = ["{|gradp|}=sqrt(ddx({<p>})**2+ddy({<p>})**2+ddz({<p>})**2)"]
     if opt == "vorticity":
         varlist.extend(
@@ -316,6 +318,7 @@ def skinfriction(mu, du, dy):
     # all variables are nondimensional
     if isinstance(dy, np.ndarray):
         dy[np.where(dy == 0.0)] = 1e-8
+        print('Warning: there is zero value for dy!!!')
     Cf = 2 * mu * du / dy
     return Cf
 
@@ -353,7 +356,8 @@ def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
             TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
             VarZone = VarZone - np.mean(VarZone)
             # interpolate data to make sure time-equaled distribution
-            Var = np.interp(TimeZone, TimeSpan, VarZone)  # time space must be equal
+            # time space must be equal
+            Var = np.interp(TimeZone, TimeSpan, VarZone)
     # POD, fast fourier transform and remove the half
     if opt == 2:
         Var_fft = np.fft.rfft(Var)  # [1:]  # remove value at 0 frequency
@@ -375,7 +379,8 @@ def psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
 
 # Obtain Frequency-Weighted Power Spectral Density
 def fw_psd(VarZone, dt, Freq_samp, opt=2, seg=8, overlap=4):
-    Freq, Var_PSD = psd(VarZone, dt, Freq_samp, opt=opt, seg=seg, overlap=overlap)
+    Freq, Var_PSD = psd(VarZone, dt, Freq_samp, opt=opt,
+                        seg=seg, overlap=overlap)
     FPSD = Var_PSD * Freq
     return (Freq, FPSD)
 
@@ -386,7 +391,8 @@ def fw_psd_map(orig, xyz, var, dt, Freq_samp, opt=2, seg=8, overlap=4):
     frame2 = frame1.loc[np.around(frame1["y"], 5) == np.around(xyz[1], 5)]
     orig = frame2.loc[frame2["z"] == xyz[2]]
     varzone = orig[var]
-    Freq, FPSD = fw_psd(varzone, dt, Freq_samp, opt=opt, seg=seg, overlap=overlap)
+    Freq, FPSD = fw_psd(varzone, dt, Freq_samp, opt=opt,
+                        seg=seg, overlap=overlap)
     return (Freq, FPSD)
 
 
@@ -425,8 +431,10 @@ def cro_psd(Var1, Var2, dt, Freq_samp, opt=1, seg=8, overlap=4):
         TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
         VarZone1 = Var1 - np.mean(Var1)
         VarZone2 = Var2 - np.mean(Var2)
-        NVar1 = np.interp(TimeZone, TimeSpan, VarZone1)  # time space must be equal
-        NVar2 = np.interp(TimeZone, TimeSpan, VarZone2)  # time space must be equal
+        # time space must be equal
+        NVar1 = np.interp(TimeZone, TimeSpan, VarZone1)
+        # time space must be equal
+        NVar2 = np.interp(TimeZone, TimeSpan, VarZone2)
     if opt == 1:
         ns = TotalNo // seg
         Freq, Cpsd = signal.csd(
@@ -460,8 +468,10 @@ def coherence(Var1, Var2, dt, Freq_samp, opt=1, seg=8, overlap=4):
         TimeZone = np.linspace(TimeSpan[0], TimeSpan[-1], TotalNo)
         VarZone1 = Var1 - np.mean(Var1)
         VarZone2 = Var2 - np.mean(Var2)
-        NVar1 = np.interp(TimeZone, TimeSpan, VarZone1)  # time space must be equal
-        NVar2 = np.interp(TimeZone, TimeSpan, VarZone2)  # time space must be equal
+        # time space must be equal
+        NVar1 = np.interp(TimeZone, TimeSpan, VarZone1)
+        # time space must be equal
+        NVar2 = np.interp(TimeZone, TimeSpan, VarZone2)
     if opt == 1:
         ns = TotalNo // seg  # 6-4 # 8-2
         Freq, gamma = signal.coherence(
@@ -578,7 +588,8 @@ def u_tau(frame, option="mean", grad=False):
         rho_wall = frame["rho"].values[0]
         mu_wall = frame["mu"].values[0]
         delta_u = frame["u"].values[1] - frame["u"].values[0]
-        u_grad = np.gradient(frame["u"].values, frame["walldist"].values, edge_order=2)
+        u_grad = np.gradient(
+            frame["u"].values, frame["walldist"].values, edge_order=2)
     walldist2 = frame["walldist"].values[1]
 
     #    if(frame['walldist'].values[1] > 0.005):
@@ -630,7 +641,8 @@ def direst_transform(frame, option="mean", grad=False):
     rho_ratio = np.sqrt(rho / rho_wall)
     for i in range(m):
         # u_van[i] = np.trapz(rho_ratio[: i + 1], u[: i + 1])
-        u_van[i] = np.trapz(rho_ratio[: i + 1] * dudy[: i + 1], walldist[: i + 1])
+        u_van[i] = np.trapz(rho_ratio[: i + 1] *
+                            dudy[: i + 1], walldist[: i + 1])
     u_plus_van = u_van / shear_velocity
     y_plus = shear_velocity * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
@@ -840,7 +852,8 @@ def shock_loc(
                     frame = pd.read_hdf(InFolder + dirs[i])
                     grouped = frame.groupby(["x", "y"])
                     frame = grouped.mean().reset_index()
-                    gradp = griddata((frame["x"], frame["y"]), frame[var], (xini, yini))
+                    gradp = griddata(
+                        (frame["x"], frame["y"]), frame[var], (xini, yini))
                     gradp[corner] = np.nan
                     cs = ax1.contour(
                         xini, yini, gradp, levels=[lev], linewidths=1.2, colors="gray"
@@ -888,8 +901,10 @@ def shock_loc(
                     ax1.axhline(y=ys1)
                     ax1.plot(x2, ys2, "b^")
                     ax1.axhline(y=ys2)
-                    shock1 = np.append(shock1, [[timepoints[j], x1, ys1]], axis=0)
-                    shock2 = np.append(shock2, [[timepoints[j], x2, ys2]], axis=0)
+                    shock1 = np.append(
+                        shock1, [[timepoints[j], x1, ys1]], axis=0)
+                    shock2 = np.append(
+                        shock2, [[timepoints[j], x2, ys2]], axis=0)
                     j = j + 1
                     plt.show()
                     # plt.close()
@@ -907,8 +922,10 @@ def shock_loc(
                     NewFrame2 = frame.loc[frame["y"] == ys2]
                     temp2 = NewFrame2.loc[NewFrame2["u"] <= val[1], "x"]
                     x2 = temp2.head(1)
-                    shock1 = np.append(shock1, [[timepoints[j], x1, ys1]], axis=0)
-                    shock2 = np.append(shock2, [[timepoints[j], x2, ys2]], axis=0)
+                    shock1 = np.append(
+                        shock1, [[timepoints[j], x1, ys1]], axis=0)
+                    shock2 = np.append(
+                        shock2, [[timepoints[j], x2, ys2]], axis=0)
                     j = j + 1
 
     np.savetxt(
@@ -945,7 +962,8 @@ def shock_line(dataframe, path):
     )
     gradp[corner] = np.nan
     fig, ax = plt.subplots(figsize=(10, 4))
-    cs = ax.contour(xini, yini, gradp, levels=[0.06], linewidths=1.2, colors="gray")
+    cs = ax.contour(xini, yini, gradp, levels=[
+                    0.06], linewidths=1.2, colors="gray")
     plt.close()
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
@@ -992,7 +1010,8 @@ def shock_line_ffs(dataframe, path, val=[0.06], show=False):
     )
     gradp[corner] = np.nan
     fig, ax = plt.subplots(figsize=(10, 4))
-    cs = ax.contour(xini, yini, gradp, levels=val, linewidths=1.2, colors="gray")
+    cs = ax.contour(xini, yini, gradp, levels=val,
+                    linewidths=1.2, colors="gray")
     ax.set_xlim([-30.0, 10.0])
     ax.set_ylim([0.0, 12.0])
     if show == False:
@@ -1050,7 +1069,8 @@ def sonic_line(dataframe, path, option="Mach", Ma_inf=1.7, mask=None):
         dataframe["T"] = dataframe["<T>"]
     if option == "velocity":
         if "w" in dataframe.columns:
-            c = np.sqrt(dataframe["u"] ** 2 + dataframe["v"] ** 2 + dataframe["w"] ** 2)
+            c = np.sqrt(dataframe["u"] ** 2 +
+                        dataframe["v"] ** 2 + dataframe["w"] ** 2)
         else:
             c = np.sqrt(dataframe["u"] ** 2 + dataframe["v"] ** 2)
         dataframe["Mach"] = c / np.sqrt(dataframe["T"]) * Ma_inf
@@ -1112,6 +1132,7 @@ def wall_line(dataframe, path, mask=None, val=0.0):
         comments="",
         header=header,
     )
+    return(xycor)
 
 
 def dividing_line(dataframe, path=None, loc=-0.015625, show=False, mask=None):
@@ -1138,7 +1159,8 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False, mask=None):
     if mask is not None:
         u = np.ma.array(u, mask=mask)  # mask=cover
     fig, ax = plt.subplots(figsize=(10, 4))
-    cs1 = ax.contour(x, y, u, levels=[0.0], linewidths=1.5, linestyles="--", colors="k")
+    cs1 = ax.contour(x, y, u, levels=[
+                     0.0], linewidths=1.5, linestyles="--", colors="k")
     if show == False:
         plt.close()
     header = "x, y"
@@ -1159,9 +1181,11 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False, mask=None):
         key_id = "zone_" + "%03d" % i
         df = pd.DataFrame(data=xy, columns=["x", "y"])
         if i == 0:
-            df.to_hdf(path + "DividingLine.h5", mode="w", key=key_id, format="fixed")
+            df.to_hdf(path + "DividingLine.h5", mode="w",
+                      key=key_id, format="fixed")
         else:
-            df.to_hdf(path + "DividingLine.h5", mode="a", key=key_id, format="fixed")
+            df.to_hdf(path + "DividingLine.h5", mode="a",
+                      key=key_id, format="fixed")
     try:
         ind
     except:
@@ -1234,7 +1258,8 @@ def boundary_edge(
         u[corner] = np.nan
     header = "x, y"
     fig, ax = plt.subplots(figsize=(10, 4))
-    cs = ax.contour(x, y, u, levels=[0.99], linewidths=1.5, linestyles="--", colors="k")
+    cs = ax.contour(x, y, u, levels=[0.99],
+                    linewidths=1.5, linestyles="--", colors="k")
     plt.show()
     xycor = np.empty(shape=[0, 2])
     for isoline in cs.collections[0].get_paths():
@@ -1357,7 +1382,8 @@ def streamline(InFolder, df, seeds, OutFile=None, partition=None, opt="both"):
             strm2 = np.asarray([i[0] for i in seg])
             ax.plot(strm2[:, 0], strm2[:, 1], "r--")
         # save data
-        frame = pd.DataFrame(data=np.vstack((strm1, strm2)), columns=["x", "y"])
+        frame = pd.DataFrame(data=np.vstack(
+            (strm1, strm2)), columns=["x", "y"])
         frame.drop_duplicates(subset=["x"], keep="first", inplace=True)
         if OutFile is None:
             frame.to_csv(
@@ -1373,7 +1399,8 @@ def streamline(InFolder, df, seeds, OutFile=None, partition=None, opt="both"):
                 float_format="%1.8e",
                 sep=" ",
             )
-        plt.savefig(InFolder + "streamline" + str(j + 1) + ".svg", bbox_inches="tight")
+        plt.savefig(InFolder + "streamline" + str(j + 1) +
+                    ".svg", bbox_inches="tight")
 
     return frame
 
@@ -1384,12 +1411,14 @@ def correlate(x, y, method="Sample"):
     if method == "Population":
         sigma1 = np.std(x, ddof=0)
         sigma2 = np.std(y, ddof=0)  # default population standard deviation
-        sigma12 = np.cov(x, y, ddof=0)[0][1]  # default sample standard deviation
+        # default sample standard deviation
+        sigma12 = np.cov(x, y, ddof=0)[0][1]
         correlation = sigma12 / sigma1 / sigma2
     else:
         sigma1 = np.std(x, ddof=1)
         sigma2 = np.std(y, ddof=1)  # default Sample standard deviation
-        sigma12 = np.cov(x, y, ddof=1)[0][1]  # default sample standard deviation
+        # default sample standard deviation
+        sigma12 = np.cov(x, y, ddof=1)[0][1]
         correlation = sigma12 / sigma1 / sigma2
     return correlation
 
@@ -1494,7 +1523,8 @@ def sec_ord_fdd(xarr, var):
         if jj == 1:
             dvar[jj - 1] = (var[jj] - var[jj - 1]) / (xarr[jj] - xarr[jj - 1])
         elif jj == np.size(xarr):
-            dvar[jj - 1] = (var[jj - 1] - var[jj - 2]) / (xarr[jj - 1] - xarr[jj - 2])
+            dvar[jj - 1] = (var[jj - 1] - var[jj - 2]) / \
+                (xarr[jj - 1] - xarr[jj - 2])
         else:
             dy12 = xarr[jj - 1] - xarr[jj - 2]
             dy23 = xarr[jj] - xarr[jj - 1]
