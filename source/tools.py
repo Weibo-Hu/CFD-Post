@@ -54,6 +54,10 @@ def x_inlet(delta, opt='tur'):
         a1 = 0.385/np.power(Re_inf, 0.2)
         a2 = delta / a1
         x_in = np.power(a2, 1/0.8)
+    if opt == 'lam':
+        a1 = 5.0/np.power(Re_inf, 0.5)
+        a2 = delta / a1
+        x_in = a2
     return(x_in)
 
 
@@ -83,13 +87,13 @@ def Delta_y(Cf, t_inf, rho_inf, u_inf, rho_w, y_plus=1):
 
 
 
-Ma = 6.0
-Re_inf = 1*1e7
-delta = 2  # unit: mm
-Tw = 292.15
-Ts = 45
+Ma = 4.5
+Re_inf = 7.2*1e6
+delta = 2.5  # unit: mm
+Tw = 260.6
+Ts = 65.15
 R_c = 287
-x_in = x_inlet(delta=2/1000)  # unit: m
+x_in = x_inlet(delta=delta/1000)  # unit: m
 Re_x = x_in * Re_inf
 
 miu = sutherland(Ts)
@@ -99,6 +103,7 @@ ps = static_pressure(rho_inf, Ts)
 pt = total_pressure(ps, Ma)
 
 rho_w = ps/R_c/Tw
-Cf =  C_f(Re_inf, delta, opt='tur')
+Cf =  C_f(Re_inf, delta, opt='lam')
 u_t = u_tau(Cf, rho_inf, u_inf, rho_w)
 dy = Delta_y(Cf, Ts, rho_inf, u_inf, rho_w, y_plus=1)
+print('dy=',dy)
