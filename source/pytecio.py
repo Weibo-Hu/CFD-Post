@@ -36,8 +36,6 @@ def get_dll():
 
 
 GLOBAL_DLL = get_dll()
-# %%
-
 
 class zone_data(dict):
     def __init__(self, parent, zone_n):
@@ -982,7 +980,7 @@ def cal_zone(number, g, q):
     return k
 
 
-# %%
+# % functions for INCA
 def ReadSinglePlt(file_nm, var_list=None):
     file = SzpltData(filename=file_nm)
     zone_num = file.numZones
@@ -1086,35 +1084,39 @@ def create_fluc_tec(file, file_m, outpath, var, var1, var2):
     # var = ['u`', 'v`', 'w`', 'rho`', 'p`', 'T`']
     # var1 = ['u', 'v', 'w', 'rho', 'p', 'T']
     # var2 = ['<u>', '<v>', '<w>', '<rho>', '<p>', '<T>']
+    nm = [i[-4:] for i in ds1.nameZones]
+    nm_m = [i[-4:] for i in ds2.nameZones]
     for i in range(ds1.numZones):
         z_nm = ds1.nameZones[i]
-        z_nm_m = ds2.nameZones[i]
+        ind = nm_m.index(nm[i])
+        z_nm_m = ds2.nameZones[ind]
         for j in range(np.size(var1)):
             ds1[z_nm][var[j]] = ds1[z_nm][var1[j]]-ds2[z_nm_m][var2[j]]
     t = write_tecio(outpath + os.path.basename(file), ds1, verbose=True)
     t.close()
 
 
-def span_ave_tec(file, outpath):
-    ds = SzpltData(file)
-    for i in range(ds.numZones):
-        z_nm = ds.nameZones[i]
-        df_dict = ds[z_nm]
-        df = pd.DataFrame.from_dict(df_dict)
-        grouped = df.groupby(["x", "y"])
-        df_ave = grouped.mean().reset_index()
-        df_ave = df_ave.sort_values(by=['y', 'x'])
-
-        for ky in ds[z_nm].keys():
-            ds[z_nm][ky] = np.asarray(df_ave[ky], dtype=np.float32)
-        dim = ds.zone_info[i]['IJK']
-        dim = (dim[0], dim[1], 1)
-        ds.zone_info[i]['IJK'] = dim
-
+def span_ave_tec(files, outpath):
     if not os.path.exists(outpath):
         os.mkdir(outpath)
-    t = write_tecio(outpath + os.path.basename(file), ds, verbose=True)
-    t.close()
+    for j in range(np.size(files)):
+        ds = SzpltData(files[j])
+        for i in range(ds.numZones):
+            z_nm = ds.nameZones[i]
+            df_dict = ds[z_nm]
+            df = pd.DataFrame.from_dict(df_dict)
+            grouped = df.groupby(["x", "y"])
+            df_ave = grouped.mean().reset_index()
+            df_ave = df_ave.sort_values(by=['y', 'x'])
+
+            for ky in ds[z_nm].keys():
+                ds[z_nm][ky] = np.asarray(df_ave[ky], dtype=np.float32)
+            dim = ds.zone_info[i]['IJK']
+            dim = (dim[0], dim[1], 1)
+            ds.zone_info[i]['IJK'] = dim
+        t = write_tecio(outpath + os.path.basename(files[j]), ds, verbose=True)
+        t.close()
+
 
 
 def create_fluc_inca(path, path_m, outpath):
@@ -1143,35 +1145,43 @@ def create_fluc_inca(path, path_m, outpath):
     elif np.size(szplt) < np.size(szplt_m):
         file1 = szplt[0]
         ds1 = SzpltData(file1)
+        nm1 = [i[-4:] for i in ds1.nameZones]
+        file3 = 'TP_fluc_'
         for i in range(np.size(szplt_m)):
             file2 = szplt_m[i]
             ds2 = SzpltData(file2)
             z_nm2 = ds2.nameZones[0]
+            ind = nm1.index(z_nm2[-4:])
+            z_nm1 = ds1.nameZones[ind]
             for j in range(np.size(var1)):
-                ind = list(ds1.nameVars_dict.keys()).index(var1[j])
-                val = ds1._read_zone_var(i+1, ind+1)
-                ds2[z_nm2][var[j]] = val - ds2[z_nm2][var2[j]]
+                # ind = list(ds1.nameVars_dict.keys()).index(var1[j])
+                # val = ds1._read_zone_var(i+1, ind+1)
+                ds1[z_nm1][var[j]] = ds1[z_nm1][var1[j]] - ds2[z_nm2][var2[j]]
 
-            t = write_tecio(outpath + os.path.basename(file2),
-                            ds2, verbose=True)
-            t.close()
+        t = write_tecio(outpath + file3 + z_nm2[-4:] + '.szplt',
+                        ds1, verbose=True)
+        t.close()
 
     else:
         file2 = szplt_m[0]
         ds2 = SzpltData(file2)
+        nm2 = [i[-4:] for i in ds2.nameZones]
+        file3 = 'TP_fluc_'
         for i in range(np.size(szplt)):
             file1 = szplt[i]
             ds1 = SzpltData(file1)
             z_nm1 = ds1.nameZones[0]
+            ind = nm2.index(z_nm1[-4:])
+            z_nm2 = ds2.nameZones[ind]
             for j in range(np.size(var2)):
-                ind = list(ds2.nameVars_dict.keys()).index(var2[j])
-                val = ds2._read_zone_var(i+1, ind+1)
-                ds2[z_nm2][var[j]] = ds2[z_nm1][var1[j]] - val
+                # ind = list(ds2.nameVars_dict.keys()).index(var2[j])
+                # val = ds2._read_zone_var(i+1, ind+1)
+                ds1[z_nm1][var[j]] = ds1[z_nm1][var1[j]] - ds2[z_nm2][var2[j]]
 
-            t = write_tecio(outpath + os.path.basename(file1),
-                            ds2, verbose=True)
+            t = write_tecio(outpath + file3 + z_nm1[-4:] + '.szplt',
+                            ds1, verbose=True)
             t.close()
-
+            
 
 # %%
 if __name__ == "__main__":
@@ -1184,29 +1194,34 @@ if __name__ == "__main__":
     # df.to_hdf(path + 'TP_data_.h5', 'w', format='fixed')
     # file = pt.SzpltData(filename=path + 'TP_dat_000002.szplt')
     # t = pt.write_tecio(path+'test.szplt', file, verbose=True)
-    create_fluc_inca(
-        "E:/cases/wavy_0918/snapshot_00100056/",
-        "E:/cases/wavy_0918/TP_stat_ave/",
-        "E:/cases/wavy_0918/TP_fluc_00100056/",
-    )
     # create_fluc_inca(
-    #     "/media/weibo/VID2/flat_0802/TP_data_00116284/",
-    #     "/media/weibo/VID2/flat_0802/TP_stat/",
-    #     "/media/weibo/VID2/flat_0802/TP_fluc_00116284/",
+    #     "E:/cases/wavy_0918/snapshot_00100056/",
+    #     "E:/cases/wavy_0918/TP_stat_ave/",
+    #     "E:/cases/wavy_0918/TP_fluc_00100056/",
     # )
-    """
-    path_m = 'E:/cases/wavy_0918/TP_stat/'
+    
+    path_m = '/mnt/share/cases/base/TP_stat/'
     files_m = sorted(os.listdir(path_m))
     file_m_nm = [os.path.join(path_m, name) for name in files_m]
     szplt = [x for x in file_m_nm if x.endswith(".szplt")]
-    for i in range(np.size(szplt)):
-        file1 = szplt[i]
-        span_ave_tec(file1, 'E:/cases/wavy_0918/TP_stat_ave/')
+    span_ave_tec(szplt, '/mnt/share/cases/base/TP_stat_ave/')
+    
+    create_fluc_inca(
+        "/mnt/share/cases/base/snapshot_00000297/",
+        "/mnt/share/cases/base/TP_stat_ave/",
+        "/mnt/share/cases/base/TP_fluc_00000297/",
+    )
+    
 
+    # for i in range(np.size(szplt)):
+    #     file1 = szplt[i]
+    #    span_ave_tec(file1, 'E:/cases/wavy_0918/TP_stat_ave/')
+    """
     path = 'E:/cases/wavy_0918/snapshot_00100056/'
     path_m = 'E:/cases/wavy_0918/TP_stat/'
     outpath = 'E:/cases/wavy_0918/TP_stat_ave/'
 
+    file = '/mnt/share/cases/wavy_0918/TP_stat/TP_stat_000001.szplt'
     file = 'E:/cases/wavy_0918/TP_stat/TP_stat_000001.szplt'
     file1 = 'E:/cases/wavy_0918/TP_stat/test.szplt'
     ds = SzpltData(file)
