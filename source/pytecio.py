@@ -986,7 +986,7 @@ def ReadSinglePlt(file_nm, var_list=None):
     zone_num = file.numZones
     SolTime = file.zone_info[0]["solutionTime"]
     df = pd.DataFrame()
-    for i in range(np.size(zone_num)):
+    for i in range(zone_num):
         zonename = file.nameZones[i]
         ZoneDict = file[zonename]
         temp = pd.DataFrame(ZoneDict)
@@ -1074,7 +1074,7 @@ def create_fluc_hdf(path, path_m, outpath, SpanAve=None):
     if SpanAve is None:
         grouped = df.groupby(["x", "y", "z"])
         df = grouped.mean().reset_index()
-    st = "%08.2f" % SolTime
+    st = "%08.2f" % st
     df.to_hdf(outpath + "TP_data_" + st + ".h5", "w", format="fixed")
 
 
