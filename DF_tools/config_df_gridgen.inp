@@ -1,0 +1,32 @@
+&CONFIGURATION
+ Mach = 1.7
+ u_ref= 1.                 
+ rho_ref = 1. 
+ l_ref = 1.
+ T_ref = 1.
+ M_Air = 28.96512
+! M_Air =  33640.3136566
+ 
+ l10 = 0.0              ! domain start in 1 direction (y in my case)
+ l11 = 30.0             ! domain end in 1 direction
+ 
+ l20 = -8.0             ! domain start in 2 direction (z in my case)
+ l21 = 8.0              ! domain end in 2 direction
+ 
+ type1 = 'HOMO'         ! meshing law and parameter in 1 / 2 direction
+ p1    = 1.0
+ type2 = 'HOMO'
+ p2    = 1.0
+ 
+ n1 =  200                    ! number of cells in 1-direction (equal to y in my case) for the target grid (global)
+ n2 =  400                    ! number of cells in 2-direciton (equal to z in my case) for the target grid (global)
+
+ pathout = '.'
+
+ input_file_name = 'M_1.6_REd_13500.dat'
+ nvinp = 11
+ nlinp= 56
+ column = 1, 0 , 2, 3, 0, 4, 5, 6, 7, 8, 9, 0, 0
+ 
+&END
+
