@@ -995,6 +995,7 @@ def ReadSinglePlt(file_nm, var_list=None):
         df_select = df
     else:
         df_select = df[var_list]
+    file.close()
     return (df_select, SolTime)
 
 
