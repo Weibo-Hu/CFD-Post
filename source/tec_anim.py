@@ -10,7 +10,7 @@ Created on Wen May 11  22:39:40 2020
 import tecplot as tp
 from tecplot.constant import *
 from tecplot.exception import *
-import tecplotlib as tl
+import tecplotsty as tl
 import plt2pandas as p2p
 import os
 import sys
@@ -220,7 +220,25 @@ for ii in range(num):
     outfile = pathout + figout + '{:02}'.format(int(SolTime))
     tp.export.save_png(outfile + '.png', width=2048)
     # tp.export.save_jpeg(outfile + '.jpeg', width=2048, quality=100) 
+  
     
+# %% load tecplot style
+path = '/media/weibo/Weibo_data/2023cases/heating2/'
+p2p.create_folder(path)
+pathF = path + 'Figures/'
+pathin = path + "TP_data_00151168/"
+dirs = glob.glob(pathin + '*.szplt')
+tp.session.start_roaming(10)
+tp.session.connect(port=7600)
+# tp.session.stop()
+dataset = tp.data.load_tecplot_szl(dirs, read_data_option=2)
+soltime = int(dataset.solution_times[0])
+# with tp.session.suspend():
+# tp.session.suspend_enter()
+frame = tp.active_frame()
+tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')  
+frame.load_stylesheet(path + '3d_vorticity_heating.sty')
+tp.export.save_png(path +'test' + '.png', width=2048)
 # %% generate animation
 # %% Convert plots to animation
 #import imageio
