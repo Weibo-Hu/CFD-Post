@@ -12,16 +12,25 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import griddata
 from scipy.io import FortranFile
+import os
 
 # %%
 def csv2plot3d(path, filenm, vars, option='2d', input_nm=None, skip=1):
+    ext_nm = os.path.splitext(filenm)[-1]
     if input_nm is None:
-        data = pd.read_csv(path + filenm, sep=',', index_col=False)
+        if ext_nm == '.dat':
+            data = pd.read_csv(path + filenm, sep=',', index_col=False)
+        if ext_nm == '.h5':
+            data = pd.read_hdf(path + filenm, index_col=False)
     else:
-        data = pd.read_csv(path + filenm, sep=',', index_col=False,
-                           header=0, names=input_nm)
-    grid = 'grid.grd'
-    solu = 'uvw.q'
+        if ext_nm == '.dat':
+            data = pd.read_csv(path + filenm, sep=',', index_col=False,
+                               header=0, names=input_nm)
+        if ext_nm == '.h5':
+            data = pd.read_hdf(path + filenm, index_col=False,
+                               header=0, names=input_nm)            
+    grid = 'grid.xyz'
+    solu = 'uvw3D.q'
     xa = np.unique(data['x'][::skip])
     ya = np.unique(data['y'])
     xmat, ymat = np.meshgrid(xa, ya)
@@ -67,8 +76,12 @@ def interp2d(x, y, z):
     return(zmat)     
 
 
-path = 'E:/cases/'
-filenm = 'slice_3d.dat'
-nms = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T']
-vars = ['rho', 'u', 'v', 'w', 'T', 'p']
-csv2plot3d(path, filenm, vars, option='3d', input_nm=nms, skip=2)
+# %%
+if __name__ == "__main__":
+    # path = 'E:/cases/'
+    # filenm = 'slice_3d.dat'
+    path = 'E:/cases/flat_SFD/'
+    filenm = 'Baseflow_02000.00.h5'
+    nms = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T']
+    vars = ['rho', 'u', 'v', 'w', 'T', 'p']
+    csv2plot3d(path, filenm, vars, option='3d', input_nm=nms, skip=1)
