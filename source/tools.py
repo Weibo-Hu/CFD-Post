@@ -86,7 +86,18 @@ def Delta_y(Cf, t_inf, rho_inf, u_inf, rho_w, y_plus=1):
     return(dy)
 
 
+def omega2fre(Ma, Ts, omega, l_ref):
+    c = velocity(Ma, Ts, gamma=1.4, R_c=287)
+    fre = omega * c / 2 / np.pi / l_ref
+    return (fre)
 
+
+def fre2omega(Ma, Ts, fre, l_ref):
+    c = velocity(Ma, Ts, gamma=1.4, R_c=287)
+    omega = 2 * np.pi * fre * l_ref / c
+    return (omega)
+
+# %%
 Ma = 4.5
 Re_inf = 7.2*1e6
 delta = 2.5  # unit: mm
@@ -107,3 +118,36 @@ Cf =  C_f(Re_inf, delta, opt='lam')
 u_t = u_tau(Cf, rho_inf, u_inf, rho_w)
 dy = Delta_y(Cf, Ts, rho_inf, u_inf, rho_w, y_plus=1)
 print('dy=',dy)
+# %%
+import pandas as pd
+import numpy as np
+from scipy.interpolate import griddata
+import matplotlib.pyplot as plt
+path = '/mnt/work/cases/flat_260/'
+data = pd.read_csv(path + 'myfile.txt', sep=' ', skipinitialspace=True)
+omega = np.linspace(0.4, 1.2, 81)
+x1 = np.linspace(10, 360, 701)
+xx, yy = np.meshgrid(x1, omega)
+growth = griddata((data['X'], data['Y']),
+                  data['F1V1'], (xx, yy), fill_value=0)
+nval_mat = np.zeros(np.shape(growth))
+nval = np.zeros(np.size(x1))
+nval_max = np.zeros(np.size(omega))
+
+fig, ax = plt.subplots(figsize=(6.4, 6.4))
+for i in range(np.size(omega)):
+    temp = growth[i,:] * 0.5
+    for j in range(np.size(nval)):
+        nval[j] = np.sum(temp[:j]) 
+    nval_mat[i, :] = nval
+    nval_max[i] = nval[-1]
+    ax.plot(x1, nval)
+plt.savefig(path+ "Nval.svg", bbox_inches="tight")
+plt.show()
+
+xf = xx.flatten()
+yf = yy.flatten()
+nf = nval_mat.flatten()
+mat = np.vstack((xf, yf, nf))
+df = pd.DataFrame(data=np.transpose(mat), columns=['x', 'omega', 'nval'])
+df.to_csv(path+'Nval.data', sep=' ', index=False, float_format='%1.8e')
