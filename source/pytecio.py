@@ -9,9 +9,10 @@ Created on Mon Aug 1 10:24:50 2022
 import ctypes
 import numpy as np
 import sys
-from pathlib import Path
 import os
 import pandas as pd
+from glob import glob
+from timer import timer
 
 # %% load dll or so library
 FieldDataType_Double = 2
@@ -1018,20 +1019,27 @@ def ReadINCAResults(
     OutFile=None,
     opt=1,
 ):
+    
     if FileName is None:
-        files = sorted(os.listdir(FoldPath))
-        FileName = [os.path.join(FoldPath, name) for name in files]
+        dirs = glob(FoldPath + '*plt')
+        FileName = sorted(dirs)
+        # files = sorted(os.listdir(FoldPath))
+        # FileName = [os.path.join(FoldPath, name) for name in files]
     if isinstance(FileName, list):
         szplt = FileName[0].find("szplt")
+        if szplt != -1:
+            df, SolTime = ReadSinglePlt(FileName[0], VarList)
+            for i in range(np.size(FileName) - 1):
+                df1, _ = ReadSinglePlt(FileName[i + 1], VarList)
+                df = pd.concat([df, df1])
+        else:
+            print("There is no szplt files!!!")
     else:
         szplt = FileName.find("szplt")
-    if szplt != -1:
-        df, SolTime = ReadSinglePlt(FileName[0], VarList)
-        for i in range(np.size(FileName) - 1):
-            df1, _ = ReadSinglePlt(FileName[i + 1], VarList)
-            df = pd.concat([df, df1])
-    else:
-        print("There is no szplt files!!!")
+        if szplt != -1:
+            df, SolTime = ReadSinglePlt(FileName, VarList)
+        else:
+            print("There is no szplt files!!!")
     # if Equ is not None:
     #     for i in range(np.size(Equ)):
     #        tp.data.operate.execute_equation(Equ[i])
@@ -1115,6 +1123,7 @@ def span_ave_tec(files, outpath):
             dim = ds.zone_info[i]['IJK']
             dim = (dim[0], dim[1], 1)
             ds.zone_info[i]['IJK'] = dim
+        ds.close()
         t = write_tecio(outpath + os.path.basename(files[j]), ds, verbose=True)
         t.close()
 
@@ -1158,6 +1167,7 @@ def create_fluc_inca(path, path_m, outpath):
                 # ind = list(ds1.nameVars_dict.keys()).index(var1[j])
                 # val = ds1._read_zone_var(i+1, ind+1)
                 ds1[z_nm1][var[j]] = ds1[z_nm1][var1[j]] - ds2[z_nm2][var2[j]]
+            ds2.close()
 
         t = write_tecio(outpath + file3 + z_nm2[-4:] + '.szplt',
                         ds1, verbose=True)
@@ -1178,7 +1188,7 @@ def create_fluc_inca(path, path_m, outpath):
                 # ind = list(ds2.nameVars_dict.keys()).index(var2[j])
                 # val = ds2._read_zone_var(i+1, ind+1)
                 ds1[z_nm1][var[j]] = ds1[z_nm1][var1[j]] - ds2[z_nm2][var2[j]]
-
+            ds1.close()
             t = write_tecio(outpath + file3 + z_nm1[-4:] + '.szplt',
                             ds1, verbose=True)
             t.close()
@@ -1200,7 +1210,36 @@ if __name__ == "__main__":
     #     "E:/cases/wavy_0918/TP_stat_ave/",
     #     "E:/cases/wavy_0918/TP_fluc_00100056/",
     # )
-    
+    # path = '/mnt/work/cases_new/heating2/'
+    path = '/media/weibo/Weibo_data/2023cases/flat/'
+    path1 = path + 'TP_stat/'
+    ReadINCAResults(path1, SpanAve=True, SavePath=path, OutFile='TP_data')
+
+
+    # %%
+    # pathSN = path + 'snapshots/'
+    # slicenm = '/TP_2D_S_011.szplt'
+    # col = ["x", "y", "z", "u", 'v', 'w', 'p', 'rho', 'T']
+    # dirs = sorted(os.listdir(pathSN))
+    # print("loading data")
+    # DataFrame, _ = ReadSinglePlt(pathSN + dirs[0] + slicenm)
+    # grouped = DataFrame.groupby(['x', 'y', 'z'])
+    # DataFrame = grouped.mean().reset_index()
+    # with timer("Load Data"):
+    #     for i in range(np.size(dirs)-1):
+    #         TempFrame, _ = ReadSinglePlt(pathSN + dirs[i + 1] + slicenm)
+    #         grouped = TempFrame.groupby(['x', 'y', 'z'])
+    #         TempFrame = grouped.mean().reset_index()
+    #         if np.shape(TempFrame)[0] != np.shape(DataFrame)[0]:
+    #             sys.exit('The input snapshots does not match!!!')
+    #         DataFrame += TempFrame
+
+    # # obtain mean flow 
+    # meanflow = DataFrame/np.size(dirs)
+    # print("data loaded")
+    # meanflow.to_hdf(path + "MeanFlow1.h5", "w", format="fixed")
+
+    """
     path_m = '/mnt/share/cases/base/TP_stat/'
     files_m = sorted(os.listdir(path_m))
     file_m_nm = [os.path.join(path_m, name) for name in files_m]
@@ -1212,7 +1251,7 @@ if __name__ == "__main__":
         "/mnt/share/cases/base/TP_stat_ave/",
         "/mnt/share/cases/base/TP_fluc_00000297/",
     )
-    
+    """
 
     # for i in range(np.size(szplt)):
     #     file1 = szplt[i]
