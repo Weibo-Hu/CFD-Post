@@ -10,7 +10,7 @@ from line_field import LineField
 from timer import timer
 import os
 import plt2pandas as p2p
-import pytecio as pytec
+import teciolib as pytec
 from glob import glob
 import numpy as np
 
@@ -226,18 +226,26 @@ class PlanarField(LineField):
         self._data_field['tke'] = tke
         return(tke)
 
-    def copy_meanval(self):
-        self._data_field['u'] = self.u_m
-        self._data_field['v'] = self.v_m
-        self._data_field['w'] = self.w_m
-        self._data_field['rho'] = self.rho_m
-        self._data_field['p'] = self.p_m
-        self._data_field['T'] = self.T_m
-        if 'mu' in self._data_field.columns:
-            self._data_field['mu'] = self.mu_m
-        if 'vorticity_1' in self._data_field.columns:
-            self._data_field['vorticity_1'] = self.vorticity_1_m
-        if 'vorticity_2' in self._data_field.columns:
-            self._data_field['vorticity_2'] = self.vorticity_2_m
-        if 'vorticity_3' in self._data_field.columns:
-            self._data_field['vorticity_3'] = self.vorticity_3_m
+    def copy_meanval(self, option='Forward'):
+        if option == 'Forward':
+            self._data_field['u'] = self.u_m
+            self._data_field['v'] = self.v_m
+            self._data_field['w'] = self.w_m
+            self._data_field['rho'] = self.rho_m
+            self._data_field['p'] = self.p_m
+            self._data_field['T'] = self.T_m
+            if 'mu' in self._data_field.columns:
+                self._data_field['mu'] = self.mu_m
+            if 'vorticity_1' in self._data_field.columns:
+                self._data_field['vorticity_1'] = self.vorticity_1_m
+            if 'vorticity_2' in self._data_field.columns:
+                self._data_field['vorticity_2'] = self.vorticity_2_m
+            if 'vorticity_3' in self._data_field.columns:
+                self._data_field['vorticity_3'] = self.vorticity_3_m
+        else:
+            self._data_field['<u>'] = self.u
+            self._data_field['<v>'] = self.v
+            self._data_field['<w>'] = self.w
+            self._data_field['<rho>'] = self.rho
+            self._data_field['<p>'] = self.p
+            self._data_field['<T>'] = self.T
