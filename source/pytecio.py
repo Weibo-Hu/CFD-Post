@@ -25,8 +25,8 @@ Structed_Grid = 0
 
 
 def get_dll():
-    cwd = os.getcwd()
-    dll_path = os.path.dirname(cwd) + os.path.sep + "lib" + os.path.sep
+    cwd = os.path.abspath(__file__)  # os.getcwd()
+    dll_path = os.path.dirname(cwd) + os.path.sep + "../lib" + os.path.sep
     if sys.platform.startswith("win"):
         dll_file = dll_path + "libtecio.dll"
     elif sys.platform.startswith("linux"):
@@ -1211,7 +1211,7 @@ if __name__ == "__main__":
     #     "E:/cases/wavy_0918/TP_fluc_00100056/",
     # )
     # path = '/mnt/work/cases_new/heating2/'
-    path = '/media/weibo/Weibo_data/2023cases/flat/'
+    path = '/media/weibo/Weibo_data/2023cases/cooling2/'
     path1 = path + 'TP_stat/'
     ReadINCAResults(path1, SpanAve=True, SavePath=path, OutFile='TP_data')
 
