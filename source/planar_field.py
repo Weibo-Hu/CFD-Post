@@ -10,7 +10,7 @@ from line_field import LineField
 from timer import timer
 import os
 import plt2pandas as p2p
-import teciolib as pytec
+import pytecio as pytec
 from glob import glob
 import numpy as np
 
