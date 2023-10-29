@@ -222,23 +222,30 @@ for ii in range(num):
     # tp.export.save_jpeg(outfile + '.jpeg', width=2048, quality=100) 
   
     
-# %% load tecplot style
+# %% load tecplot style or macros
 path = '/media/weibo/Weibo_data/2023cases/heating2/'
 p2p.create_folder(path)
 pathF = path + 'Figures/'
-pathin = path + "TP_data_00151168/"
-dirs = glob.glob(pathin + '*.szplt')
-tp.session.start_roaming(10)
+pathall = glob.glob(path + 'TP_data_*/')
 tp.session.connect(port=7600)
-# tp.session.stop()
-dataset = tp.data.load_tecplot_szl(dirs, read_data_option=2)
-soltime = int(dataset.solution_times[0])
-# with tp.session.suspend():
-# tp.session.suspend_enter()
-frame = tp.active_frame()
-tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')  
-frame.load_stylesheet(path + '3d_vorticity_heating.sty')
-tp.export.save_png(path +'test' + '.png', width=2048)
+for i in range(np.size(pathall)):
+    dirs = glob.glob(pathall[i] + '*.szplt')
+    # tp.session.start_roaming(10)  
+    # tp.session.stop()
+    dataset = tp.data.load_tecplot_szl(dirs, read_data_option=2)
+    soltime = np.round(dataset.solution_times[0], 2)
+    # with tp.session.suspend():
+    # tp.session.suspend_enter()
+    frame = tp.active_frame()
+    frame.width = 13
+    frame.height = 8.0
+    frame.position = (-1.0, 0.5)
+    frame.load_stylesheet(path + 'vortex_ani.sty')
+    tp.macro.execute_command('$!Interface ZoneBoundingBoxMode = Off')  
+    tp.macro.execute_command('$!FrameLayout ShowBorder = No')
+    tp.export.save_png(path + str(soltime) + '.png', width=2048)
+# tp.macro.execute_file('/path/to/macro_file.mcr')
+# %% load sty
 # %% generate animation
 # %% Convert plots to animation
 #import imageio
