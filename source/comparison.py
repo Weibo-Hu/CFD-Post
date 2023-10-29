@@ -20,18 +20,21 @@ from glob import glob
 import os
 import sys
 
+from line_field import LineField as lf
 from planar_field import PlanarField as pf
 from triaxial_field import TriField as tf
 
 
-path0 = "/media/weibo/IM2/FFS_M1.7SFD120/"
+path0 = "/media/weibo/Weibo_data/2023cases/flat/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
-path1 = "/media/weibo/IM2/FFS_M1.7LA/"
+path1 = "/media/weibo/Weibo_data/2023cases/heating1/"
 path1F, path1P, path1M, path1S, path1T, path1I = p2p.create_folder(path1)
-path2 = "/media/weibo/IM2/FFS_M1.7HA/"
+path2 = "/media/weibo/Weibo_data/2023cases/heating2/"
 path2F, path2P, path2M, path2S, path2T, path2I = p2p.create_folder(path2)
-path3 = "/media/weibo/IM2/FFS_M1.7TB1/"
+path3 = "/media/weibo/Weibo_data/2023cases/cooling1/"
 path3F, path3P, path3M, path3S, path3T, path3I = p2p.create_folder(path3)
+path4 = "/media/weibo/Weibo_data/2023cases/cooling2/"
+path4F, path4P, path4M, path4S, path4T, path4I = p2p.create_folder(path4)
 pathC = path0 + 'Comparison/'
 
 plt.close("All")
@@ -50,7 +53,7 @@ numsize = 10
 ###
 ###    load data
 ###
-StepHeight = -3.0
+StepHeight = 0
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
 MeanFlow0.add_walldist(StepHeight)
@@ -63,6 +66,9 @@ MeanFlow2.add_walldist(StepHeight)
 MeanFlow3 = pf()
 MeanFlow3.load_meanflow(path3)
 MeanFlow3.add_walldist(StepHeight)
+MeanFlow4 = pf()
+MeanFlow4.load_meanflow(path4)
+MeanFlow4.add_walldist(StepHeight)
 
 # %%############################################################################
 ###
@@ -77,89 +83,103 @@ MeanFlow2.copy_meanval()
 WallFlow2 = MeanFlow2.PlanarData.groupby("x", as_index=False).nth(1)
 MeanFlow3.copy_meanval()
 WallFlow3 = MeanFlow3.PlanarData.groupby("x", as_index=False).nth(1)
+MeanFlow4.copy_meanval()
+WallFlow4 = MeanFlow4.PlanarData.groupby("x", as_index=False).nth(1)
 # WallFlow = WallFlow[WallFlow.x != -0.0078125]
 xwall0 = WallFlow0["x"].values
-mu0 = va.viscosity(13718, WallFlow0["T"])
+mu0 = va.viscosity(10000, WallFlow0["T"])
 Cf0 = va.skinfriction(mu0, WallFlow0["u"], WallFlow0["walldist"]).values
 ind0 = np.where(Cf0[:] < 0.01)
+
 xwall1 = WallFlow1["x"].values
-mu1 = va.viscosity(13718, WallFlow1["T"])
+mu1 = va.viscosity(10000, WallFlow1["T"])
 Cf1 = va.skinfriction(mu1, WallFlow1["u"], WallFlow1["walldist"]).values
 ind1 = np.where(Cf1[:] < 0.01)
+
 xwall2 = WallFlow2["x"].values
-mu2 = va.viscosity(13718, WallFlow2["T"])
+mu2 = va.viscosity(10000, WallFlow2["T"])
 Cf2 = va.skinfriction(mu2, WallFlow2["u"], WallFlow2["walldist"]).values
 ind2 = np.where(Cf2[:] < 0.01)
 
 xwall3 = WallFlow3['x'].values
-mu3 = va.viscosity(13718, WallFlow3["T"])
+mu3 = va.viscosity(10000, WallFlow3["T"])
 Cf3 = va.skinfriction(mu3, WallFlow3["u"], WallFlow3["walldist"]).values
-ind3 = (Cf3 < 0.01) & (xwall3>=-100.0)
+ind3 = (Cf3 < 0.01) 
+
+xwall4 = WallFlow4['x'].values
+mu4 = va.viscosity(10000, WallFlow4["T"])
+Cf4 = va.skinfriction(mu4, WallFlow4["u"], WallFlow4["walldist"]).values
+ind4 = (Cf4 < 0.01)
 # ind3 = np.where(Cf3[:] < 0.01)
 
 # %% Plot streamwise skin friction
-# fig2, ax2 = plt.subplots(figsize=(5, 2.5))
+# fig2, ax2 = plt.subplotsninnnn     (figsize=(5, 2.5))
 fig = plt.figure(figsize=(6.4, 4.7))
 matplotlib.rc("font", size=textsize)
 ax2 = fig.add_subplot(211)
 matplotlib.rc("font", size=textsize)
-ax2.scatter(xwall0[ind0][0::8], Cf0[ind0][0::8], s=10, marker='o',
+ax2.scatter(xwall0[0::8], Cf0[0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
-ax2.plot(xwall1[ind1], Cf1[ind1], "k", linewidth=1.1)
-ax2.plot(xwall2[ind2], Cf2[ind2], "k--", linewidth=1.1)
-ax2.plot(xwall3[ind3], Cf3[ind3], "k:", linewidth=1.5)
-# ax2.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
+ax2.plot(xwall1, Cf1, "r:", linewidth=1.1)
+ax2.plot(xwall2, Cf2, "r-", linewidth=1.1)
+ax2.plot(xwall3, Cf3, "b:", linewidth=1.5)
+ax2.plot(xwall4, Cf4, "b-", linewidth=1.5)
+ax2.set_xlabel(r"$x/l_{ref}$", fontsize=textsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=textsize)
-ax2.set_xlim([-2, 2.0])
+ax2.set_xlim([30, 350])
+ax2.set_xticks(np.arange(30, 351, 40))
 ax2.tick_params(axis='x',          # changes apply to the x-axis
                 which='both',      # both major and minor ticks are affected
-                bottom=True,      # ticks along the bottom edge are off
+                bottom=True,       # ticks along the bottom edge are off
                 top=False,         # ticks along the top edge are off
                 labelbottom=True)  # labels along the bottom edge are off)
-ax2.set_ylim([-0.004, 0.004])
+# ax2.set_ylim([0, 0.0008])
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax2.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
-ax2.grid(b=True, which="both", linestyle=":")
+ax2.grid(visible='both', linestyle=":")
 
 ax2.yaxis.offsetText.set_fontsize(numsize)
 ax2.annotate("(a)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
-# plt.savefig(pathC+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
+plt.savefig(pathC+'Cf.svg', bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
-# % wall pressure / turbulent kinetic energy
+# %% wall pressure / turbulent kinetic energy
 # xwall0 = Flow0['x'].values
-tke0 = np.sqrt(WallFlow0['<p`p`>'].values)
-tke1 = np.sqrt(WallFlow1['<p`p`>'].values)
-tke2 = np.sqrt(WallFlow2['<p`p`>'].values)
-tke3 = np.sqrt(WallFlow3['<p`p`>'].values)
-# fig3, ax3 = plt.subplots(figsize=(6.4, 2.3))
-ax3 = fig.add_subplot(212)
+tke0 = np.sqrt(WallFlow0['<p>'].values)  # <p`p`>
+tke1 = np.sqrt(WallFlow1['<p>'].values)
+tke2 = np.sqrt(WallFlow2['<p>'].values)
+tke3 = np.sqrt(WallFlow3['<p>'].values)
+tke4 = np.sqrt(WallFlow4['<p>'].values)
+fig3, ax3 = plt.subplots(figsize=(6.4, 2.3))
+# ax3 = fig.add_subplot(212)
 matplotlib.rc("font", size=textsize)
 ax3.scatter(xwall0[ind0][0::8], tke0[ind0][0::8], s=10, marker='o',
             facecolors='w', edgecolors='C7', linewidths=0.8)
-ax3.plot(xwall1[ind1], tke1[ind1], "k", linewidth=1.1)
-ax3.plot(xwall2[ind2], tke2[ind2], "k--", linewidth=1.1)
-ax3.plot(xwall3[ind3], tke3[ind3], "k:", linewidth=1.5)
-ax3.set_yscale('log')
-ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
-ylab = r"$p_{\mathrm{rms}}$"  # 
+ax3.plot(xwall1[ind1], tke1[ind1], "r:", linewidth=1.1)
+ax3.plot(xwall2[ind2], tke2[ind2], "r-", linewidth=1.1)
+ax3.plot(xwall3[ind3], tke3[ind3], "b:", linewidth=1.5)
+ax3.plot(xwall4[ind4], tke4[ind4], "b-", linewidth=1.5)
+# ax3.set_yscale('log')
+ax3.set_xlabel(r"$x/l_{ref}$", fontsize=textsize)
+ylab = r"$p/(\rho_\infty u_\infty^2)$"  # r"$p_{\mathrm{rms}}$"  # 
 # ylab=r"$2\sqrt{\langle p^{\prime}p^{\prime} \rangle}/\rho_\infty u^2_\infty$"
 ax3.set_ylabel(ylab, fontsize=textsize)
-ax3.set_xlim([-100.0, 20.0])
-ax3.set_ylim([0.00003, 0.1])
+ax3.set_xlim([30, 350])
+ax3.set_xticks(np.arange(30, 351, 40))
+# ax3.set_ylim([0.00003, 0.1])
 # ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axvline(x=0.0, color="gray", linestyle="--", linewidth=1.0)
 # ax3.axvline(x=11.0, color="gray", linestyle="--", linewidth=1.0)
-ax3.grid(b=True, which="both", linestyle=":")
+ax3.grid(visible='both', linestyle=":")
 ax3.yaxis.offsetText.set_fontsize(numsize)
 ax3.annotate("(b)", xy=(-0.12, 1.04), xycoords='axes fraction',
              fontsize=numsize)
 plt.tick_params(labelsize=numsize)
 plt.subplots_adjust(hspace=0.2)  # adjust space between subplots
-outfile = os.path.join(pathC, 'CfPrms_ffs.svg')
+outfile = os.path.join(pathC, 'Cp.svg')
 plt.savefig(outfile, bbox_inches='tight', pad_inches=0.1)
 plt.show()
 
@@ -171,16 +191,20 @@ plt.show()
 # -- temporal evolution
 fa = 1.0 #1.7*1.7*1.4
 var = 'u'
-lh = 3.0
+lh = 1.0
 dt = 0.25
 peri = np.arange(0.0, 500+0.25, 0.25)
+nms = ['step', 'time', 'u', 'v', 'w', 'p', 'rho', 'T']
 # probe = np.loadtxt(pathI + "ProbeKH.dat", skiprows=1)
 # func = interp1d(probe[:, 1], probe[:, 7])
 # Xk = func(timezone)  # probe[:, 8]
-probe0 = pd.read_csv(path0I + 'Xk1_new.dat', sep=' ',
-                     index_col=False, skipinitialspace=True)
-probe3 = pd.read_csv(path3I + 'Xk1.dat', sep=' ',
-                     index_col=False, skipinitialspace=True)
+probe = lf()
+loc = [28.0, 0, 0]
+probe0 = probe.load_probe(path0P, loc, per=[1140, 1500])
+# probe0 = pd.read_csv(path0I + 'Xk1_new.dat', sep=' ', names=nms,
+#                      index_col=False, skipinitialspace=True)
+# probe3 = pd.read_csv(path3I + 'Xk1.dat', sep=' ', names=nms,
+#                      index_col=False, skipinitialspace=True)
 if np.size(peri) != np.shape(probe0)[0]:
     sys.exit("The NO of peri are not equal to the NO of timespoints!!!")
 Xk0 = probe0[var].values
@@ -217,6 +241,67 @@ plt.tick_params(labelsize=numsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
 plt.savefig(pathC + "XkFWPSD_new1.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
+# %% comparison of probe data
+a = 1.0 #1.7*1.7*1.4
+var = 'u'
+fa = 1.0
+lh = 1.0
+dt = 0.1
+peri = np.arange(0.0, 500+0.25, 0.25)
+nms = ['step', 'time', 'u', 'v', 'w', 'p', 'rho', 'T']
+probe = lf()
+loc = [28.0, 0, 0]
+
+probe0 = probe.load_probe(path0P, loc, per=[1140, 1500])
+# probe1 = probe.load_probe(path1P, loc, per=[1140, 1500])
+probe2 = probe.load_probe(path2P, loc, per=[1140, 1500])
+probe3 = probe.load_probe(path3P, loc, per=[1140, 1500])
+probe4 = probe.load_probe(path4P, loc, per=[1140, 1500])
+
+fig, ax = plt.subplots(figsize=(6.4, 2.2))
+ax.scatter(probe0.time, probe0[var]*fa, s=10, marker='o',
+           facecolors='w', edgecolors='C7', linewidths=0.8)
+
+ax.plot(probe2.time, probe2[var]*fa, "r-", linewidth=0.8)
+ax.plot(probe3.time, probe3[var]*fa, "b:", linewidth=0.8)
+ax.plot(probe4.time, probe4[var]*fa, "b-", linewidth=0.8)
+
+# ax.set_xlim([peri[0]/lh, peri[-1]/lh]) # (950, 1350) # 
+ax.set_xlabel(r"$t_0 u_\infty/h$", fontsize=textsize)
+ax.set_ylabel(r"$u/u_\infty$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+xmean = np.mean(probe0[var]*fa)
+print("The mean value: ", xmean)
+# ax.axhline(y=xmean, color="k", linestyle="--", linewidth=1.0)
+plt.tick_params(labelsize=numsize)
+plt.savefig(pathC + "probe1.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+# -- FWPSD
+fig, ax = plt.subplots(figsize=(2.5, 2.5))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.set_xlabel(r"$f h/u_\infty$", fontsize=textsize)
+ax.set_ylabel(r"$f\mathcal{P}(f)/\mathcal{P}_\mathrm{max}$", fontsize=textsize)
+ax.grid(b=True, which="both", linestyle=":")
+Fre0, FPSD0 = va.fw_psd(
+    probe0[var]*fa, probe0.time.values, 1/dt, opt=1, seg=8, overlap=4)
+Fre2, FPSD2 = va.fw_psd(
+    probe2[var]*fa, probe2.time.values, 1/dt, opt=1, seg=8, overlap=4)
+Fre3, FPSD3 = va.fw_psd(
+    probe3[var]*fa, probe3.time.values, 1/dt, opt=1, seg=8, overlap=4)
+Fre4, FPSD4 = va.fw_psd(
+    probe4[var]*fa, probe4.time.values, 1/dt, opt=1, seg=8, overlap=4)
+ax.semilogx(Fre0*lh, FPSD0/np.max(FPSD0), "k", linewidth=0.8)
+ax.semilogx(Fre2*lh, FPSD2/np.max(FPSD2), "r-", linewidth=0.8)
+ax.semilogx(Fre3*lh, FPSD3/np.max(FPSD3), "b:", linewidth=0.8)
+ax.semilogx(Fre4*lh, FPSD4/np.max(FPSD4), "b-", linewidth=0.8)
+# ax.yaxis.offsetText.set_fontsize(numsize)
+# ax2nd = ax.secondary_xaxis('top', functions=(d2l, l2d))
+# ax2nd.set_xlabel(r'$f x_r / u_\infty$')
+plt.tick_params(labelsize=numsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(pathC + "XkFWPSD_probe1.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
 
 # %%############################################################################
 """
