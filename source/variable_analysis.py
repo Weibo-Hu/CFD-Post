@@ -188,20 +188,35 @@ def alpha3(WallPre):
 
 
 # Obtain nondimensinal dynamic viscosity
-def viscosity(Re_delta, T, law="POW", T_inf=273):
+def viscosity(Re_delta, T, law="POW", T_inf=45):
     # nondimensional T
     if law == "POW":
         mu = 1.0 / Re_delta * np.power(T, 0.75)
     elif law == "Suther":  # Sutherland's law, mu_ref = mu_inf
+        # mu_ref = 0.00001716
+        # T_ref = 273.15 / T_inf
         S = 110.4 / T_inf
-        mu = 1.0 * Re_delta * (1 + S) / (T + S) * np.power(T, 3 / 2)
+        a = (1 + S) / (T + S)
+        mu = 1.0 / Re_delta * a * np.power(T, 3 / 2) 
     elif law == "dim":
         mu_ref = 0.00001716
         T_ref = 273.15
         S = 110.4
         mu = mu_ref * np.power(T / T_ref, 1.5) * (T_ref + S) / (T + S)
-    return mu
+    return(mu)
 
+
+# Obtain the thermal conductivity
+def thermal(viscosity, Pr=0.72, opt=None):
+    gammar = 1.4
+    R = 287.05
+    if opt is None:  # nondimensional
+        k_thermal = viscosity / Pr
+    else:  # dimensional
+        a = gammar * R / (gammar-1) / Pr
+        k_thermal = a * viscosity        
+    return(k_thermal)
+        
 
 # Obtain BL thickness, momentum thickness, displacement thickness
 def bl_thickness(y, u, u_d=None, rho=None, opt=None, up=0.95):
@@ -314,13 +329,23 @@ def curvature_r(df, opt="mean"):
 
 
 # Obtain skin friction coefficency
-def skinfriction(mu, du, dy):
+def skinfriction(mu, du, dy, factor=1):
     # all variables are nondimensional
     if isinstance(dy, np.ndarray):
         dy[np.where(dy == 0.0)] = 1e-8
         print('Warning: there is zero value for dy!!!')
-    Cf = 2 * mu * du / dy
+    Cf = 2 * mu * du / dy * factor
     return Cf
+
+
+# obtain Stanton number 
+def Stanton(k, dT, dy, Tt, Tw, factor=1):
+    if isinstance(dy, np.ndarray):
+        dy[np.where(dy == 0.0)] = 1e-8
+        print('Warning: there is zero value for dy!!!')
+    # Tt = stat2tot(Ma, T_inf, opt='t')
+    St = k * dT / dy / (Tt - Tw) * factor
+    return(St)
 
 
 # Obtain turbulent kinetic energy
