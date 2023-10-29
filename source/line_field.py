@@ -156,8 +156,8 @@ class LineField(object):
     def load_probe(self, path, loc, per=None, varname=None, uniq=None):
         if varname is None:
             varname = ['itstep', 'time', 'u', 'v', 'w',
-                       'rho', 'E', 'p']
-        filename = self.probe_file(path, loc)
+                       'p', 'E', 'rho']
+        filename = self.probe_file(path + '../', loc)
         print('Probe file name:', filename)
         data = pd.read_csv(path + filename, sep=' ',
                            index_col=False, header=None, names=varname,
@@ -173,7 +173,7 @@ class LineField(object):
 
     def extract_series(self, per):
         ind = self._data_field['time'].between(
-            per[0], per[1], inclusive=True)
+            per[0], per[1], inclusive='both')
         data = self._data_field[ind]
         self._data_field = data
         return(data)
