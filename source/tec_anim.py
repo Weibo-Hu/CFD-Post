@@ -223,7 +223,7 @@ for ii in range(num):
   
     
 # %% load tecplot style or macros
-path = '/media/weibo/Weibo_data/2023cases/heating2/'
+path = '/media/weibo/Weibo_data/2023cases/flat/'
 p2p.create_folder(path)
 pathF = path + 'Figures/'
 pathall = glob.glob(path + 'TP_data_*/')
@@ -245,24 +245,19 @@ for i in range(np.size(pathall)):
     tp.macro.execute_command('$!FrameLayout ShowBorder = No')
     tp.export.save_png(path + str(soltime) + '.png', width=2048)
 # tp.macro.execute_file('/path/to/macro_file.mcr')
-# %% load sty
-# %% generate animation
-# %% Convert plots to animation
-#import imageio
-#from glob import glob
-#import numpy as np
-#from natsort import natsorted, ns
-#path = "/media/weibo/IM1/BFS_M1.7Tur/3D_DMD_1200/"
-#freq = "0p0755"
-#pathout = path + freq + "_ani/"
-#file = '[' + freq + ']DMD'
-#dirs = glob(pathout + '[0p*.png')
-#dirs = natsorted(dirs, key=lambda y: y.lower())
-#flnm = path + file + '_Anima.mp4'
-#with imageio.get_writer(flnm, mode='I', fps=12,
-#                        macro_block_size=None) as writer:   
-#    for ii in range(np.size(dirs)*6):
-#        ind = ii % 32  # mod, get reminder
-#        image = imageio.imread(dirs[ind])
-#        writer.append_data(image)
-#    writer.close()
+
+# %% load tecplot style or macros
+import imageio
+from glob import glob
+import numpy as np
+from natsort import natsorted, ns
+pathin = path + "ani/"
+dirs = glob(pathin + '*.png')
+dirs = natsorted(dirs, key=lambda y: y.lower())
+flnm = pathin + 'Anima.mp4'
+with imageio.get_writer(flnm, mode='I', fps=8) as writer:   
+    for ii in range(np.size(dirs)*6):
+        ind = ii % np.size(dirs)  # mod, get reminder
+        image = imageio.imread(dirs[ind])
+        writer.append_data(image)
+    writer.close()

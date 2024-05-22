@@ -21,9 +21,12 @@ from glob import glob
 import matplotlib.pyplot as plt
 import matplotlib
 from scipy import signal
+from line_field import LineField as lf
 
+# get_ipython().run_line_magic("matplotlib", "qt")
 # %% set path and basic parameters
-path = "/media/weibo/Weibo_data/2023cases/heating2/"
+# path = "/media/weibo/Weibo_data/2023cases/heating2/"
+path = "/media/weibo/Weibo_data/2023cases/cooling1/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -65,23 +68,24 @@ lh = 1.0
 MeanFlow.rescale(lh)
 MeanFlow.copy_meanval()
 df = MeanFlow.PlanarData
-var = "T"
+var = "p"
 x, y = np.meshgrid(np.unique(df.x), np.unique(df.y))
 varval = griddata((df.x, df.y), df[var], (x, y))
 walldist = griddata((df.x, MeanFlow.y), df.walldist, (x, y))
 print("rho_max=", np.max(varval))
 print("rho_min=", np.min(varval))
-cval1 = 1.0  # 1.0 # 0.1
-cval2 = 6.7  # 7.0  # 1.0
+cval1 = 0.018  # 1.0 # 0.1 # 0.018
+cval2 = 0.021 # 7.0  # 1.0 # 0.020
+# %%
 fig, ax = plt.subplots(figsize=(8, 2.5))  # 7.3  2.3
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 21)
 cbar = ax.contourf(x, y, varval, cmap="rainbow", levels=rg1, extend="both")
 # ax.contour(x, y, u, levels=[0.0], linestyles="dotted")  # rainbow_r
 ax.set_xlim(20, 360)
-ax.set_ylim(np.min(y), 10.0)
+ax.set_ylim(np.min(y), 15.0)
 # ax.set_xticks(np.linspace(20, 360, 8))
-ax.set_yticks(np.linspace(np.min(y), 10.0, 5))
+ax.set_yticks(np.linspace(np.min(y), 15.0, 6))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontsize=tsize)
 ax.set_ylabel(r"$y$", fontsize=tsize)
@@ -108,6 +112,8 @@ if var == "u":
     lab = r"$\langle u \rangle/u_{\infty}$"
 if var == "T":
     lab = r"$\langle T \rangle/T_{\infty}$"
+if var == "p":
+    lab = r"$\langle p \rangle/ (\rho_\infty u_{\infty}^2)$"
 cbar.set_label(lab, rotation=0, fontsize=tsize - 1)
 # Add boundary layer
 boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
@@ -121,18 +127,18 @@ plt.show()
 
 # %% root mean square
 df = MeanFlow.PlanarData
-var = 'rms_w'
-if var == 'rms_u':
-    varnm = '<u`u`>'
+var = "rms_w"
+if var == "rms_u":
+    varnm = "<u`u`>"
     lab = r"$\sqrt{\langle u^\prime u^\prime \rangle}$"
-if var == 'rms_v':
-    varnm = '<v`v`>'
+if var == "rms_v":
+    varnm = "<v`v`>"
     lab = r"$\sqrt{\langle v^\prime v^\prime \rangle}$"
-if var == 'rms_w':
-    varnm = '<w`w`>'
+if var == "rms_w":
+    varnm = "<w`w`>"
     lab = r"$\sqrt{\langle w^\prime w^\prime \rangle}$"
-if var == 'rms_p':
-    varnm = '<p`p`>'
+if var == "rms_p":
+    varnm = "<p`p`>"
     lab = r"$\sqrt{\langle p^\prime p^\prime \rangle}$"
 var_val = getattr(df, varnm)
 uu = griddata((df.x, MeanFlow.y), var_val, (x, y))
@@ -144,7 +150,12 @@ cb1 = 0.0
 cb2 = 0.1
 rg1 = np.linspace(cb1, cb2, 21)  # 21)
 cbar = ax.contourf(
-    x / lh, y / lh, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1, extend="both"
+    x / lh,
+    y / lh,
+    np.sqrt(np.abs(uu)),
+    cmap="Spectral_r",
+    levels=rg1,
+    extend="both",
 )  # rainbow_r # jet # Spectral_r
 ax.set_xlim(20, 360.0)
 ax.set_ylim(np.min(y), 10.0)
@@ -197,7 +208,7 @@ xcoord = np.array([20, 34, 53, 71.5, 82, 95, 200, 280, 340])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df["walldist"]
-    q0 = df["u"]
+    q0 = df["T"]
     if xcoord[i] == 0.0:
         ind = np.where(y0 >= 0.0)[0]
         ax[i].plot(q0[ind], y0[ind], "k-")
@@ -209,26 +220,26 @@ for i in range(np.size(xcoord)):
     if i != 0:
         ax[i].set_yticklabels("")
         ax[i].set_title(r"${}$".format(xcoord[i]), fontsize=nsize - 2)
-    ax[i].set_xticks([0, 0.5, 1], minor=True)
+    # ax[i].set_xticks([0, 0.5, 1], minor=True)
     ax[i].tick_params(axis="both", which="major", labelsize=nsize)
     ax[i].grid(visible=True, which="both", linestyle=":")
 ax[0].set_title(r"$x={}$".format(xcoord[0]), fontsize=nsize - 2)
 ax[0].set_ylabel(r"$y$", fontsize=tsize)
 ax[4].set_xlabel(r"$u /u_\infty$", fontsize=tsize)
 plt.tick_params(labelsize=nsize)
-plt.savefig(pathF + "BLProfile.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "BLProfileT.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% Cf and Cp curves
 WallFlow = MeanFlow.PlanarData.groupby("x", as_index=False).nth(1)
 # if there is duplicate points
-if np.size(np.unique(WallFlow["y"])) > 2:  
+if np.size(np.unique(WallFlow["y"])) > 2:
     maxy = np.max(WallFlow["y"])
     WallFlow = WallFlow.drop(WallFlow[WallFlow["y"] == maxy].index)
 mu = va.viscosity(10000, WallFlow["T"], T_inf=45, law="Suther")
 Cf = va.skinfriction(mu, WallFlow["u"].values, WallFlow["walldist"].values)
-# low-pass filter 
-b, a = signal.butter(6, Wn=1/12, fs=1/0.125)
+# low-pass filter
+b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.125)
 Cf_fit = signal.filtfilt(b, a, Cf)
 # ind = np.where(Cf[:] < 0.008)
 fig2, ax2 = plt.subplots(figsize=(8, 2.5), dpi=500)
@@ -254,7 +265,7 @@ plt.show()
 
 # %% Cp
 Ma = 6.0
-fa = 1.0 # Ma * Ma * 1.4
+fa = 1.0  # Ma * Ma * 1.4
 p_fit = signal.filtfilt(b, a, WallFlow["p"] * fa)
 fig3, ax3 = plt.subplots(figsize=(8, 2.5), dpi=500)
 # ax3 = fig.add_subplot(212)
@@ -275,14 +286,20 @@ plt.savefig(pathF + "Cp.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 
-# %% Stanton number 
-Tt = va.stat2tot(Ma=6.0, Ts=45, opt='t') / 45
-Tw = 6.667
+# %% Stanton number
+WallFlow0 = MeanFlow.PlanarData.groupby("x", as_index=False).nth(0)
+Tt = va.stat2tot(Ma=6.0, Ts=45, opt="t") / 45
 mu = va.viscosity(10000, WallFlow["T"], T_inf=45, law="Suther")
 kt = va.thermal(mu, 0.72)
-Cs = va.Stanton(kt, WallFlow["T"].values, WallFlow["walldist"].values, Tt, Tw)
-# low-pass filter 
-b, a = signal.butter(6, Wn=1/12, fs=1/0.125)
+Cs = va.Stanton(
+    kt,
+    WallFlow["T"].values,
+    WallFlow0["T"].values,
+    WallFlow["walldist"].values,
+    Tt,
+)
+# low-pass filter
+b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.125)
 Cs_fit = signal.filtfilt(b, a, Cs)
 # ind = np.where(Cf[:] < 0.008)
 fig2, ax2 = plt.subplots(figsize=(8, 2.5), dpi=500)
@@ -305,6 +322,73 @@ ax2.annotate("(a)", xy=(-0.09, 1.0), xycoords="axes fraction", fontsize=nsize)
 plt.tick_params(labelsize=nsize)
 plt.savefig(pathF + "Cs.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
+# %%############################################################################
+"""
+    temporal evolution of signals along an axis
+"""
+# %% Time evolution of a specific variable at several streamwise locations
+probe = lf()
+lh = 1.0
+fa = 1.0
+var = 'u'
+ylab = r"$u^\prime/u_\infty$"
+if var == 'p':
+    fa = 6.0 * 6.0 * 1.4
+    ylab = r"$p^\prime/p_\infty$"
+timezone = np.arange(700, 1999 + 0.125, 0.125)
+xloc = [20, 60, 90, 160, 348]# [-50.0, -30.0, -20.0, -10.0, 4.0]
+yloc = [0, 0, 0, 0, 0]
+zloc = 0.0
+fig, ax = plt.subplots(np.size(xloc), 1, figsize=(6.4, 5.6))
+fig.subplots_adjust(hspace=0.6, wspace=0.15)
+matplotlib.rc('font', size=nsize)
+matplotlib.rcParams['xtick.direction'] = 'in'
+matplotlib.rcParams['ytick.direction'] = 'in'
+for i in range(np.size(xloc)):
+    probe.load_probe(pathP, (xloc[i], yloc[i], zloc))
+    probe.rescale(lh)
+    probe.extract_series([timezone[0], timezone[-1]])
+    temp = (getattr(probe, var) - np.mean(getattr(probe, var))) * fa
+    ax[i].plot(probe.time, temp, 'k')
+    ax[i].ticklabel_format(axis='y', style='sci',
+                           useOffset=False, scilimits=(-2, 2))
+    ax[i].set_xlim([timezone[0], timezone[-1]])
+    # ax[i].set_ylim([-0.001, 0.001])
+    if i != np.size(xloc) - 1:
+        ax[i].set_xticklabels('')
+    ax[i].set_ylabel(ylab, fontsize=tsize)
+    ax[i].grid(visible=True, which='both', linestyle=':')
+    ax[i].set_title(r'$x/\delta_0={}$'.format(xloc[i]), fontsize=nsize - 1)
+ax[-1].set_xlabel(r"$t u_\infty/\delta_0$", fontsize=tsize)
+
+plt.savefig(pathF + var + '_TimeEvolveX' + str(zloc) + '.svg',
+            bbox_inches='tight')
+plt.show()
+
+# %%############################################################################
+"""
+    streamwise evolution of signals along an axis
+"""
+# %% Streamwise evolution of a specific variable
+df = pd.read_hdf(path + 'TP_fluc_00643627_01892.h5')
+wall = df.groupby("x", as_index=False).nth(1)
+fa = 1.0  # 1.7 * 1.7 * 1.4
+var = 'p`'
+meanval = np.mean(wall[var])
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+matplotlib.rc('font', size=nsize)
+ax.plot(wall.x, wall[var]-meanval, 'k')
+ax.set_xlim([0, 360.0])
+# ax.set_ylim([-0.001, 0.001])
+ax.set_xlabel(r'$x/\delta_0$', fontsize=tsize)
+ax.set_ylabel(r'$2p^\prime/\rho_\infty u_\infty^2$', fontsize=tsize)
+ax.ticklabel_format(axis='y', style='sci',
+                    useOffset=False, scilimits=(-2, 2))
+ax.grid(visible='both', linestyle=':')
+plt.show()
+plt.savefig(pathF + var + '_streamwise.svg',
+            bbox_inches='tight', pad_inches=0.1)
+
 # %% animation for vortex structure
 pathF = path + "Figures/"
 pathall = glob(path + "TP_data_*/")
