@@ -20,7 +20,7 @@ from line_field import LineField as lf
 # -- data path settings
 # path = "/media/weibo/IM2/FFS_M1.7SFD120/"
 #path = 'E:/cases/wavy_1009/'
-path='/mnt/work/cases/wavy_1009/'
+path = '/media/weibo/Weibo_data/2023cases/heating2/'
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -42,47 +42,7 @@ matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 13
 numsize = 10
 
-# %%############################################################################
-"""
-    temporal evolution of signals along an axis
-"""
-# %% Time evolution of a specific variable at several streamwise locations
-probe = lf()
-lh = 1.0
-fa = 1.0
-var = 'u'
-ylab = r"$u^\prime/u_\infty$"
-if var == 'p':
-    fa = 6.0 * 6.0 * 1.4
-    ylab = r"$p^\prime/p_\infty$"
-timezone = np.arange(1750, 2000 + 0.125, 0.125)
-xloc = [10, 54.25, 96.25, 160, 380]# [-50.0, -30.0, -20.0, -10.0, 4.0]
-yloc =  [0.0, 0.0, 0.0, 0.0, 0.0]
-zloc = 0.0
-fig, ax = plt.subplots(np.size(xloc), 1, figsize=(6.4, 5.6))
-fig.subplots_adjust(hspace=0.6, wspace=0.15)
-matplotlib.rc('font', size=numsize)
-matplotlib.rcParams['xtick.direction'] = 'in'
-matplotlib.rcParams['ytick.direction'] = 'in'
-for i in range(np.size(xloc)):
-    probe.load_probe(pathP, (xloc[i], yloc[i], zloc))
-    probe.rescale(lh)
-    probe.extract_series([timezone[0], timezone[-1]])
-    temp = (getattr(probe, var) - np.mean(getattr(probe, var))) * fa
-    ax[i].plot(probe.time, temp, 'k')
-    ax[i].ticklabel_format(axis='y', style='sci',
-                           useOffset=False, scilimits=(-2, 2))
-    ax[i].set_xlim([timezone[0], timezone[-1]])
-    # ax[i].set_ylim([-0.001, 0.001])
-    if i != np.size(xloc) - 1:
-        ax[i].set_xticklabels('')
-    ax[i].set_ylabel(ylab, fontsize=textsize)
-    ax[i].grid(b=True, which='both', linestyle=':')
-    ax[i].set_title(r'$x/\delta_0={}$'.format(xloc[i]), fontsize=numsize - 1)
-ax[-1].set_xlabel(r"$t u_\infty/\delta_0$", fontsize=textsize)
-plt.show()
-plt.savefig(pathF + var + '_TimeEvolveX' + str(zloc) + '.svg',
-            bbox_inches='tight')
+
 
 # %%############################################################################
 """
@@ -93,7 +53,7 @@ probe = lf()
 fa = 1.0  # 1.7 * 1.7 * 1.4
 var = 'u'
 timeval = 0.18000284E+04  # 0.60000985E+03 #
-xloc = np.arange(0.0, 400.0, 5.0)
+xloc = np.arange(0.0, 360.0, 4.0)
 yloc = 0.0
 zloc = 0.0
 var_val = np.zeros(np.size(xloc))
@@ -101,6 +61,9 @@ for i in range(np.size(xloc)):
     probe.load_probe(pathP, (xloc[i], yloc, zloc))
     meanval = getattr(probe, var + '_m')
     var_val[i] = (probe.extract_point(timeval)[var] - meanval) * fa
+    # probe.extract_series([600, 1000])
+    # temp = (getattr(probe, var) - np.mean(getattr(probe, var))) * fa
+    var_val[i] = temp
 # %%
 fig, ax = plt.subplots(figsize=(6.4, 2.8))
 matplotlib.rc('font', size=numsize)
@@ -146,8 +109,8 @@ var = 'p'
 
 probe = lf()
 x0 = 160
-t1, t2 = [1750, 2000]
-probe.load_probe(pathP, (x0, 0.0, 0.0))
+t1, t2 = [1000, 2000]
+probe.load_probe(pathP, (x0, 0.015625, 0.0))
 probe.extract_series((t1, t2))
 freq, fpsd = va.fw_psd(getattr(probe, var), probe.time, freq_samp,
                        opt=1, seg=8, overlap=4)
@@ -225,9 +188,9 @@ matplotlib.rc('font', size=numsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
-xcoord = np.array([10, 54.25, 96.25, 120, 160, 260, 380])
-ycoord = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-pow_arr = [-7, -8, -8, -7, -7, -7, -7] # [-7, -7, -6, -5, -4, -5, -5]
+xcoord = np.array([10, 50.25, 92.25, 120, 160, 260, 350])
+ycoord = np.array([0.015625, -1.03125, -0.59375, 0.015625, 0.015625, 0.015625, 0.015625])
+pow_arr = [-7, -6, -6, -7, -6, -4, -5] # [-7, -7, -6, -5, -4, -5, -5]
 for i in range(np.size(xcoord)):
     probe.load_probe(pathP, (xcoord[i], ycoord[i], 0.0))
     probe.extract_series((t1, t2))
@@ -279,7 +242,7 @@ for i in range(np.size(xcoord)):
     # ax[i].set_xlim(left=0)
     # ax[i].set_xticklabels('')
     # ax[i].tick_params(axis='both', which='major', labelsize=numsize)
-    ax[i].grid(b=True, which="both", axis='y', linestyle=":")
+    ax[i].grid(visible=True, which="both", axis='y', linestyle=":")
 ax[0].spines['right'].set_visible(False)
 ax[0].ticklabel_format(axis='x', style='sci', scilimits=(-2, 2))
 # ax[0].set_xticklabels([r'$10^{-8}$','',r'$10^{-6}$','', r'$10^{-4}$'])
@@ -298,19 +261,19 @@ plt.savefig(
     intermittency factor
 """
 # %% Compute intermittency factor
-probe.load_probe(pathP, (0.0, 0.0, 0.0))
-xzone = np.linspace(00.0, 400.0, 41)
+probe.load_probe(pathP, (0.0, 0.015625, 0.0))
+xzone = np.arange(0.0, 360.0, 5.0)
 gamma = np.zeros(np.size(xzone))
 alpha = np.zeros(np.size(xzone))
 sigma = np.std(probe.p)
 p0 = probe.p
-t1 = 1750
+t1 = 1000
 t2 = 2000
 for j in range(np.size(xzone)):
     if xzone[j] <= 0.0:
-        probe.load_probe(pathP, (xzone[j], 0.0, 0.0))
+        probe.load_probe(pathP, (xzone[j], 0.015625, 0.0))
     else:
-        probe.load_probe(pathP, (xzone[j], 0.0, 0.0))
+        probe.load_probe(pathP, (xzone[j], 0.015625, 0.0))
     probe.extract_series((t1, t2))
     gamma[j] = va.intermittency(sigma, p0, probe.p, probe.time)
     alpha[j] = va.alpha3(probe.p)
