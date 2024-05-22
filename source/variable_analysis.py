@@ -148,6 +148,18 @@ def mean_var(opt):
     return (varlist, equ)
 
 
+def add_variable(df, wavy, nms=None):
+    if nms is None:
+        nms = ["p", "T", "u", "v", "walldist"]
+    for i in range(np.size(nms)):
+        wavy[nms[i]] = griddata(
+            (df.x, df.y), df[nms[i]],
+            (wavy.x, wavy.y),
+            method="cubic",
+        )     
+    return(wavy)
+
+
 def intermittency(sigma, Pressure0, WallPre, TimeZone):
     """Obtain intermittency factor from pressure
 
@@ -328,25 +340,111 @@ def curvature_r(df, opt="mean"):
     return radius
 
 
+def dist(wav_seg, path):
+    dxdy = np.gradient(wav_seg['y'], wav_seg['x'])
+    ang = np.arctan(dxdy)
+    wav_seg['ut'] = wav_seg['u'] * np.cos(ang) + wav_seg['v'] * np.sin(ang)
+    # normal distance
+    wall = pd.read_csv(path + "WallBoundary.dat", skipinitialspace=True)
+    wavval = wav_seg[['x', 'y']].values
+    dim = np.shape(wav_seg)[0]
+    dist = np.zeros(dim)
+    for i in range(dim):
+        dist[i] = np.min(np.linalg.norm(wavval[i] - wall, axis=1)) 
+    return(wav_seg, dist)   
+
+
 # Obtain skin friction coefficency
 def skinfriction(mu, du, dy, factor=1):
     # all variables are nondimensional
     if isinstance(dy, np.ndarray):
-        dy[np.where(dy == 0.0)] = 1e-8
-        print('Warning: there is zero value for dy!!!')
+        if(np.size(np.where(dy == 0.0)) > 0):
+            dy[np.where(dy == 0.0)] = 1e-8
+            print('Warning: there is zero value for dy!!!')
     Cf = 2 * mu * du / dy * factor
     return Cf
 
 
+def skinfric_wavy(path, wavy, Re, T_inf, wall_val):
+    # wavy = pd.read_csv(path + "FirstLev.dat", skipinitialspace=True)
+    # nms = ["p", "T", "u", "v"]
+    # for i in range(np.size(nms)):
+    #     wavy[nms[i]] = griddata(
+    #         (df.x, df.y), df[nms[i]],
+    #         (wavy.x, wavy.y),
+    #         method="cubic",
+    #     )
+    # skin friction for a flat plate    
+    mu = viscosity(Re, wavy["T"], law="Suther", T_inf=T_inf)
+    Cf = skinfriction(mu, wavy["u"].values, wavy["y"].values)
+    # skin friction for a wavy wall
+    ind = wavy.index[wavy["y"] < wall_val]
+    wav_seg = wavy.iloc[ind]
+    # tangential velocity
+    dxdy = np.gradient(wav_seg['y'], wav_seg['x'])
+    ang = np.arctan(dxdy)
+    wav_seg['ut'] = wav_seg['u'] * np.cos(ang) + wav_seg['v'] * np.sin(ang)
+    
+    # normal distance
+    wall = pd.read_csv(path + "WallBoundary.dat", skipinitialspace=True)
+    wavval = wav_seg[['x', 'y']].values
+    dim = np.shape(wav_seg)[0]
+    dist = np.zeros(dim)
+    for i in range(dim):
+        dist[i] = np.min(np.linalg.norm(wavval[i] - wall, axis=1))
+    mu = viscosity(Re, wav_seg["T"], law="Suther", T_inf=T_inf)
+    Cf2 = skinfriction(mu, wav_seg["ut"], dist).values
+    Cf[ind] = Cf2
+    return(wavy.x.values, Cf.values)
+
+
 # obtain Stanton number 
-def Stanton(k, dT, dy, Tt, Tw, factor=1):
+def Stanton(k, dT, Tw, dy, Tt, factor=1):
     if isinstance(dy, np.ndarray):
-        dy[np.where(dy == 0.0)] = 1e-8
-        print('Warning: there is zero value for dy!!!')
+        if(np.size(np.where(dy == 0.0)) > 0):
+            dy[np.where(dy == 0.0)] = 1e-8
+            print('Warning: there is zero value for dy!!!')
     # Tt = stat2tot(Ma, T_inf, opt='t')
-    St = k * dT / dy / (Tt - Tw) * factor
+    St = - k * (dT - Tw) / dy / (Tt - Tw) * factor
     return(St)
 
+
+def Stanton_wavy(path, wavy, Re, T_inf, T_wall, wall_val):
+    # wavy = pd.read_csv(path + "FirstLev.dat", skipinitialspace=True)
+    # nms = ["p", "T", "u", "v", "walldist"]
+    # for i in range(np.size(nms)):
+    #     wavy[nms[i]] = griddata(
+    #         (df.x, df.y), df[nms[i]],
+    #         (wavy.x, wavy.y),
+    #         method="cubic",
+    #     )
+    # skin friction for a flat plate   
+    Tt = stat2tot(Ma=6.0, Ts=T_inf, opt="t") / 45
+    mu = viscosity(Re, wavy["T"], T_inf=T_inf, law="Suther")
+    kt = thermal(mu, 0.72)
+    Cs = Stanton(
+        kt,
+        wavy["T"].values,
+        T_wall,
+        wavy["walldist"].values,
+        Tt,
+    ) 
+
+    # skin friction for a wavy wall
+    ind = wavy.index[wavy["y"] < wall_val]
+    wav_seg = wavy.iloc[ind]
+    wav_seg, wall_dist = dist(wav_seg, path)
+    mu = viscosity(10000, wav_seg["T"], T_inf=T_inf, law="Suther")
+    kt = thermal(mu, 0.72)
+    Cs2 = Stanton(
+        kt,
+        wav_seg["T"].values,
+        6.66,
+        wall_dist,
+        Tt,
+    ) 
+    Cs[ind] = Cs2
+    return(wavy.x.values, Cs.values)
 
 # Obtain turbulent kinetic energy
 def tke(df):
@@ -1149,15 +1247,10 @@ def wall_line(dataframe, path, mask=None, val=0.0):
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
         xycor = np.vstack((xycor, xy))
-    np.savetxt(
-        path + "WallBoundary.dat",
-        xycor,
-        fmt="%.8e",
-        delimiter=", ",
-        comments="",
-        header=header,
-    )
-    return(xycor)
+    onelev = pd.DataFrame(data=xycor, columns=["x", "y"])
+    onelev.drop_duplicates(subset='x', keep='first', inplace=True)
+    onelev.to_csv(path + "WallBoundary.dat", index=False, float_format="%9.8e")
+    return(onelev.values)
 
 
 def dividing_line(dataframe, path=None, loc=-0.015625, show=False, mask=None):
@@ -1281,7 +1374,7 @@ def boundary_edge(
     if mask is True:
         corner = (x > 0.0) & (y < 3.0)
         u[corner] = np.nan
-    header = "x, y"
+    # header = "x, y"
     fig, ax = plt.subplots(figsize=(10, 4))
     cs = ax.contour(x, y, u, levels=[0.99],
                     linewidths=1.5, linestyles="--", colors="k")
@@ -1290,14 +1383,11 @@ def boundary_edge(
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
         xycor = np.vstack((xycor, xy))
-    np.savetxt(
-        path + "BoundaryEdge.dat",
-        xycor,
-        fmt="%9.6f",
-        delimiter=", ",
-        comments="",
-        header=header,
-    )
+
+    wall = pd.DataFrame(data=xycor, columns=["x", "y"])
+    wall.drop_duplicates(subset='x', keep='first', inplace=True)
+    wall.to_csv(path + "BoundaryEdge.dat", index=False, float_format="%9.8e")
+    return(wall.values)
 
 
 def bubble_area(
