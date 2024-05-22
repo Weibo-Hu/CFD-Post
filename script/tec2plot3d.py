@@ -20,16 +20,16 @@ def csv2plot3d(path, filenm, vars, option='2d', input_nm=None, skip=1):
     ext_nm = os.path.splitext(filenm)[-1]
     if input_nm is None:
         if ext_nm == '.dat':
-            data = pd.read_csv(path + filenm, sep=',', index_col=False)
+            data = pd.read_csv(path + filenm, sep=',', skipinitialspace=True, index_col=False)
         if ext_nm == '.h5':
             data = pd.read_hdf(path + filenm, index_col=False)
     else:
         if ext_nm == '.dat':
             data = pd.read_csv(path + filenm, sep=',', index_col=False,
-                               header=0, names=input_nm)
+                               header=None, names=input_nm)
         if ext_nm == '.h5':
             data = pd.read_hdf(path + filenm, index_col=False,
-                               header=0, names=input_nm)            
+                               header=None, names=input_nm)            
     grid = 'grid.xyz'
     solu = 'uvw3D.q'
     xa = np.unique(data['x'])[::skip]
@@ -93,9 +93,14 @@ def create_meanval(path, filenm):
 if __name__ == "__main__":
     # path = 'E:/cases/'
     # filenm = 'slice_3d.dat'
-    path = 'E:/cases/flat_base/'  
-    create_meanval(path + 'MeanFlow/', 'MeanFlow.h5')
-    filenm = 'MeanFlow/MeanFlow.h5'
+    path = 'D:/cases/flat_plate_last/'
+    meanflow = False
+    if meanflow is True:  
+        create_meanval(path + 'MeanFlow/', 'MeanFlow.h5')
+        filenm = 'MeanFlow/MeanFlow.h5'
+    else:
+        filenm = 'MeanFlow.dat'
     nms = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T']
     vars = ['rho', 'u', 'v', 'w', 'T', 'p']
-    csv2plot3d(path, filenm, vars, option='2d', input_nm=nms, skip=4)
+    # csv2plot3d(path, filenm, vars, option='2d', input_nm=nms, skip=4)
+    csv2plot3d(path, filenm, vars, option='2d', skip=4)

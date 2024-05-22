@@ -24,11 +24,23 @@ def total_pressure(ps, Ma, gamma=1.4):
     p_t = ps*np.power(a1, b1)
     return(p_t)
 
+
+def static_pressure(rho, Ts, R_c=287):
+    p_s = rho*R_c*Ts
+    return(p_s)
+
+
 def total_temperature(Ts, Ma, gamma=1.4):
     a1 = 1 + (gamma -1)/2*Ma**2
     # b1 = gamma/(gamma-1)
     T_t = Ts*a1
     return(T_t)
+
+def static_temperature(Tt, Ma, gamma=1.4):
+    a1 = 1 + (gamma -1)/2*Ma**2
+    # b1 = gamma/(gamma-1)
+    T_s = Tt/a1
+    return(T_s)
 
 def velocity(Ma, Ts, gamma=1.4, R_c=287):
     u_inf = Ma*np.sqrt(gamma*R_c*Ts)
@@ -42,11 +54,6 @@ def rho(Re, Ma, Ts, gamma=1.4, R_c=287):
     print(u_inf)
     rho = Re*miu_s/u_inf
     return(rho)
-
-
-def static_pressure(rho, Ts, R_c=287):
-    p_s = rho*R_c*Ts
-    return(p_s)
 
 
 def x_inlet(delta, opt='tur'):
@@ -98,14 +105,20 @@ def fre2omega(Ma, Ts, fre, l_ref):
     return (omega)
 
 # %%
-Ma = 4.5
-Re_inf = 7.2*1e6
-delta = 2.5  # unit: mm
-Tw = 260.6
-Ts = 65.15
+Ma = 6.0
+Re_inf = 7.736*1e6
+Ts = 86.6
+
+delta = 1.0  # unit: mm
+Tw = 303.1
+
 R_c = 287
 x_in = x_inlet(delta=delta/1000)  # unit: m
 Re_x = x_in * Re_inf
+
+omega2fre(6.0, 45, 0.7, 0.001)
+
+Tt = total_temperature(Ts, Ma, gamma=1.4)
 
 miu = sutherland(Ts)
 rho_inf = rho(Re_inf, Ma, Ts)
@@ -114,7 +127,7 @@ ps = static_pressure(rho_inf, Ts)
 pt = total_pressure(ps, Ma)
 
 rho_w = ps/R_c/Tw
-Cf =  C_f(Re_inf, delta, opt='lam')
+Cf =  C_f(Re_inf, delta, opt='tur')
 u_t = u_tau(Cf, rho_inf, u_inf, rho_w)
 dy = Delta_y(Cf, Ts, rho_inf, u_inf, rho_w, y_plus=1)
 print('dy=',dy)

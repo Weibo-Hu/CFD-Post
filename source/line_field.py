@@ -175,11 +175,14 @@ class LineField(object):
         ind = self._data_field['time'].between(
             per[0], per[1], inclusive='both')
         data = self._data_field[ind]
+        data = data.round({'time':3})
+        data = data.drop_duplicates(subset=['time'], keep='last')
+        data = data.sort_values(by=['time'])
         self._data_field = data
         return(data)
 
     def extract_point(self, val):
-        ind = (self._data_field['time'] - val).abs().argsort()[:1]
+        ind = (self._data_field['time'] - val).abs().argsort().loc[:1]
         df = self._data_field.iloc[ind]
         return(df)
         

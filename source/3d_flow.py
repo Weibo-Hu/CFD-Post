@@ -34,7 +34,7 @@ plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 cm2in = 1 / 2.54
 # %%
-path = "/mnt/work/cases/wavy_1009/"
+path = "/media/weibo/Weibo_data/2023cases/cooling2/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -77,10 +77,10 @@ corner = corner1 | corner2
 va.wall_line(MeanFlow.PlanarData, pathM, mask=corner)
 # %% check mesh
 temp = MeanFlow.PlanarData  # [["x", "y"]]
-df = temp.query("x>=00.0 & x<=130.0 & y>=-3.0 & y<=10.0")
+df = temp.query("x>=20.0 & x<=350.0 & y>=0.0 & y<=6.0")
 # df = temp.query("x>=-5.0 & x<=10.0 & y>=-3.0 & y<=2.0")
-ux = np.unique(df.x)
-uy = np.unique(df.y)
+ux = np.unique(df.x)[::10]
+uy = np.unique(df.y)[::5]
 fig, ax = plt.subplots(figsize=(9.0, 3.2))
 matplotlib.rc("font", size=tsize)
 for i in range(np.size(ux)):
@@ -98,6 +98,10 @@ ax.set_ylim(np.min(df.y), np.max(df.y))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontsize=tsize)
 ax.set_ylabel(r"$y$", fontsize=tsize)
+plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
+plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
+plt.show()
+# %%
 # wavy = temp.loc[np.round(temp['walldist'], 3) == 0.001]
 wavy = pd.read_csv(pathM + "wavy.dat", skipinitialspace=True)
 ax.plot(wavy["x"], wavy["y"], "b--", linewidth=1.5)
@@ -111,7 +115,7 @@ ax.scatter(
     edgecolor="red",
 )
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-# plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
+plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
 plt.show()
 
 # %% dividing streamline
@@ -172,12 +176,12 @@ plt.close("All")
 MeanFlow.copy_meanval()
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 var = "u"
-lh = 3.0
+lh = 1.0
 u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
 walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y), method="cubic")
-cover1 = walldist < 0.0  # np.where(walldist[:,:] < 0.0)
-cover = cover1 | corner
-u = np.ma.array(u, mask=cover)  # mask=cover
+# cover1 = walldist < 0.0  # np.where(walldist[:,:] < 0.0)
+# cover = cover1 | corner
+# u = np.ma.array(u, mask=cover)  # mask=cover
 # u[cover] = np.ma.masked
 print("u_max=", np.max(MeanFlow.u))
 print("u_min=", np.min(MeanFlow.u))
@@ -189,9 +193,9 @@ matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, u, cmap="rainbow", levels=rg1, extend="both")  # rainbow_r
 # cbar1 = ax.contour(x, y, u, levels=[0.0])
-ax.set_xlim(20, 120.0)
+ax.set_xlim(30, 350)
 ax.set_ylim(np.min(y), 10.0)
-ax.set_yticks(np.linspace(0.0, 10.0, 5))
+ax.set_yticks(np.linspace(0.0, 8.0, 5))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontsize=tsize)
 ax.set_ylabel(r"$y$", fontsize=tsize)
@@ -205,24 +209,24 @@ plt.show()
 # %% Plot rho contour of the mean flow field
 # MeanFlow.AddVariable('rho', 1.7**2*1.4*MeanFlow.p/MeanFlow.T)
 MeanFlow.copy_meanval()
-var = "rho"
+var = "u"      
 lh = 1.0
 rho = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.rho, (x, y))
 u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
 walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y))
-cover = (walldist < 0.0) | corner
-rho = np.ma.array(rho, mask=cover)
-u = np.ma.array(u, mask=cover)
+# cover = (walldist < 0.0) | corner
+# rho = np.ma.array(rho, mask=cover)
+# u = np.ma.array(u, mask=cover)
 print("rho_max=", np.max(rho))
 print("rho_min=", np.min(rho))
-cval1 = 0.1  # 0.3
-cval2 = 1.0  # 1.4
+cval1 = 0.1 #1.0 # 
+cval2 = 1.0 #7.0  # 
 fig, ax = plt.subplots(figsize=(7.3, 2.3))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 21)
 cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend="both")
 ax.contour(x, y, u, levels=[0.0], linestyles="dotted")  # rainbow_r
-ax.set_xlim(0.0, 160.0)
+ax.set_xlim(20, 360)
 ax.set_ylim(np.min(y), 10.0)
 ax.set_yticks(np.linspace(np.min(y), 10.0, 5))
 ax.tick_params(labelsize=nsize)
@@ -236,7 +240,8 @@ cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(
     cbar, cax=cbaxes, extendrect="False", orientation="horizontal", ticks=rg2
 )
-cbar.set_label(r"$\langle \rho \rangle/\rho_{\infty}$", rotation=0, fontsize=tsize)
+lab = r"$\langle \rho \rangle/\rho_{\infty}$" #r"$\langle T \rangle/T_{\infty}$" #     
+cbar.set_label(lab, rotation=0, fontsize=tsize)
 # Add boundary layer
 # boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
 boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
@@ -251,8 +256,8 @@ ax.plot(boundary.x / lh, boundary.y / lh, "k", linewidth=1.5)
 # shock2 = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
 # ax.plot(shock2[:, 0], shock2[:, 1], "w", linewidth=1.5)
 # Add sonic line
-sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
-ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
+# sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
+# ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
 # Add dividing line(separation line)
 # dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
 # ax.plot(dividing.x / lh, dividing.y / lh, "k--", linewidth=1.5)
@@ -280,7 +285,7 @@ v = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.v, (xbox, ybox))
 #    maxlength=30.0,
 #    linewidth=1.0,
 # )
-plt.savefig(pathF + "MeanFlow_test.svg", bbox_inches="tight")
+plt.savefig(pathF + "MeanFlow_rho.svg", bbox_inches="tight")
 plt.show()
 # %%############################################################################
 """
@@ -430,24 +435,24 @@ plt.show()
 #
 # %% Plot rms contour of the mean flow field
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
-var = "<v`v`>"
+var = "<u`u`>"
 var_val = getattr(MeanFlow.PlanarData, var)
 uu = griddata((MeanFlow.x, MeanFlow.y), var_val, (x, y))
 u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
 print("uu_max=", np.max(np.sqrt(np.abs(var_val))))
 print("uu_min=", np.min(np.sqrt(np.abs(var_val))))
-cover = (walldist < 0.0) | corner
-uu = np.ma.array(uu, mask=cover)
-u = np.ma.array(u, mask=cover)
+# cover = (walldist < 0.0) | corner
+# uu = np.ma.array(uu, mask=cover)
+# u = np.ma.array(u, mask=cover)
 fig, ax = plt.subplots(figsize=(7.2, 2.4))
 matplotlib.rc("font", size=tsize)
 cb1 = 0.0
-cb2 = 0.06
+cb2 = 0.1
 rg1 = np.linspace(cb1, cb2, 21)  # 21)
 cbar = ax.contourf(
     x / lh, y / lh, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1, extend="both"
 )  # rainbow_r # jet # Spectral_r
-ax.set_xlim(10, 200.0)
+ax.set_xlim(20, 360.0)
 ax.set_ylim(np.min(y), 10.0)
 ax.set_yticks(np.linspace(0.0, 10.0, 5))
 ax.tick_params(labelsize=nsize)
@@ -476,8 +481,9 @@ cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(
     cbar, cax=cbaxes, orientation="horizontal", extendrect="False", ticks=rg2
 )
+lab = r"$\sqrt{\langle u^\prime u^\prime \rangle}$"
 cbar.set_label(
-    r"$\sqrt{\langle v^\prime v^\prime \rangle}$", rotation=0, fontsize=tsize,
+    lab, rotation=0, fontsize=tsize,
 )
 # Add boundary layer
 boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
@@ -497,7 +503,7 @@ cbar = ax.contour(
 # dividing = pd.read_csv(pathM + "DividingLine.dat", skipinitialspace=True)
 # ax.plot(dividing.x / lh, dividing.y / lh, "k--", linewidth=1.2)
 
-plt.savefig(pathF + "MeanFlowRMSVV1.svg", bbox_inches="tight")
+plt.savefig(pathF + "MeanFlowRMSUU.svg", bbox_inches="tight")
 plt.show()
 
 # %%############################################################################
