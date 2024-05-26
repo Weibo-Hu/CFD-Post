@@ -39,7 +39,7 @@ var4 = 'T'
 col = [var0, var1, var2, var3, var4]
 
 # %% load first snapshot data and obtain basic information
-path = "/mnt/work/Fourth/FFS_M1.7TB1/"
+path = "/media/weibo/IM2/FFS_M1.7TB1/"
 path3D = path + '3D_DMD/'
 pathH = path + 'hdf5/'
 pathM = path + 'MeanFlow/'
@@ -143,7 +143,7 @@ plt.show()
 
 # %% Mode frequency specturm
 reduction = 0
-filtval = 0.986 # 0.986
+filtval = 0.9 # 0.986
 matplotlib.rc('font', size=textsize)
 plt.rcParams['xtick.top'] = True
 plt.rcParams['ytick.right'] = True
@@ -153,11 +153,11 @@ if reduction == 0:
     psi = np.abs(amplitudes)/np.max(np.abs(amplitudes))
     ind1 = (freq > 0.0) & (freq < 1.0) & (np.abs(eigval) > filtval)
     freq1 = freq[ind1]
-    psi1 = np.abs(amplitudes[ind1]) /np.max(np.abs(amplitudes[ind1]))
+    psi1 = np.abs(amplitudes[ind1]) # /np.max(np.abs(amplitudes[ind1]))
     beta1 = np.real(np.log(eigval[ind1])/dt)
     ind2 = nonzero[:, sp]
 else:
-    psi = np.abs(re_coeff) / np.max(np.abs(re_coeff))
+    psi = np.abs(re_coeff)/np.max(np.abs(re_coeff))
     ind1 = re_freq > 0.0  # freq > 0.0
     freq1 = re_freq[ind1]  # freq[ind1]
     psi1 = np.abs(re_coeff[ind1])/np.max(np.abs(re_coeff[ind1]))
@@ -165,11 +165,11 @@ else:
 ax2.set_xscale("log")
 ax2.set_ylim(bottom=0.0)
 colors = plt.cm.Greys_r(beta1/np.min(beta1))
-ax2.vlines(freq1 * lh, [0], psi1, color=colors, linewidth=1.0)
-# ax2.set_yscale('log')
+ax2.vlines(freq1*lh, [0], psi1, color=colors, linewidth=1.0)
+ax2.set_yscale('log')
 if sp_ind is not None:
     ind3 = ind2[ind1]
-    ax2.scatter(freq1[ind3] * lh, psi1[ind3], marker='o',
+    ax2.scatter(freq1[ind3]*lh, psi1[ind3], marker='o',
                 facecolor='gray', edgecolors='gray', s=15)
 ax2.set_ylim(bottom=0.0)
 ax2.tick_params(labelsize=numsize, pad=6)
@@ -289,6 +289,7 @@ df = p2p.ReadAllINCAResults(path1, FileName=files)
 var = 'p'
 avg = False
 amp = 1.0  # for fluctuations
+fa = 0.0   # for mean value
 sliceflow = df.loc[df['z']==0]
 if var == 'u':
     varval = sliceflow[var] * fa + sliceflow['u`'] * amp
@@ -319,26 +320,25 @@ u = griddata((xarr, yarr), varval, (x, y))
 corner = (x > 0.0) & (y < 3.0)
 u[corner] = np.nan
 # %% in X-Y plane, plot
-ref = 3.0
 matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.5))
-c1 = -0.03 # -0.13 #-0.024
+c1 = -0.06 # -0.13 #-0.024
 c2 = -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
-cbar = ax.contourf(x/ref, y/ref, u, levels=lev1, cmap='RdBu_r', extend='both') 
-ax.set_xlim(-8, 3.0)
-ax.set_ylim(0.0, 1.65)
+cbar = ax.contourf(x, y, u, levels=lev1, cmap='RdBu_r', extend='both') 
+ax.set_xlim(-20.0, 10.0)
+ax.set_ylim(0.0, 5.0)
 ax.tick_params(labelsize=numsize)
 cbar.cmap.set_under('#053061')
 cbar.cmap.set_over('#67001f')
-ax.set_xlabel(r'$x/h$', fontsize=textsize)
-ax.set_ylabel(r'$y/h$', fontsize=textsize)
+ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
-cbaxes = fig.add_axes([0.41, 0.78, 0.18, 0.07])  # x, y, width, height
+cbaxes = fig.add_axes([0.36, 0.78, 0.2, 0.07])  # x, y, width, height
 cbar1 = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal",
                      extendrect='False', ticks=rg2)
 cbar1.formatter.set_powerlimits((-2, 2))
@@ -350,13 +350,13 @@ cbar1.set_label(r'$\Re(\phi_{})$'.format(var), rotation=0,
 cbaxes.tick_params(labelsize=numsize)
 # add shock wave
 shock = np.loadtxt(pathM+'ShockLineFit.dat', skiprows=1)
-ax.plot(shock[:, 0]/ref, shock[:, 1]/ref, color='#32cd32ff', linewidth=1.2)
+ax.plot(shock[:, 0], shock[:, 1], color='#32cd32ff', linewidth=1.2)
 # add streamline1
 shock = np.loadtxt(pathM+'streamline3.dat', skiprows=1)
-ax.plot(shock[:, 0]/ref, shock[:, 1]/ref, linestyle='--', color='#32cd32ff', linewidth=1.2)
+ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1.2)
 # add streamline1
-# shock = np.loadtxt(pathM+'streamline5.dat', skiprows=1)
-# ax.plot(shock[:, 0]/ref, shock[:, 1]/ref, linestyle='--', color='#32cd32ff', linewidth=1.2)
+shock = np.loadtxt(pathM+'streamline5.dat', skiprows=1)
+ax.plot(shock[:, 0], shock[:, 1], linestyle='--', color='#32cd32ff', linewidth=1.2)
 # Add sonic line
 # sonic = np.loadtxt(pathM+'SonicLine.dat', skiprows=1)
 # ax.plot(sonic[:, 0], sonic[:, 1], color='#32cd32ff',
@@ -366,7 +366,7 @@ ax.plot(shock[:, 0]/ref, shock[:, 1]/ref, linestyle='--', color='#32cd32ff', lin
 # ax.plot(boundary[:, 0], boundary[:, 1], 'k', linewidth=1.2)
 # Add dividing line(separation line)
 dividing = np.loadtxt(pathM+'BubbleLine.dat', skiprows=1)
-ax.plot(dividing[:, 0]/ref, dividing[:, 1]/ref, 'k--', linewidth=1.2)
+ax.plot(dividing[:, 0], dividing[:, 1], 'k--', linewidth=1.2)
 # ax.annotate("(a)", xy=(-0.1, 1.), xycoords='axes fraction', fontsize=textsize)
 filename = var + str(np.round(freq1, 4)) + 'ModeXY'
 filename = path3D + filename.replace(".", "p")
@@ -378,15 +378,6 @@ plt.show()
 plot 2D slice contour in X-Z plane
 
 """
-# %%  load data
-freq1 = 0.022  # freq[num]
-path1 = path3D + '0p022/'
-files = glob(path1 + '*DMD007?.plt')
-equs = [''
-        ]
-df = p2p.ReadAllINCAResults(path1, FileName=files)
-
-# %% plot
 var = 'u'
 amp = 1.0  # for fluctuations
 fa = 1.0   # for mean value
@@ -412,8 +403,8 @@ matplotlib.rcParams['xtick.direction'] = 'out'
 matplotlib.rcParams['ytick.direction'] = 'out'
 matplotlib.rc('font', size=textsize)
 fig, ax = plt.subplots(figsize=(6.6, 2.8))
-c1 = -1.2 #-0.024
-c2 = 1.2 # -c1 # 0.010 #0.018
+c1 = -1.0 #-0.024
+c2 = 1.3 # -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 21)
 lev2 = np.linspace(c1, c2, 6)
 cbar = ax.contourf(x, z, u, levels=lev1, cmap='jet', extend='bo th') 
@@ -448,7 +439,7 @@ plot 2D slice contour in Z-Y plane
 # %% load data
 freq1 = 0.0126  # freq[num]
 path1 = path3D + '0p0126/'
-files = glob(path1 + '*DMD002?.plt')
+files = glob(path1 + '*DMD010?.plt')
 equs = ['{dudx}=ddx({u`})',
         '{dvdx}=ddx({v`})',
         '{dwdx}=ddx({w`})',
@@ -487,18 +478,18 @@ c1 = -2.0 #-0.024
 c2 = 2.0 # -c1 # 0.010 #0.018
 lev1 = np.linspace(c1, c2, 31)
 lev2 = np.linspace(c1, c2, 6)
-cbar = ax.contourf(z/ref, y/ref, vor, levels=lev1, cmap='PRGn_r', extend='both') 
+cbar = ax.contourf(z, y, vor, levels=lev1, cmap='PRGn_r', extend='both') 
 #cbar = ax.contourf(x, y, u,
 #                   colors=('#66ccff', '#e6e6e6', '#ff4d4d'))  # blue, grey, red
-ax.set_xlim(3/ref, 6.9/ref)
-ax.set_ylim(0.6/ref, 2.1/ref)
-# ax.set_yticks(np.linspace(0.5, 2.0, 4))
+ax.set_xlim(3, 7)
+ax.set_ylim(0.5, 2.0)
+ax.set_yticks(np.linspace(0.5, 2.0, 4))
 ax.tick_params(labelsize=numsize)
 #cbar.cmap.set_under('#053061')
 #cbar.cmap.set_over('#67001f')
 ax.set_aspect('equal')
-ax.set_xlabel(r'$z/h$', fontsize=textsize)
-ax.set_ylabel(r'$y/h$', fontsize=textsize)
+ax.set_xlabel(r'$z/\delta_0$', fontsize=textsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 # add colorbar
 rg2 = np.linspace(c1, c2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True,
@@ -514,8 +505,8 @@ w = griddata((sliceflow.z, sliceflow.y), sliceflow['w`'], (z, y))
 v = griddata((sliceflow.z, sliceflow.y), sliceflow['v`'], (z, y))
 # x, y must be equal spaced
 ax.streamplot(
-    z/ref,
-    y/ref,
+    z,
+    y,
     w,
     v,
     density=[8, 4],
@@ -525,7 +516,7 @@ ax.streamplot(
     integration_direction="both",
 )
 ax.annotate("(a)", xy=(-0.13, 0.97), xycoords='axes fraction', fontsize=numsize+1)
-filename = var + str(np.round(freq1, 3)) + 'ModeZY_6'
+filename = var + str(np.round(freq1, 3)) + 'ModeZY_9'
 filename = path3D + filename.replace(".", "p")
 plt.savefig(filename + '.svg', bbox_inches='tight')
 plt.show()
