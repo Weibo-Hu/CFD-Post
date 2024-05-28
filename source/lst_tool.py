@@ -33,7 +33,7 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathL = path + "LST/"
 
-# %% figures properties settings
+# % figures properties settings
 plt.close("All")
 plt.rc("text", usetex=True)
 font = {
@@ -148,19 +148,19 @@ ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "TS_mode_spectrum.svg", bbox_inches="tight")
 plt.show()
 # %% BL profiles to a specific format
-path = 'E:/Data/project/LST/export/x270/'
+path = '/media/weibo/Work/cases/flat_plate_last/export_0.95/'
 col = [
        'y', 'u_r', 'u_i', 'v_r', 'v_i', 'w_r', 'w_i', 
        't_r', 't_i', 'p_r', 'p_i', 'rho_r', 'rho_i'
        ]
-ts_profile = pd.read_csv(path + 'profiles.dat', sep='\t',
+ts_profile = pd.read_csv(path + 'profiles.dat', sep=' ',
                          names=col, header=0,
                          index_col=False, skiprows=0,
                          skipinitialspace=True)
 myfile = path + 'UnstableMode.dat'
-omega_r = 0.700000
-omega_i = -0.021951
-alpha = 0.758735
+omega_r = 0.95
+omega_i = 0.008020
+alpha =  1.036704 
 beta = 0.0
 with open(myfile, 'w') as file:
     # file.write(col[:11]+'\t')
@@ -168,12 +168,13 @@ with open(myfile, 'w') as file:
     file.write('beta = ' + str(beta) + '\n')
     file.write('omega_r = ' + str(omega_r) + '\n')
     file.write('omega_i = ' + str(omega_i) + '\n')
-    file.write("\t".join(col[:11]) + '\n')
+    file.write(" ".join(col[:11]) + '\n')
     input_mode = ts_profile[col[:11]]
-    input_mode.to_csv(myfile, sep='\t', index=False, # header=0, #columns=col[:11], # mode='a', # 
-                      float_format='%1.8e')
+    input_mode.iloc[0][:7] = 0
+    input_mode.to_csv(myfile, sep=' ', index=False, header=0, na_rep='0',
+                      columns=col[:11], mode='a', float_format='%1.8e')
 # %% Plot LST perturbations profiles
-path = 'E:/Data/project/LST/export/x270/'
+path = '/mnt/work/cases/flat_202302/export/'
 ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep='\t',
                          index_col=False, skiprows=4,
                          skipinitialspace=True)
@@ -208,7 +209,7 @@ ax.set_xlabel(r'$|\tilde{q}|/|\tilde{u}|_\mathrm{max}$', fontsize=textsize)
 ax.set_ylabel(r'$y\mathrm{(mm)}$', fontsize=textsize)
 # ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
 ax.tick_params(labelsize=numsize)
-ax.grid(b=True, which="both", linestyle=":")
+ax.grid(visible=True, which="both", linestyle=":")
 plt.legend( (r'$u$', r'$v$', r'$w$', r'$p$', r'$T/4$'),
             fontsize=numsize, framealpha=0.5 )
 plt.savefig(path + "2nd_mode_profile.png", dpi=300, bbox_inches="tight")
