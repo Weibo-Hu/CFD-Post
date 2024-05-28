@@ -150,17 +150,17 @@ plt.show()
 # %% BL profiles to a specific format
 path = '/media/weibo/Work/cases/flat_plate_last/export_0.95/'
 col = [
-       'y', 'u_r', 'u_i', 'v_r', 'v_i', 'w_r', 'w_i', 
+       'y', 'u_r', 'u_i', 'v_r', 'v_i', 'w_r', 'w_i',
        't_r', 't_i', 'p_r', 'p_i', 'rho_r', 'rho_i'
        ]
 ts_profile = pd.read_csv(path + 'profiles.dat', sep=' ',
                          names=col, header=0,
-                         index_col=False, skiprows=0,
+                         index_col=False, skiprows=0, 
                          skipinitialspace=True)
 myfile = path + 'UnstableMode.dat'
 omega_r = 0.95
 omega_i = 0.008020
-alpha =  1.036704 
+alpha = 1.036704 
 beta = 0.0
 with open(myfile, 'w') as file:
     # file.write(col[:11]+'\t')
@@ -169,10 +169,11 @@ with open(myfile, 'w') as file:
     file.write('omega_r = ' + str(omega_r) + '\n')
     file.write('omega_i = ' + str(omega_i) + '\n')
     file.write(" ".join(col[:11]) + '\n')
-    input_mode = ts_profile[col[:11]]
-    input_mode.iloc[0][:7] = 0
-    input_mode.to_csv(myfile, sep=' ', index=False, header=0, na_rep='0',
-                      columns=col[:11], mode='a', float_format='%1.8e')
+
+input_mode = ts_profile[col[:11]]
+input_mode.iloc[0][:7] = 0
+input_mode.to_csv(myfile, sep=' ', index=False, header=0, na_rep='0',
+                  columns=col[:11], mode='a', float_format='%1.8e')
 # %% Plot LST perturbations profiles
 path = '/mnt/work/cases/flat_202302/export/'
 ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep='\t',
