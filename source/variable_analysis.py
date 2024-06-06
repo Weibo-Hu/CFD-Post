@@ -64,7 +64,7 @@ Overview:
 - stat2tot(Ma, Ts, opt, mode)
 
 """
-
+# %%
 import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -82,7 +82,7 @@ import os
 
 # from numpy import NaN, Inf, arange, isscalar, asarray, array
 
-
+#%%
 def basic_var(opt):
     """generate name list for the dataframe
 
