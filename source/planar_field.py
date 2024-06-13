@@ -159,6 +159,21 @@ class PlanarField(LineField):
             print('done with saving data')
         self._data_field = df
 
+
+    def merge_stat(self, path):
+        dirs = sorted(os.listdir(path))
+        for i in np.arange(np.size(dirs)):
+            if i == 0:
+                flow = pd.read_hdf(path + dirs[i])
+            else:
+                df = pd.read_hdf(path + dirs[i])
+                flow = pd.concat([flow, df])
+        flow = flow.drop_duplicates(keep='last')
+        # grouped = flow.groupby(['x', 'y', 'z'])
+        # flow.to_hdf(path + MeanFlow.h5', 'w', format='fixed')
+        self._data_field = flow
+
+
     def merge_meanflow(self, path):
         dirs = sorted(os.listdir(path + 'TP_stat/'))
         nfiles = np.size(dirs)
@@ -176,7 +191,7 @@ class PlanarField(LineField):
                 if i == 0:
                     flow = df
                 else:
-                    flow = flow.append(df, ignore_index=True)
+                    flow = pd.concat([flow, df])
 
         flow = flow.sort_values(by=['x', 'y', 'z'])
         flow = flow.drop_duplicates(keep='last')
