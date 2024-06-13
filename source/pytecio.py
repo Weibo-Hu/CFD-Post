@@ -1101,7 +1101,9 @@ def create_fluc_tec(file, file_m, outpath, var, var1, var2):
         z_nm_m = ds2.nameZones[ind]
         for j in range(np.size(var1)):
             ds1[z_nm][var[j]] = ds1[z_nm][var1[j]]-ds2[z_nm_m][var2[j]]
+    ds2.close()
     t = write_tecio(outpath + os.path.basename(file), ds1, verbose=True)
+    ds1.close()
     t.close()
 
 
