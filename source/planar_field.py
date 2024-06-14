@@ -161,12 +161,13 @@ class PlanarField(LineField):
 
 
     def merge_stat(self, path):
-        dirs = sorted(os.listdir(path))
+        # dirs = sorted(os.listdir(path))
+        dirs = glob(path + 'MeanFlow*')
         for i in np.arange(np.size(dirs)):
             if i == 0:
-                flow = pd.read_hdf(path + dirs[i])
+                flow = pd.read_hdf(dirs[i])
             else:
-                df = pd.read_hdf(path + dirs[i])
+                df = pd.read_hdf(dirs[i])
                 flow = pd.concat([flow, df])
         flow = flow.drop_duplicates(keep='last')
         # grouped = flow.groupby(['x', 'y', 'z'])
