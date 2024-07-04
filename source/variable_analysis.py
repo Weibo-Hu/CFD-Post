@@ -1070,7 +1070,7 @@ def shock_loc(
 
 
 # Save shock isoline
-def shock_line(dataframe, path):
+def shock_line(dataframe, path, var="|gradp|", val=0.06):
     grouped = dataframe.groupby(["x", "y"])
     dataframe = grouped.mean().reset_index()
     x0 = np.unique(dataframe["x"])
@@ -1080,14 +1080,25 @@ def shock_line(dataframe, path):
     y1 = y0[y0 > -2.5]
     xini, yini = np.meshgrid(x1, y1)
     corner = (xini < 0.0) & (yini < 0.0)
-    gradp = griddata(
-        (dataframe["x"], dataframe["y"]), dataframe["|gradp|"], (xini, yini)
-    )
+    if var=="|gradp|":
+        gradp = griddata(
+            (dataframe["x"],
+             dataframe["y"]),
+             dataframe["|gradp|"],
+             (xini, yini)
+        )
+    else:
+        gradp = griddata(
+            (dataframe["x"],
+             dataframe["y"]),
+             dataframe[var],
+             (xini, yini)
+        )
     gradp[corner] = np.nan
     fig, ax = plt.subplots(figsize=(10, 4))
     cs = ax.contour(xini, yini, gradp, levels=[
-                    0.06], linewidths=1.2, colors="gray")
-    plt.close()
+                    val], linewidths=1.2, colors="gray")
+    plt.show()
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     for isoline in cs.collections[0].get_paths():
@@ -1141,14 +1152,15 @@ def shock_line_ffs(dataframe, path, val=[0.06], show=False):
         plt.close()
     header = "x, y"
     xycor1 = np.empty(shape=[0, 2])
-    xycor2 = np.empty(shape=[0, 2])
+    # xycor2 = np.empty(shape=[0, 2])
     xylist = []
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
-        if np.min(xy[:, 0]) < -10.0:
-            xycor1 = np.vstack((xycor1, xy))
-        elif np.min(xy[:, 0]) > -5.0:
-            xycor2 = np.vstack((xycor2, xy))
+        xycor1 = np.vstack((xycor1, xy))
+        # if np.min(xy[:, 0]) < -10.0:
+        #     xycor1 = np.vstack((xycor1, xy))
+        # elif np.min(xy[:, 0]) > -5.0:
+        #     xycor2 = np.vstack((xycor2, xy))
         xylist.append(xy)
         # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
     tck, yval = splprep(xycor1.T, s=1.0, per=1)
@@ -1170,14 +1182,14 @@ def shock_line_ffs(dataframe, path, val=[0.06], show=False):
         comments="",
         header=header,
     )
-    np.savetxt(
-        path + "ShockLine2.dat",
-        xycor2,
-        fmt="%.8e",
-        delimiter=", ",
-        comments="",
-        header=header,
-    )
+    # np.savetxt(
+    #     path + "ShockLine2.dat",
+    #     xycor2,
+    #     fmt="%.8e",
+    #     delimiter=", ",
+    #     comments="",
+    #     header=header,
+    # )
 
 
 def sonic_line(dataframe, path, option="Mach", Ma_inf=1.7, mask=None):
@@ -1388,6 +1400,79 @@ def boundary_edge(
     wall.drop_duplicates(subset='x', keep='first', inplace=True)
     wall.to_csv(path + "BoundaryEdge.dat", index=False, float_format="%9.8e")
     return(wall.values)
+
+
+def enthalpy_boundary_edge(
+    dataframe,
+    path,
+    Ma_inf,
+    crit=1.005,
+    corner=None,
+):  # jump = reattachment location
+    # dataframe = dataframe.query("x<=30.0 & y<=3.0")
+    gamma = 1.4
+    grouped = dataframe.groupby(["x", "y"])
+    dataframe = grouped.mean().reset_index()
+    x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    a0 = 1/Ma_inf**2/(gamma-1)
+    if "H" not in dataframe.columns:
+        a1 = dataframe["<rho>"]*dataframe["<T>"]*a0
+        a2 = 0.5*dataframe["<rho>"]*dataframe["<u>"]**2
+        dataframe.loc[:, "H"] = a1 + a2
+        
+    enthalpy = griddata((dataframe.x, dataframe.y), dataframe.H, (x, y))
+    H_inf = a0 + 0.5
+    val = crit * H_inf
+    if corner is not None:
+        enthalpy[corner] = np.nan
+    # header = "x, y"
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(x, y, enthalpy, levels=[val],
+                    linewidths=1.5, linestyles="--", colors="k")
+    plt.show()
+    xycor = np.empty(shape=[0, 2])
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+
+    wall = pd.DataFrame(data=xycor, columns=["x", "y"])
+    wall.drop_duplicates(subset='x', keep='first', inplace=True)
+    wall.to_csv(path + "EnthalpyBoundaryEdge.dat", index=False, float_format="%9.8e")
+    return(wall.values)
+
+
+def thermal_boundary_edge(
+    dataframe,
+    path,
+    T_wall,
+    corner=None,
+):  # jump = reattachment location
+    # dataframe = dataframe.query("x<=30.0 & y<=3.0")
+    grouped = dataframe.groupby(["x", "y"])
+    dataframe = grouped.mean().reset_index()
+    x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
+    a0 = 0.99 * (T_wall - 1.0)
+    if "T" not in dataframe.columns:
+        dataframe.loc[:, "T"] = dataframe["<T>"]       
+    Temp = griddata((dataframe.x, dataframe.y), dataframe['T'], (x, y))
+    val = T_wall - a0
+    if corner is not None:
+        Temp[corner] = np.nan
+    # header = "x, y"
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(x, y, Temp, levels=[val],
+                    linewidths=1.5, linestyles="--", colors="k")
+    plt.show()
+    xycor = np.empty(shape=[0, 2])
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+
+    wall = pd.DataFrame(data=xycor, columns=["x", "y"])
+    wall.drop_duplicates(subset='x', keep='first', inplace=True)
+    wall.to_csv(path + "ThermalpyBoundaryEdge.dat", index=False, float_format="%9.8e")
+    return(wall.values)
+
 
 
 def bubble_area(
