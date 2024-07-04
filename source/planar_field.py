@@ -171,7 +171,7 @@ class PlanarField(LineField):
                 flow = pd.concat([flow, df])
         flow = flow.drop_duplicates(keep='last')
         # grouped = flow.groupby(['x', 'y', 'z'])
-        # flow.to_hdf(path + MeanFlow.h5', 'w', format='fixed')
+        flow.to_hdf(path + 'MeanFlow.h5', 'w', format='fixed')
         self._data_field = flow
 
 
