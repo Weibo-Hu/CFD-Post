@@ -1048,6 +1048,10 @@ def ReadINCAResults(
     if SpanAve is True:
         grouped = df.groupby(["x", "y"])
         df = grouped.mean().reset_index()
+    if SpanAve is False:
+        df1 = df.loc[df['z'] == 0.0]
+        grouped = df1.groupby(["x", "y"])
+        df = grouped.mean().reset_index()
     if SpanAve is None:
         grouped = df.groupby(["x", "y", "z"])
         df = grouped.mean().reset_index()
@@ -1194,7 +1198,35 @@ def create_fluc_inca(path, path_m, outpath):
             t = write_tecio(outpath + file3 + z_nm1[-4:] + '.szplt',
                             ds1, verbose=True)
             t.close()
-            
+
+
+# 3d flow to 2d flow
+def flow3dto2d(files, outpath, SpanAve=False):
+    if not os.path.exists(outpath):
+        os.mkdir(outpath)
+    for j in range(np.size(files)):
+        ds = SzpltData(files[j])
+        for i in range(ds.numZones):
+            z_nm = ds.nameZones[i]
+            df_dict = ds[z_nm]
+            df = pd.DataFrame.from_dict(df_dict)
+            if SpanAve is True:
+                grouped = df.groupby(["x", "y"])
+                df_ave = grouped.mean().reset_index()
+                df_ave = df_ave.sort_values(by=['y', 'x'])
+            else:
+                df1 = df.loc[df['z'] == 0.0]
+                grouped = df1.groupby(["x", "y"])
+                df_ave = grouped.mean().reset_index()
+
+            for ky in ds[z_nm].keys():
+                ds[z_nm][ky] = np.asarray(df_ave[ky], dtype=np.float32)
+            dim = ds.zone_info[i]['IJK']
+            dim = (dim[0], dim[1], 1)
+            ds.zone_info[i]['IJK'] = dim
+        ds.close()
+        t = write_tecio(outpath + os.path.basename(files[j]), ds, verbose=True)
+        t.close()
 
 # %%
 if __name__ == "__main__":
@@ -1213,9 +1245,14 @@ if __name__ == "__main__":
     #     "E:/cases/wavy_0918/TP_fluc_00100056/",
     # )
     # path = '/mnt/work/cases_new/heating2/'
-    path = '/media/weibo/Weibo_data/2023cases/cooling2/'
-    path1 = path + 'TP_stat/'
-    ReadINCAResults(path1, SpanAve=True, SavePath=path, OutFile='TP_data')
+    path = '/media/weibo/VID21/ramp_st14/'
+    pathST = path + 'TP_stat/'
+    ReadINCAResults(pathST, SpanAve=True, SavePath=path, OutFile='TP_data')
+    create_fluc_inca(path + 'TP_data_00363670/',
+                     pathST,
+                     path + 'TP_fluc_3d/')
+
+
 
 
     # %%
@@ -1253,12 +1290,12 @@ if __name__ == "__main__":
         "/mnt/share/cases/base/TP_stat_ave/",
         "/mnt/share/cases/base/TP_fluc_00000297/",
     )
-    """
+
 
     # for i in range(np.size(szplt)):
     #     file1 = szplt[i]
     #    span_ave_tec(file1, 'E:/cases/wavy_0918/TP_stat_ave/')
-    """
+
     path = 'E:/cases/wavy_0918/snapshot_00100056/'
     path_m = 'E:/cases/wavy_0918/TP_stat/'
     outpath = 'E:/cases/wavy_0918/TP_stat_ave/'
