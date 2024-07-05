@@ -30,9 +30,10 @@ from triaxial_field import TriField as tf
 import variable_analysis as va
 from scipy.interpolate import griddata
 
+get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% data path settings
-path = "/mnt/work/Fourth/FFS_M1.7SFD120/"
+path = "/media/weibo/VID21/ramp_st14/"
 pathP = path + "probes/"
 pathF = path + "Figures/"
 pathM = path + "MeanFlow/"
@@ -55,6 +56,8 @@ matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 13
 numsize = 10
+tsize = textsize
+nsize = numsize
 lh = 3.0
 # %% 3D PSD
 # load data
@@ -131,9 +134,9 @@ ax.set_xticks(np.log10(xticks))
 # ax.set_xticklabels([r'$10^{-2}$', r'$10^{-2}$', r'$10^{-2}$'])
 
 ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([0.8, 1.2, 1.0, 1.0]))
-ax.set_xlabel(r'$f$', fontsize=textsize)
-ax.set_ylabel(r'$x/\delta_0$', fontsize=textsize)
-ax.set_zlabel(r'$\mathcal{P}$', fontsize=textsize)
+ax.set_xlabel(r'$f$', fontsize=tsize)
+ax.set_ylabel(r'$x/\delta_0$', fontsize=tsize)
+ax.set_zlabel(r'$\mathcal{P}$', fontsize=tsize)
 # ax.set_powerlimits((-2, 2))
 # ax.w_zaxis.set_major_formatter()
 # ax.zaxis.set_major_formatter(ScalarFormatter(useMathText=True))

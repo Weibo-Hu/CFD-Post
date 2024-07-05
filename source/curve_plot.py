@@ -18,13 +18,14 @@ import variable_analysis as va
 from timer import timer
 import os
 from planar_field import PlanarField as pf
-
+from scipy.interpolate import griddata
+get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% data path settings
 # host = "/run/user/1000/gvfs/sftp:host=cartesius.surfsara.nl,user="
 # path = host + "weibohu/nfs/home6/weibohu/weibo/FFS_M1.7TB/"
 # path = "E:/cases/wavy_1009/"
-path = '/media/weibo/Weibo_data/2023cases/heating2/'
+path = "/media/weibo/VID21/ramp_st14/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -45,6 +46,8 @@ matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 textsize = 13
 numsize = 10
+tsize = textsize
+nsize = numsize
 cm2in = 1 / 2.54
 # %% Load Data
 VarName = [
@@ -68,8 +71,8 @@ VarName = [
     "gradp",
 ]
 
-timezone = np.arange(700, 999.75 + 0.25, 0.25)
-x1x2 = [600, 1100]
+timezone = np.arange(600, 900.0 + 0.25, 0.25)
+x1x2 = [600, 900.0]
 StepHeight = 0.0
 MeanFlow = pf()
 # MeanFlow.load_data(path + 'inca_out/')
@@ -79,11 +82,15 @@ MeanFlow.load_meanflow(path)
 lh = 1.0
 MeanFlow.rescale(lh)
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
+walldist = griddata((MeanFlow.x, MeanFlow.y),
+                    MeanFlow.walldist,
+                    (x, y),
+                    method="cubic")
 corner1 = (x < 25) & (y < 0.0)
 corner2 = (x > 110) & (y < 0.0)
-corner = corner1 | corner2
+corner = (walldist < 0.0) # corner1 | corner2
 # %% Load laminar data for comparison
-path0 = "/mnt/work/Fourth/FFS_M1.7TB1/"
+path0 = "/media/weibo/VID21/ramp_st14/"
 path0F, path0P, path0M, path0S, path0T, path0I = p2p.create_folder(path0)
 MeanFlow0 = pf()
 MeanFlow0.load_meanflow(path0)
@@ -102,7 +109,7 @@ matplotlib.rc("font", size=numsize)
 title = [r"$(a)$", r"$(b)$", r"$(c)$", r"$(d)$", r"$(e)$"]
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-xcoord = np.array([20, 34, 53, 71.5, 82, 95, 200, 280, 340])
+xcoord = np.array([-160, -80, -40, -20, 0, 20, 40, 60, 80])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df["walldist"]
@@ -122,7 +129,7 @@ for i in range(np.size(xcoord)):
     ax[i].tick_params(axis="both", which="major", labelsize=numsize)
     ax[i].grid(visible=True, which="both", linestyle=":")
 ax[0].set_title(r"$x={}$".format(xcoord[0]), fontsize=numsize - 2)
-ax[0].set_ylabel(r"$y/l_{ref}$", fontsize=textsize)
+ax[0].set_ylabel(r"$y$", fontsize=textsize)
 ax[4].set_xlabel(r"$u /u_\infty$", fontsize=textsize)
 plt.tick_params(labelsize=numsize)
 plt.show()
@@ -163,7 +170,7 @@ MeanFlow2.copy_meanval()
 
 
 # %%
-x1 = -50.0
+x1 = 80.0
 BLProf1 = MeanFlow1.yprofile("x", x1)  # -30.0
 CalUPlus1 = va.direst_transform(BLProf1, option="mean")
 BLProf1 = MeanFlow1.yprofile("x", x1)
@@ -184,11 +191,15 @@ ww2 = np.sqrt(BLProf2["<w`w`>"]) / u_tau2 * xi2
 uv2 = BLProf2["<u`v`>"] / u_tau2 ** 2 * xi2 ** 2
 
 # %% velocity profile, computation
-x0 = -50.0
+x0 = 80.0
 incomp = True
 # results from LES
 MeanFlow.copy_meanval()
-BLProf = MeanFlow.yprofile("x", x0)
+Bl0 = MeanFlow.yprofile("x", x0)
+Bl0 = Bl0.loc[Bl0['walldist'] >= 0.0]
+row0 = Bl0.iloc[[0]]
+row0[['walldist', 'u', '<u>']] = 0.0
+BLProf = pd.concat([row0, Bl0])
 u_tau = va.u_tau(BLProf, option="mean")
 mu_inf = BLProf["<mu>"].values[-1]
 delta, u_inf = va.bl_thickness(BLProf["walldist"], BLProf["<u>"])
@@ -236,8 +247,8 @@ ax.scatter(
 # ax.plot(CalUPlus[:, 0], uplus, 'k', linewidth=1.5)
 # ax.scatter(CalUPlus[:, 0], CalUPlus[:, 1], s=15)
 ax.plot(CalUPlus[:, 0], CalUPlus[:, 1], "k", linewidth=1.0)
-ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "k:", linewidth=1.0)
-ax.plot(CalUPlus2[:, 0], CalUPlus2[:, 1], "k--", linewidth=1.0)
+# ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "k:", linewidth=1.0)
+# ax.plot(CalUPlus2[:, 0], CalUPlus2[:, 1], "k--", linewidth=1.0)
 ax.set_xscale("log")
 ax.set_xlim([0.5, 2000])
 ax.set_ylim([0, 30])
@@ -261,7 +272,7 @@ ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus, XI = va.ref_wall_law
 if incomp == True:
     XI = 1.0
 # results from current LES
-BLProf = MeanFlow.yprofile("x", x0)
+# BLProf = MeanFlow.yprofile("x", x0)
 xi = np.sqrt(BLProf["<rho>"] / BLProf["<rho>"].values[1])
 uu = np.sqrt(BLProf["<u`u`>"]) / u_tau * xi
 vv = np.sqrt(BLProf["<v`v`>"]) / u_tau * xi
@@ -309,14 +320,14 @@ ax2.plot(CalUPlus[:, 0], uu[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], vv[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], ww[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], uv[1:], "k", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], uu1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], vv1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], ww1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], uv1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], uu2[1:], "k--", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], vv2[1:], "k--", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], ww2[1:], "k--", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], uv2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], uu1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], vv1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], ww1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], uv1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], uu2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], vv2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], ww2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], uv2[1:], "k--", linewidth=1.0)
 ax2.set_xscale("log")
 ax2.set_ylim([-1.5, 3.5])
 ax2.set_xlim([1, 2000])
@@ -353,7 +364,8 @@ plt.show()
 
 def yplus(MeanFlow, dy, wallval, opt):
     if opt == 1:
-        TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData["x"] < 5.0]
+        TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData["x"] < 0.0]
+        TempFlow = TempFlow.loc[TempFlow["x"] >= -100.0]
     elif opt == 2:
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData["x"] > 100.0]
     frame = TempFlow.loc[np.round(TempFlow["y"], 6) == np.round(dy, 6)]
@@ -370,10 +382,11 @@ def yplus(MeanFlow, dy, wallval, opt):
 
 
 # 0.002300256 upsteam the step
-first_y = 0.016667
+first_y = 0.0625
 x1, yplus1, frame1 = yplus(MeanFlow, first_y, 0.0, opt=1)
-x2, yplus2, frame2 = yplus(MeanFlow, first_y, 0.0, opt=2)  # 3.001953125 downstream
-res = np.vstack((np.hstack((x1, x2)), np.hstack((yplus1, yplus2))))
+# x2, yplus2, frame2 = yplus(MeanFlow, first_y, 0.0, opt=2)  # 3.001953125 downstream
+# res = np.vstack((np.hstack((x1, x2)), np.hstack((yplus1, yplus2))))
+res = np.vstack((x1, yplus1))
 frame3 = pd.DataFrame(data=res.T, columns=["x", "yplus"])
 frame3.to_csv(pathM + "YPLUS.dat", index=False, float_format="%1.8e", sep=" ")
 
@@ -383,7 +396,7 @@ fig3, ax3 = plt.subplots(figsize=(6.4, 3.0))
 ax3.plot(yp["x"], yp["yplus"], "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\Delta y^{+}$", fontsize=textsize)
-ax3.set_xlim([0.0, 360])
+# ax3.set_xlim([0.0, 360])
 ax3.set_ylim([0.0, 2.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))

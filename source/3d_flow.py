@@ -6,13 +6,14 @@ Created on Thu Jun 28 17:39:31 2018
 @author: Weibo Hu
 """
 # %%
+# %matplotlib ipympl
 import numpy as np
 import plt2pandas as p2p
 import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 from scipy.signal import savgol_filter
-
+get_ipython().run_line_magic("matplotlib", "qt")
 # import modin.pandas as pd
 
 import variable_analysis as va
@@ -34,7 +35,7 @@ plt.rc("text", usetex=True)
 font = {"family": "Times New Roman", "color": "k", "weight": "normal"}
 cm2in = 1 / 2.54
 # %%
-path = "/media/weibo/Weibo_data/2023cases/cooling2/"
+path = "/media/weibo/VID21/ramp_st14/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -61,27 +62,33 @@ MeanFlow.load_meanflow(path, FileList=pltlist)
 # %% Load Data for time- spanwise-averaged results
 MeanFlow = pf()
 MeanFlow.load_meanflow(path)
+# %%
+MeanFlow.merge_stat(pathM)
 # %% rescaled if necessary
 lh = 1.0
 MeanFlow.rescale(lh)
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
+walldist = griddata((MeanFlow.x, MeanFlow.y),
+                    MeanFlow.walldist,
+                    (x, y),
+                    method="cubic")
 corner1 = (x < 25) & (y < 0.0)
 corner2 = (x > 110) & (y < 0.0)
-corner = corner1 | corner2
+corner = (walldist < 0.0)  # corner1 | corner2
 
 # %%############################################################################
 """
     Examination of the computational mesh
 """
 # %% wall buondary
-va.wall_line(MeanFlow.PlanarData, pathM, mask=corner)
+va.wall_line(MeanFlow.PlanarData, pathM, mask=None) # corner)
 # %% check mesh
 temp = MeanFlow.PlanarData  # [["x", "y"]]
-df = temp.query("x>=20.0 & x<=350.0 & y>=0.0 & y<=6.0")
+df = temp.query("x>=-100.0 & x<=90.0 & y>=0.0 & y<=30.0")
 # df = temp.query("x>=-5.0 & x<=10.0 & y>=-3.0 & y<=2.0")
-ux = np.unique(df.x)[::10]
-uy = np.unique(df.y)[::5]
-fig, ax = plt.subplots(figsize=(9.0, 3.2))
+ux = np.unique(df.x)[::2]
+uy = np.unique(df.y)[::2]
+fig, ax = plt.subplots(figsize=(14*cm2in, 6*cm2in))
 matplotlib.rc("font", size=tsize)
 for i in range(np.size(ux)):
     if i % 1 == 0:
@@ -94,7 +101,7 @@ for j in range(np.size(uy)):
 # plt.gca().set_aspect("equal", adjustable="box")
 ax.set_xlim(np.min(df.x), np.max(df.x))
 ax.set_ylim(np.min(df.y), np.max(df.y))
-# ax.set_xticks(np.linspace(-5.0, 5.0, 5))
+ax.set_yticks(np.linspace(0.0, 30.0, 7))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontsize=tsize)
 ax.set_ylabel(r"$y$", fontsize=tsize)
@@ -103,19 +110,20 @@ plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
 plt.show()
 # %%
 # wavy = temp.loc[np.round(temp['walldist'], 3) == 0.001]
-wavy = pd.read_csv(pathM + "wavy.dat", skipinitialspace=True)
-ax.plot(wavy["x"], wavy["y"], "b--", linewidth=1.5)
-wavy = pd.read_csv(pathM + "WallBoundary.dat", skipinitialspace=True)
+wavy0 = pd.read_csv(pathM + "wavy.dat", skipinitialspace=True)
+wavy1 = pd.read_csv(pathM + "WallBoundary.dat", skipinitialspace=True)
+fig, ax = plt.subplots(figsize=(14*cm2in, 6*cm2in))
+ax.plot(wavy0["x"], wavy0["y"], "b--", linewidth=1.5)
 ax.scatter(
-    wavy["x"][::10],
-    wavy["y"][::10],
+    wavy1["x"][::4],
+    wavy1["y"][::4],
     linewidth=0.8,
     s=18.0,
     facecolor="red",
     edgecolor="red",
 )
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
-plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
+plt.savefig(pathF + "wall_comp.svg", bbox_inches="tight")
 plt.show()
 
 # %% dividing streamline
@@ -127,16 +135,22 @@ va.streamline(pathM, MeanFlow.PlanarData, points, partition=xyzone, opt="up")
 # dataframe = MeanFlow.PlanarData
 # NewFrame = dataframe.query("x>=-70.0 & x<=0.0 & y<=10.0")
 walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y), method="cubic")
-cover = (walldist < 0.0) | corner
+cover = (walldist < 0.0)  # | corner
 NewFrame = MeanFlow.PlanarData
 va.dividing_line(
     NewFrame, pathM, show=True, mask=cover
 )  # (MeanFlow.PlanarData, pathM, loc=2.5)
 # %% Save sonic line
 va.sonic_line(MeanFlow.PlanarData, pathM, option="velocity", Ma_inf=6.0, mask=corner)
+# %% enthalpy boundary layer
+va.enthalpy_boundary_edge(MeanFlow.PlanarData, pathM, Ma_inf=6.0, crit=0.99)
+# %% thermal boundary layer
+va.thermal_boundary_edge(MeanFlow.PlanarData, pathM, T_wall=3.35)
+# %% Save sonic line
+va.shock_line(MeanFlow.PlanarData, pathM, var="|gradp|", val=0.05)
 # %% Save shock line
 va.shock_line_ffs(
-    MeanFlow.PlanarData, pathM, val=[0.065], show=True
+    MeanFlow.PlanarData, pathM, val=[0.05], show=True
 )  # 0.065 for TB, 0.06 for ZA
 # %% Save boundary layer
 # va.boundary_edge(MeanFlow.PlanarData, pathM, jump0=-25, jump1=-10,
@@ -193,9 +207,10 @@ matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, u, cmap="rainbow", levels=rg1, extend="both")  # rainbow_r
 # cbar1 = ax.contour(x, y, u, levels=[0.0])
-ax.set_xlim(30, 350)
-ax.set_ylim(np.min(y), 10.0)
-ax.set_yticks(np.linspace(0.0, 8.0, 5))
+ax.set_xlim(-200, 80)
+ax.set_ylim(np.min(y), 40.0)
+ax.set_xticks(np.linspace(-200, 80.0, 8))
+ax.set_yticks(np.linspace(0.0, 40.0, 5))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontsize=tsize)
 ax.set_ylabel(r"$y$", fontsize=tsize)
@@ -219,16 +234,17 @@ walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y))
 # u = np.ma.array(u, mask=cover)
 print("rho_max=", np.max(rho))
 print("rho_min=", np.min(rho))
-cval1 = 0.1 #1.0 # 
-cval2 = 1.0 #7.0  # 
+cval1 = 0.4 #1.0 # 
+cval2 = 3.6 #7.0  # 
 fig, ax = plt.subplots(figsize=(7.3, 2.3))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 21)
 cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend="both")
 ax.contour(x, y, u, levels=[0.0], linestyles="dotted")  # rainbow_r
-ax.set_xlim(20, 360)
-ax.set_ylim(np.min(y), 10.0)
-ax.set_yticks(np.linspace(np.min(y), 10.0, 5))
+ax.set_xlim(-200, 80)
+ax.set_ylim(np.min(y), 36.0)
+ax.set_xticks(np.linspace(-200, 80.0, 8))
+ax.set_yticks(np.linspace(np.min(y), 36.0, 5))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontsize=tsize)
 ax.set_ylabel(r"$y$", fontsize=tsize)
@@ -243,24 +259,23 @@ cbar = plt.colorbar(
 lab = r"$\langle \rho \rangle/\rho_{\infty}$" #r"$\langle T \rangle/T_{\infty}$" #     
 cbar.set_label(lab, rotation=0, fontsize=tsize)
 # Add boundary layer
-# boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
-boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
-ax.plot(boundary.x / lh, boundary.y / lh, "k", linewidth=1.5)
+# boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
+# ax.plot(boundary.x / lh, boundary.y / lh, "k-", linewidth=1.5)
 # Add shock wave
-# shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
-# ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
-# shock = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
-# ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
+Enthalpy = pd.read_csv(pathM + "EnthalpyBoundaryEdge99.dat", skipinitialspace=True)
+ax.plot(Enthalpy.x / lh, Enthalpy.y / lh, "k--", linewidth=1.5)
+# thermal = pd.read_csv(pathM + "ThermalpyBoundaryEdge.dat", skipinitialspace=True)
+# ax.plot(thermal.x / lh, thermal.y / lh, "w:", linewidth=1.5)
 # shock1 = np.loadtxt(pathM + "ShockLine1.dat", skiprows=1)
 # ax.plot(shock1[:, 0], shock1[:, 1], "w", linewidth=1.5)
-# shock2 = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
-# ax.plot(shock2[:, 0], shock2[:, 1], "w", linewidth=1.5)
+# shock2 = pd.read_csv(pathM + "EnthalpyBoundaryEdge1.dat", skipinitialspace=True)
+# ax.plot(shock2.x / lh, shock2.y / lh, "k:", linewidth=1.5)
 # Add sonic line
-# sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
-# ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
+sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
+ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
 # Add dividing line(separation line)
-# dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
-# ax.plot(dividing.x / lh, dividing.y / lh, "k--", linewidth=1.5)
+dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
+ax.plot(dividing.x / lh, dividing.y / lh, "k:", linewidth=1.5)
 # streamlines
 x1 = np.linspace(0.0, 12.0, 120)
 y1 = np.linspace(-3.0, -0.0, 100)
@@ -386,15 +401,15 @@ gradp = np.ma.array(gradp, mask=cover)
 cval1 = -0.4
 cval2 = 1.1
 fig, ax = plt.subplots(figsize=(5.0, 2.5))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 41)
 cbar = ax.contourf(x, y, u, cmap="bwr", levels=rg1, extend="both")  # rainbow_r
 ax.set_xlim(0.0, 4.0)
 ax.set_ylim(-2.0, 0.0)
 ax.set_yticks([-2.0, -1.5, -1.0, -0.5, 0.0])
-ax.tick_params(labelsize=numsize + 1)
-ax.set_xlabel(r"$x/\delta_0$", fontsize=textsize + 1)
-ax.set_ylabel(r"$y/\delta_0$", fontsize=textsize + 1)
+ax.tick_params(labelsize=nsize + 1)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize + 1)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=tsize + 1)
 ax.set_title(r"$t u_\infty /\delta_0=1295$", fontsize=textsize - 1, pad=0.1)
 # ax.grid(b=True, which="both", linestyle=":")
 # plt.gca().set_aspect("equal", adjustable="box")
@@ -402,7 +417,7 @@ ax.set_title(r"$t u_\infty /\delta_0=1295$", fontsize=textsize - 1, pad=0.1)
 rg2 = np.linspace(cval1, cval2, 3)
 cbar = plt.colorbar(cbar, ticks=rg2, extendrect=True, fraction=0.025, pad=0.05)
 cbar.ax.tick_params(labelsize=nsize)
-cbar.set_label(r"$u/u_{\infty}$", rotation=0, fontsize=textsize, labelpad=-30, y=1.1)
+cbar.set_label(r"$u/u_{\infty}$", rotation=0, fontsize=tsize, labelpad=-30, y=1.1)
 
 # Add isolines
 # cbar = ax.contour(x, y, gradp, levels=[-3.6], colors='k',
@@ -436,6 +451,15 @@ plt.show()
 # %% Plot rms contour of the mean flow field
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
 var = "<u`u`>"
+if var == "<u`u`>":
+    lab = r"$\sqrt{\langle u^\prime u^\prime \rangle}$"
+    nm = 'RMSUU'
+elif var == "<v`v`>":
+    lab = r"$\sqrt{\langle v^\prime v^\prime \rangle}$"
+    nm = 'RMSVV'
+elif var == "<w`w`>":
+    lab = r"$\sqrt{\langle w^\prime w^\prime \rangle}$"
+    nm = 'RMSWW'
 var_val = getattr(MeanFlow.PlanarData, var)
 uu = griddata((MeanFlow.x, MeanFlow.y), var_val, (x, y))
 u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
@@ -444,24 +468,25 @@ print("uu_min=", np.min(np.sqrt(np.abs(var_val))))
 # cover = (walldist < 0.0) | corner
 # uu = np.ma.array(uu, mask=cover)
 # u = np.ma.array(u, mask=cover)
-fig, ax = plt.subplots(figsize=(7.2, 2.4))
+fig, ax = plt.subplots(figsize=(7.3, 2.3))
 matplotlib.rc("font", size=tsize)
 cb1 = 0.0
-cb2 = 0.1
+cb2 = 0.2
 rg1 = np.linspace(cb1, cb2, 21)  # 21)
 cbar = ax.contourf(
-    x / lh, y / lh, np.sqrt(np.abs(uu)), cmap="Spectral_r", levels=rg1, extend="both"
+    x / lh, y / lh, np.sqrt(np.abs(uu)), cmap="coolwarm", levels=rg1, extend="both"
 )  # rainbow_r # jet # Spectral_r
-ax.set_xlim(20, 360.0)
-ax.set_ylim(np.min(y), 10.0)
-ax.set_yticks(np.linspace(0.0, 10.0, 5))
+ax.set_xlim(-200, 80.0)
+ax.set_ylim(np.min(y), 36.0)
+ax.set_xticks(np.linspace(-200.0, 80.0, 8))
+ax.set_yticks(np.linspace(0.0, 36.0, 5))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x$", fontdict=font)
 ax.set_ylabel(r"$y$", fontdict=font)
 # plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
 rg2 = np.linspace(cb1, cb2, 3)
-cbbox = fig.add_axes([0.14, 0.52, 0.22, 0.273], alpha=0.9)
+cbbox = fig.add_axes([0.14, 0.52, 0.22, 0.31], alpha=0.9)
 [cbbox.spines[k].set_visible(False) for k in cbbox.spines]
 cbbox.tick_params(
     axis="both",
@@ -476,34 +501,31 @@ cbbox.tick_params(
 )
 cbbox.set_facecolor([1, 1, 1, 0.7])
 # Add colorbar
-cbaxes = fig.add_axes([0.16, 0.72, 0.18, 0.055])  # x, y, width, height
+cbaxes = fig.add_axes([0.16, 0.75, 0.18, 0.058])  # x, y, width, height
 cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(
     cbar, cax=cbaxes, orientation="horizontal", extendrect="False", ticks=rg2
 )
-lab = r"$\sqrt{\langle u^\prime u^\prime \rangle}$"
+
 cbar.set_label(
     lab, rotation=0, fontsize=tsize,
 )
 # Add boundary layer
-boundary = pd.read_csv(pathM + "BoundaryEdge.dat", skipinitialspace=True)
-ax.plot(boundary.x / lh, boundary.y / lh, "k", linewidth=1.0)
-# Add shock wave
-# shock = np.loadtxt(pathM + "ShockLineFit.dat", skiprows=1)
-# ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.0)
-# shock = np.loadtxt(pathM + "ShockLine2.dat", skiprows=1)
-# ax.plot(shock[:, 0], shock[:, 1], "w", linewidth=1.5)
+boundary = pd.read_csv(pathM + "EnthalpyBoundaryEdge99.dat", skipinitialspace=True)
+ax.plot(boundary.x / lh, boundary.y / lh, "k--", linewidth=1.0)
+# Add bubble line
+bubble = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
+ax.plot(bubble.x / lh, bubble.y / lh, "k:", linewidth=1.0)
 # Add sonic line
-# sonic = np.loadtxt(pathM + "SonicLine.dat", skiprows=1)
-# ax.plot(sonic[:, 0], sonic[:, 1], "w--", linewidth=1.2)
-# Add dividing line(separation line)
-cbar = ax.contour(
-    x, y, u, levels=[0.0], colors="k", linewidths=1.0, linestyles="dashed"
-)
+sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
+ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.0)
+# cbar = ax.contour(
+#     x, y, u, levels=[0.0], colors="w", linewidths=1.0, linestyles="dashed" 
+#)
 # dividing = pd.read_csv(pathM + "DividingLine.dat", skipinitialspace=True)
 # ax.plot(dividing.x / lh, dividing.y / lh, "k--", linewidth=1.2)
 
-plt.savefig(pathF + "MeanFlowRMSUU.svg", bbox_inches="tight")
+plt.savefig(pathF + "MeanFlow" + nm + ".svg", bbox_inches="tight")
 plt.show()
 
 # %%############################################################################
@@ -914,30 +936,35 @@ plt.show()
 #
 # %% Numerical schiliren in X-Y plane
 flow = pf()
-file = path + "snapshots/" + "TP_2D_Z_03_996.szplt"  # 'TP_2D_Z_03_01000.00.h5'  #
-flow.load_data(path, FileList=file, NameList=None)
+file = path + "snapshots/" + "TP_2D_Z_001.szplt"  # 'TP_2D_Z_03_01000.00.h5'  #
+flow.load_data(path, FileList=file, NameList='tecio')
 plane = flow.PlanarData
 # plane.to_hdf(path+'snapshots/TP_2D_Z_03_1000.h5', 'w', format='fixed')
 x, y = np.meshgrid(np.unique(plane.x), np.unique(plane.y))
-corner = (x < 0.0) & (y < 0.0)
+# corner = (x < 0.0) & (y < 0.0)
 var = "|grad(rho)|"
 schlieren = griddata((plane.x, plane.y), plane[var], (x, y))
 print("rho_max=", np.max(plane[var]))
 print("rho_min=", np.min(plane[var]))
-schlieren[corner] = np.nan
+va.sonic_line(plane, pathI, option="velocity", Ma_inf=6.0, mask=None)
+va.enthalpy_boundary_edge(plane, pathI, Ma_inf=6.0, crit=0.99)
+va.dividing_line(plane, pathI, show=True, mask=None) 
+# schlieren[corner] = np.nan
 # %%
-fig, ax = plt.subplots(figsize=(6.4, 2.2))
+fig, ax = plt.subplots(figsize=(7.3, 2.3))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(0, 3.0, 21)
 cbar = ax.contourf(
     x, y, schlieren, cmap="binary", levels=rg1, extend="both"
 )  # binary #rainbow_r# bwr
-ax.set_xlim(-35.0, 25.0)
-ax.set_ylim(-3.0, 15.0)
+ax.set_xlim(-200, 80.0)
+ax.set_ylim(np.min(y), 36.0)
+ax.set_xticks(np.linspace(-200, 80.0, 8))
+ax.set_yticks(np.linspace(0.0, 36.0, 5))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
 ax.set_ylabel(r"$y/\delta_0$", fontsize=tsize)
-plt.gca().set_aspect("equal", adjustable="box")
+# plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar
 rg2 = np.linspace(0, 3.0, 3)
 cbbox = fig.add_axes([0.16, 0.50, 0.20, 0.30], alpha=0.9)
@@ -964,11 +991,14 @@ cbar.set_label(
     r"$|\nabla \rho|$", rotation=0, fontsize=tsize - 1,
 )
 # Add boundary layer
-boundary = np.loadtxt(pathM + "BoundaryEdge.dat", skiprows=1)
-ax.plot(boundary[:, 0], boundary[:, 1], "b", linewidth=1.0)
+boundary = pd.read_csv(pathI + "EnthalpyBoundaryEdge99.dat", skipinitialspace=True)
+# ax.plot(boundary.x, boundary.y, "g--", linewidth=1.0)
 # Add dividing line(separation line)
-dividing = np.loadtxt(pathM + "BubbleLine.dat", skiprows=1)
-ax.plot(dividing[:, 0], dividing[:, 1], "b--", linewidth=1.0)
+dividing = pd.read_csv(pathI + "BubbleLine.dat", skipinitialspace=True)
+# ax.plot(dividing.x, dividing.y, "g:", linewidth=1.0)
+# Add sonic line
+sonic = pd.read_csv(pathI + "SonicLine.dat", skipinitialspace=True)
+# ax.plot(sonic.x, sonic.y, "b--", linewidth=1.0)
 # ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "SchlierenXY.svg", bbox_inches="tight")
 plt.show()
