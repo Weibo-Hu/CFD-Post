@@ -97,7 +97,7 @@ class PlanarField(LineField):
     def load_data(self, path, FileList=None, NameList=None):
         # nfiles = np.size(os.listdir(path))
         if FileList is None:
-            infile = glob(path + '*.plt')
+            infile = glob(path + '*plt')
         else:
             infile = FileList
 
@@ -107,6 +107,8 @@ class PlanarField(LineField):
                                         FileName=infile)
         elif NameList == 'h5':
             df = pd.read_hdf(infile)
+        elif NameList == 'tecio':
+            df, SolTime = pytec.ReadSinglePlt(infile)
         else:
             df = p2p.ReadINCAResults(path,
                                      VarList=NameList,
@@ -160,9 +162,9 @@ class PlanarField(LineField):
         self._data_field = df
 
 
-    def merge_stat(self, path):
+    def merge_stat(self, path, filenm='MeanFlow*'):
         # dirs = sorted(os.listdir(path))
-        dirs = glob(path + 'MeanFlow*')
+        dirs = glob(path + filenm)
         for i in np.arange(np.size(dirs)):
             if i == 0:
                 flow = pd.read_hdf(dirs[i])
@@ -216,6 +218,7 @@ class PlanarField(LineField):
     def yprofile(self, var_name, var_val):
         df1 = self.PlanarData.loc[self.PlanarData[var_name] == var_val]
         up_boundary = np.max(self.PlanarData['y'])
+        down_boundary = np.min(df1['y'])
         if np.max(df1['y']) < up_boundary:
             y_all = np.unique(self.PlanarData['y'])
             y_fill = y_all[y_all > np.max(df1['y'])]
@@ -230,7 +233,8 @@ class PlanarField(LineField):
         df2 = grouped.mean().reset_index()
         # df1 = PlanarField.uniq1d(df1, 'y')
         df3 = df2.sort_values(by=['y'], ascending=True)
-        return(df3)
+        df4 = df3.loc[df3['y'] >= down_boundary]
+        return(df4)
 
     def add_walldist(self, StepHeight):
         self._data_field['walldist'] = self._data_field['y']
