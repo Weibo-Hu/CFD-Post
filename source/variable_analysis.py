@@ -155,7 +155,7 @@ def add_variable(df, wavy, nms=None):
         wavy[nms[i]] = griddata(
             (df.x, df.y), df[nms[i]],
             (wavy.x, wavy.y),
-            method="cubic",
+            method="linear",
         )     
     return(wavy)
 
@@ -200,16 +200,17 @@ def alpha3(WallPre):
 
 
 # Obtain nondimensinal dynamic viscosity
-def viscosity(Re_delta, T, law="POW", T_inf=45):
+def viscosity(Re_ref, T, law="POW", T_inf=45):
     # nondimensional T
+    # Re based on reference length instead of delta
     if law == "POW":
-        mu = 1.0 / Re_delta * np.power(T, 0.75)
+        mu = 1.0 / Re_ref * np.power(T, 0.75)
     elif law == "Suther":  # Sutherland's law, mu_ref = mu_inf
         # mu_ref = 0.00001716
         # T_ref = 273.15 / T_inf
         S = 110.4 / T_inf
         a = (1 + S) / (T + S)
-        mu = 1.0 / Re_delta * a * np.power(T, 3 / 2) 
+        mu = 1.0 / Re_ref * a * np.power(T, 3 / 2)
     elif law == "dim":
         mu_ref = 0.00001716
         T_ref = 273.15
@@ -399,17 +400,19 @@ def skinfric_wavy(path, wavy, Re, T_inf, wall_val):
 
 
 # obtain Stanton number 
-def Stanton(k, dT, Tw, dy, Tt, factor=1):
+def Stanton(dT, Tw, dy, Re, Ma, T_inf, factor=1):
     if isinstance(dy, np.ndarray):
         if(np.size(np.where(dy == 0.0)) > 0):
             dy[np.where(dy == 0.0)] = 1e-8
             print('Warning: there is zero value for dy!!!')
-    # Tt = stat2tot(Ma, T_inf, opt='t')
-    St = - k * (dT - Tw) / dy / (Tt - Tw) * factor
+    Tt = stat2tot(Ma, T_inf, opt='t')
+    mu = viscosity(Re, dT, T_inf=T_inf, law="Suther")
+    kt = thermal(mu, 0.72)
+    St = - kt * (dT - Tw) / dy / (Tt - Tw) * factor
     return(St)
 
 
-def Stanton_wavy(path, wavy, Re, T_inf, T_wall, wall_val):
+def Stanton_wavy(path, wavy, Re, Ma, T_inf, T_wall, wall_val):
     # wavy = pd.read_csv(path + "FirstLev.dat", skipinitialspace=True)
     # nms = ["p", "T", "u", "v", "walldist"]
     # for i in range(np.size(nms)):
@@ -419,7 +422,7 @@ def Stanton_wavy(path, wavy, Re, T_inf, T_wall, wall_val):
     #         method="cubic",
     #     )
     # skin friction for a flat plate   
-    Tt = stat2tot(Ma=6.0, Ts=T_inf, opt="t") / 45
+    Tt = stat2tot(Ma, Ts=T_inf, opt="t") / 45
     mu = viscosity(Re, wavy["T"], T_inf=T_inf, law="Suther")
     kt = thermal(mu, 0.72)
     Cs = Stanton(
@@ -427,8 +430,10 @@ def Stanton_wavy(path, wavy, Re, T_inf, T_wall, wall_val):
         wavy["T"].values,
         T_wall,
         wavy["walldist"].values,
-        Tt,
-    ) 
+        Re,
+        Ma,
+        T_inf
+    )
 
     # skin friction for a wavy wall
     ind = wavy.index[wavy["y"] < wall_val]
@@ -1251,7 +1256,7 @@ def wall_line(dataframe, path, mask=None, val=0.0):
         # walldist[corner] = np.nan
         # cover1 = walldist < -0.003
         walldist = np.ma.array(walldist, mask=mask)  # mask=cover
-    header = "x, y"
+    # header = "x, y"
     xycor = np.empty(shape=[0, 2])
     fig, ax = plt.subplots(figsize=(10, 4))
     # cs = ax.contourf(x, y, walldist, extend='min')
@@ -1415,9 +1420,13 @@ def enthalpy_boundary_edge(
     dataframe = grouped.mean().reset_index()
     x, y = np.meshgrid(np.unique(dataframe.x), np.unique(dataframe.y))
     a0 = 1/Ma_inf**2/(gamma-1)
+    if "u" not in dataframe.columns:
+        dataframe["u"] = dataframe["<u>"]
+        dataframe["rho"] = dataframe["<rho>"]
+        dataframe["T"] = dataframe["<T>"]
     if "H" not in dataframe.columns:
-        a1 = dataframe["<rho>"]*dataframe["<T>"]*a0
-        a2 = 0.5*dataframe["<rho>"]*dataframe["<u>"]**2
+        a1 = dataframe["rho"]*dataframe["T"]*a0
+        a2 = 0.5*dataframe["rho"]*dataframe["u"]**2
         dataframe.loc[:, "H"] = a1 + a2
         
     enthalpy = griddata((dataframe.x, dataframe.y), dataframe.H, (x, y))
