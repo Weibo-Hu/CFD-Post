@@ -1245,14 +1245,18 @@ if __name__ == "__main__":
     #     "E:/cases/wavy_0918/TP_fluc_00100056/",
     # )
     # path = '/mnt/work/cases_new/heating2/'
-    path = '/media/weibo/VID21/ramp_st14/'
+    path = "/media/weibo/Work/flat_plate_st5/"
     pathST = path + 'TP_stat/'
-    ReadINCAResults(pathST, SpanAve=True, SavePath=path, OutFile='TP_data')
-    create_fluc_inca(path + 'TP_data_00363670/',
+    pathI = path + 'Instant/'
+    # ReadINCAResults(pathST, SpanAve=True, SavePath=path, OutFile='TP_data')
+    create_fluc_inca(path + 'TP_data_00134703/',
                      pathST,
                      path + 'TP_fluc_3d/')
-
-
+    
+    df, SolTime = ReadINCAResults(path + 'TP_fluc_3d/',
+                                  SavePath=pathI,
+                                  SpanAve=False,
+                                  OutFile='TP_fluc_2d')
 
 
     # %%

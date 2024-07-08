@@ -30,7 +30,7 @@ from IPython import get_ipython
 get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% set path and basic parameters
-path = "/media/weibo/VID21/ramp_st14/"
+path = "/media/weibo/Work/flat_plate_st5/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -86,7 +86,7 @@ va.dividing_line(
 va.sonic_line(MeanFlow.PlanarData, pathM,
               option="velocity", Ma_inf=6.0, mask=corner)
 # %% enthalpy boundary layer
-va.enthalpy_boundary_edge(MeanFlow.PlanarData, pathM, Ma_inf=6.0, crit=0.99)
+va.enthalpy_boundary_edge(MeanFlow.PlanarData, pathM, Ma_inf=6.0, crit=0.986)
 # %% thermal boundary layer
 va.thermal_boundary_edge(MeanFlow.PlanarData, pathM, T_wall=3.35)
 # %% Save shock line
@@ -138,8 +138,8 @@ u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
 walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y))
 print("rho_max=", np.max(rho))
 print("rho_min=", np.min(rho))
-cval1 = 0.4  # 1.0 #
-cval2 = 3.6  # 7.0  #
+cval1 = 0.3  # 1.0 #
+cval2 = 1.0  # 7.0  #
 fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 21)
@@ -169,8 +169,8 @@ ax.plot(Enthalpy.x / lh, Enthalpy.y / lh, "k--", linewidth=1.5)
 sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
 ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
 # Add dividing line(separation line)
-dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
-ax.plot(dividing.x / lh, dividing.y / lh, "k:", linewidth=1.5)
+# dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
+# ax.plot(dividing.x / lh, dividing.y / lh, "k:", linewidth=1.5)
 plt.savefig(pathF + "MeanFlow_rho.svg", bbox_inches="tight")
 plt.show()
 
@@ -199,7 +199,7 @@ print("uu_min=", np.min(np.sqrt(np.abs(var_val))))
 fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in))
 matplotlib.rc("font", size=tsize)
 cb1 = 0.0
-cb2 = 0.2
+cb2 = 0.01
 rg1 = np.linspace(cb1, cb2, 21)  # 21)
 cbar = ax.contourf(
     x / lh, y / lh, np.sqrt(np.abs(uu)), cmap="coolwarm",
@@ -210,8 +210,8 @@ ax.set_ylim(np.min(y), 36.0)
 ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 ax.set_yticks(np.linspace(0.0, 36.0, 5))
 ax.tick_params(labelsize=nsize)
-ax.set_xlabel(r"$x/l_r$", fontdict=font)
-ax.set_ylabel(r"$y/l_r$", fontdict=font)
+ax.set_xlabel(r"$x$", fontdict=font)
+ax.set_ylabel(r"$y$", fontdict=font)
 # plt.gca().set_aspect("equal", adjustable="box")
 # Add colorbar box
 rg2 = np.linspace(cb1, cb2, 3)
@@ -244,8 +244,8 @@ boundary = pd.read_csv(
     pathM + "EnthalpyBoundaryEdge99.dat", skipinitialspace=True)
 ax.plot(boundary.x / lh, boundary.y / lh, "k--", linewidth=1.0)
 # Add bubble line
-bubble = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
-ax.plot(bubble.x / lh, bubble.y / lh, "k:", linewidth=1.0)
+# bubble = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
+# ax.plot(bubble.x / lh, bubble.y / lh, "k:", linewidth=1.0)
 # Add sonic line
 sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
 ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.0)
@@ -268,7 +268,7 @@ schlieren = griddata((plane.x, plane.y), plane[var], (x, y))
 print("rho_max=", np.max(plane[var]))
 print("rho_min=", np.min(plane[var]))
 va.sonic_line(plane, pathI, option="velocity", Ma_inf=6.0, mask=None)
-va.enthalpy_boundary_edge(plane, pathI, Ma_inf=6.0, crit=0.99)
+va.enthalpy_boundary_edge(plane, pathI, Ma_inf=6.0, crit=0.986)
 va.dividing_line(plane, pathI, show=True, mask=None)
 # schlieren[corner] = np.nan
 # %%
@@ -359,7 +359,7 @@ plt.show()
 
 # %% dataframe of the first level points
 # corner = MeanFlow.PlanarData.walldist < 0.0
-firstval = 0.015625
+firstval = 0.03125
 ind0 = MeanFlow.PlanarData.y == 0.0
 MeanFlow.PlanarData['walldist'][ind0] = 0.0
 xy_val = va.wall_line(MeanFlow.PlanarData, path, val=firstval)  # mask=corner)
@@ -374,19 +374,19 @@ FirstLev.to_csv(pathM + "FirstLev.dat", index=False, float_format="%9.6f")
 
 
 # %%
-firstval = 0.015625
+firstval = 0.03125
 T_inf = 86.6
 Re = 7736
 df = MeanFlow.PlanarData
 ramp_wall = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
 ramp_wall = va.add_variable(df, ramp_wall)
-ramp1 = ramp_wall.loc[ramp_wall['x'] <= 0.0]
-ramp2 = ramp_wall.loc[ramp_wall['x'] > 0.0]
+# ramp1 = ramp_wall.loc[ramp_wall['x'] <= 0.0]
+# ramp2 = ramp_wall.loc[ramp_wall['x'] > 0.0]
 # for flat plate
-mu = va.viscosity(Re, ramp1["T"])
-xwall1 = ramp1['x']
-Cf1 = va.skinfriction(mu, ramp1['u'], firstval, factor=1)
-# for ramp
+mu = va.viscosity(Re, ramp_wall["T"])
+xwall = ramp_wall['x']
+Cf = va.skinfriction(mu, ramp_wall['u'], firstval, factor=1)
+# %% for ramp
 angle = 15 / 180 * np.pi
 mu = va.viscosity(Re, ramp2["T"])
 ramp2_u = ramp2['u'] * np.cos(angle) + ramp2['v'] * np.sin(angle)
@@ -400,17 +400,16 @@ yline = np.max(Cf2) * 0.92
 # %% skin friction
 fig2, ax2 = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=500)
 matplotlib.rc("font", size=nsize)
-ax2.plot(xwall1, Cf1, "b-", linewidth=1.5)
-ax2.plot(xwall2, Cf2, "b-", linewidth=1.5)
-ax2.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax2.plot(xwall, Cf, "b-", linewidth=1.5)
+ax2.set_xlabel(r"$x$", fontsize=tsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=tsize)
 ax2.set_xlim([-200.0, 80.0])
 ax2.set_xticks(np.linspace(-200.0, 80.0, 8))
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax2.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
-ax2.annotate(r"$x_s={}$".format(xline1), (xline1-16, yline))
-ax2.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
-ax2.annotate(r"$x_r={}$".format(xline2), (xline2-16, yline))
+# ax2.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax2.annotate(r"$x_s={}$".format(xline1), (xline1-16, yline))
+# ax2.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+# ax2.annotate(r"$x_r={}$".format(xline2), (xline2-16, yline))
 ax2.grid(visible=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(nsize)
 ax2.annotate("(a)", xy=(-0.09, 1.0), xycoords="axes fraction", fontsize=nsize)
@@ -427,15 +426,15 @@ fig3, ax3 = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=500)
 # ax3 = fig.add_subplot(212)
 ax3.plot(ramp_wall['x'], ramp_wall["p"] * fa, "b-", linewidth=1.5)
 # ax3.plot(wavy["x"], p_fit, "k", linewidth=1.5)
-ax3.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax3.set_xlabel(r"$x$", fontsize=tsize)
 # ylab = r"$\langle p_w \rangle/\rho_{\infty} u_{\infty}^2$"
 ax3.set_ylabel(r"$\langle C_p \rangle$", fontsize=tsize)
 ax3.set_xlim([-200.0, 80])
 ax3.set_xticks(np.arange(-200.0, 80.0, 40))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax3.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax3.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
 # ax3.annotate(r"$x_s={}$".format(xline1), (xline1-16, yline))
-ax3.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+# ax3.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 # ax3.annotate(r"$x_r={}$".format(xline2), (xline2-16, yline))
 ax3.grid(visible=True, which="both", linestyle=":")
 ax3.annotate("(b)", xy=(-0.13, 1.0), xycoords="axes fraction", fontsize=nsize)
@@ -443,7 +442,7 @@ plt.tick_params(labelsize=nsize)
 plt.savefig(pathF + "Cp.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 # %% Stanton number
-firstval = 0.015625
+# firstval = 0.015625
 T_wall = 3.35
 mu = va.viscosity(Re, ramp_wall["T"], T_inf=T_inf, law="Suther")
 kt = va.thermal(mu, 0.72)
@@ -462,13 +461,13 @@ fig2, ax2 = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=500)
 matplotlib.rc("font", size=nsize)
 ax2.plot(xwall, np.abs(Cs), "b-", linewidth=1.5)
 # ax2.plot(xwall, Cs_fit, "k", linewidth=1.5)
-ax2.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax2.set_xlabel(r"$x$", fontsize=tsize)
 ax2.set_ylabel(r"$\langle C_s \rangle$", fontsize=tsize)
 ax2.set_xlim([-200, 80])
 ax2.set_xticks(np.arange(-200.0, 80.0, 40))
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax2.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
-ax2.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+# ax2.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax2.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 ax2.grid(visible=True, which="both", linestyle=":")
 ax2.yaxis.offsetText.set_fontsize(nsize)
 ax2.annotate("(c)", xy=(-0.09, 1.0), xycoords="axes fraction", fontsize=nsize)
@@ -512,7 +511,7 @@ for i in range(np.size(xloc)):
         ax[i].set_xticklabels("")
     ax[i].set_ylabel(ylab, fontsize=tsize)
     ax[i].grid(visible=True, which="both", linestyle=":")
-    ax[i].set_title(r"$x/l_r={}$".format(xloc[i]), fontsize=nsize - 1)
+    ax[i].set_title(r"$x/\delta_0={}$".format(xloc[i]), fontsize=nsize - 1)
 ax[-1].set_xlabel(r"$t u_\infty/\delta_0$", fontsize=tsize)
 
 plt.savefig(
@@ -537,7 +536,7 @@ MeanFlow = pf()
 MeanFlow.merge_stat(pathI)
 # %% Streamwise evolution of a specific variable
 fa = 1.0  # 1.7 * 1.7 * 1.4
-var = "u`"
+var = "p`"
 df = pd.read_hdf(pathI + "TP_fluc_2d.h5")
 ramp_wall = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
 ramp_wall = va.add_variable(df, ramp_wall)
@@ -552,8 +551,8 @@ ax.plot(ramp_wall.x, ramp_wall[var] - meanval, "k")
 ax.set_xlim([-200.0, 80.0])
 ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 # ax.set_ylim([-0.001, 0.001])
-ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
-ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
 ax.set_ylabel(r"$2p^\prime/\rho_\infty u_\infty^2$", fontsize=tsize)
 ax.ticklabel_format(axis="y", style="sci", useOffset=False, scilimits=(-2, 2))
@@ -565,7 +564,7 @@ plt.savefig(
 
 # %% Streamwise evolution of a specific variable
 fa = 1.0  # 1.7 * 1.7 * 1.4
-var = "p`"
+var = "u`"
 ramp_wall[var] = griddata((df.x, df.y), df[var],
                           (ramp_wall.x, ramp_wall.y),
                           method="linear")
@@ -576,10 +575,10 @@ ax.plot(ramp_wall.x, ramp_wall[var] - meanval, "k")
 ax.set_xlim([-200.0, 80.0])
 ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 # ax.set_ylim([-0.001, 0.001])
-ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
 # ax.set_ylabel(r"$p^\prime/\rho_\infty u_\infty^2$", fontsize=tsize)
-ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
-ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 ax.set_ylabel(r"$u^\prime/u_\infty$", fontsize=tsize)
 ax.ticklabel_format(axis="y", style="sci", useOffset=False, scilimits=(-2, 2))
 ax.grid(visible="both", linestyle=":")
@@ -593,7 +592,7 @@ plt.savefig(
     streamwise evolution of the most energetic signals
 """
 FlucFlow = pd.read_hdf(pathM + "MeanFlow.h5")
-varn = '<p`p`>'
+varn = '<u`u`>'
 if varn == '<u`u`>':
     savenm = "MaxRMS_u"
     ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
@@ -617,8 +616,8 @@ df.to_csv(pathM + savenm + ".dat", sep=' ',
 # %% draw maximum value curve
 fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in))
 matplotlib.rc('font', size=nsize)
-ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
-ax.set_ylabel(r"$y/l_r$", fontsize=tsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
+ax.set_ylabel(r"$y/\delta_0$", fontsize=tsize)
 ax.plot(xnew, ynew, 'k', label=r'$q^\prime_\mathrm{max}$')
 ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 # ax.plot(xx, yy, 'k--', label='bubble')
@@ -635,7 +634,7 @@ ramp_max = pd.read_csv(pathM + savenm + ".dat", sep=' ', skipinitialspace=True)
 fig, ax = plt.subplots(figsize=(15*cm2in, 5.0*cm2in))
 matplotlib.rc('font', size=nsize)
 ax.set_ylabel(ylab, fontsize=tsize)
-ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
 ax.plot(ramp_max['x'], ramp_max[varn], 'k')
 ax.set_xlim([-200.0, 80])
 # ax.set_ylim([1e-7, 1e-1])
@@ -657,7 +656,7 @@ fig, ax = plt.subplots(figsize=(6.4, 2.2))
 matplotlib.rc('font', size=nsize)
 ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
 ax.set_ylabel(ylab, fontsize=tsize)
-ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
 ax.plot(xynew['x'], xynew['<u`u`>'], 'k')
 ax.set_yscale('log')
 ax.set_xlim([-100, 20])
