@@ -523,7 +523,7 @@ plt.show()
 # %%############################################################################
 
 
-# %% save and load data 
+# %% save and load data
 """
     streamwise evolution of signals along an axis
 """
@@ -534,14 +534,15 @@ df, SolTime = pytec.ReadINCAResults(path + 'TP_fluc_3d/',
 MeanFlow = pf()
 MeanFlow.merge_stat(pathM)
 # %% Streamwise evolution of a specific variable
+fa = 1.0  # 1.7 * 1.7 * 1.4
+var = "p`"
 df = pd.read_hdf(pathI + "TP_fluc_2d.h5")
 ramp_wall = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
 ramp_wall = va.add_variable(df, ramp_wall)
 ramp_wall[var] = griddata((df.x, df.y), df[var],
                           (ramp_wall.x, ramp_wall.y),
                           method="linear")
-fa = 1.0  # 1.7 * 1.7 * 1.4
-var = "p`"
+
 meanval = np.mean(ramp_wall[var])
 fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in))
 matplotlib.rc("font", size=nsize)
@@ -549,6 +550,8 @@ ax.plot(ramp_wall.x, ramp_wall[var] - meanval, "k")
 ax.set_xlim([-200.0, 80.0])
 ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 # ax.set_ylim([-0.001, 0.001])
+ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
 ax.set_ylabel(r"$2p^\prime/\rho_\infty u_\infty^2$", fontsize=tsize)
 ax.ticklabel_format(axis="y", style="sci", useOffset=False, scilimits=(-2, 2))
@@ -573,6 +576,8 @@ ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 # ax.set_ylim([-0.001, 0.001])
 ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
 # ax.set_ylabel(r"$p^\prime/\rho_\infty u_\infty^2$", fontsize=tsize)
+ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 ax.set_ylabel(r"$u^\prime/u_\infty$", fontsize=tsize)
 ax.ticklabel_format(axis="y", style="sci", useOffset=False, scilimits=(-2, 2))
 ax.grid(visible="both", linestyle=":")
@@ -631,10 +636,11 @@ ax.set_ylabel(ylab, fontsize=tsize)
 ax.set_xlabel(r"$x/\delta_0$", fontsize=tsize)
 ax.plot(ramp_max['x'], ramp_max[varn], 'k')
 ax.set_xlim([-200.0, 80])
-ax.set_ylim([1e-7, 1e-1])
+# ax.set_ylim([1e-7, 1e-1])
 ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 ax.set_yscale('log')
-
+ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 ax.grid(visible=True, which="both", linestyle=":")
 ax.tick_params(labelsize=nsize)
 plt.show()
@@ -667,6 +673,56 @@ plt.savefig(
     pathF + "MaxRMS_x.svg", bbox_inches="tight", pad_inches=0.1
 )
 
+
+# %% Draw impose mode
+
+inmode = pd.read_csv(path+"UnstableMode.inp", skiprows=5,
+                     sep=' ', index_col=False)
+fig, ax = plt.subplots(figsize=(7*cm2in, 6.5*cm2in))
+matplotlib.rc('font', size=nsize)
+xlab = r"$|q^{\prime}|/|u^\prime|_{\max}$"
+ax.set_xlabel(xlab, fontsize=tsize)
+ax.set_ylabel(r"$y/l_f$", fontsize=tsize)
+ax.plot(np.sqrt(inmode['u_r']**2+inmode['u_i']**2), inmode['y'], 'k')
+ax.plot(np.sqrt(inmode['v_r']**2+inmode['v_i']**2), inmode['y'], 'r')
+ax.plot(np.sqrt(inmode['w_r']**2+inmode['w_i']**2), inmode['y'], 'g')
+ax.plot(np.sqrt(inmode['p_r']**2+inmode['p_i']**2), inmode['y'], 'b')
+ax.plot(np.sqrt(inmode['t_r']**2+inmode['t_i']**2), inmode['y'], 'c')
+# ax.set_xlim([-100, 20])
+ax.set_ylim([0.0, 8.0])
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
+ax.legend(['u', 'v', 'w', 'p', 'T'])
+ax.grid(visible=True, which="both", linestyle=":")
+ax.tick_params(labelsize=nsize)
+
+plt.show()
+plt.savefig(
+    pathF + "ModeProf.svg", bbox_inches="tight", pad_inches=0.1
+)
+# %%
+ampl = 0.001
+x = 0.0
+z = 0.0
+t = 804
+omeg_r = 0.443259
+alpha = 0.633513
+beta = 1.147607
+theta = alpha*x+beta*z-omeg_r*t
+q_perturb = ampl*(qr*np.cos(theta)-qi*np.sin(theta))
+fig, ax = plt.subplots()
+ax.plot(q_perturb, y, 'k', linewidth=1.5)
+# ax.set_xlabel (r'$p^{\prime}/(\rho_{\infty} u_{\infty}^{2})$', fontdict = font3)
+ax.set_xlabel(r'$u^{\prime}/u_{\infty}$', fontdict=font3)
+ax.set_ylabel(r'$y/\delta_0$', fontdict=font3)
+# ax.set_xlim ([-0.00002, 0.00018])
+ax.set_ylim([0, 5])
+# ax.xaxis.set_major_locator (xmajorLocator)
+# ax.xaxis.set_minor_locator (xminorLocator)
+ax.grid(b=True, which='both', linestyle=':')
+plt.tight_layout(pad=0.5, w_pad=0.2, h_pad=0.2)
+plt.savefig(path + 'PertUProfile.pdf', dpi=300)
+plt.show()
+
 # %% animation for vortex structure
 pathF = path + "Figures/"
 pathall = glob(path + "TP_data_*/")
@@ -682,16 +738,16 @@ for i in range(np.size(pathall)):
     frame = tp.active_frame()
     frame.width = 12.8
     frame.height = 7.8
-    frame.position = (-1.0, 0.5)
+    frame.position = (-1.4, 0.25)
     # tp.macro.execute_file('/path/to/macro_file.mcr')
-    frame.load_stylesheet(path + "vortex_ani.sty")
+    frame.load_stylesheet(path + "L2_2021.sty")
     tp.macro.execute_command("$!Interface ZoneBoundingBoxMode = Off")
     tp.macro.execute_command("$!FrameLayout ShowBorder = No")
-    tp.export.save_png(path + str(soltime) + ".png", width=2048)
+    tp.export.save_png(pathF + str(soltime) + ".png", width=2048)
 # %% create videos
 
 pathani = path + "ani/"
-prenm = "heating2"
+prenm = "ramp"
 dirs = glob(pathani + "*.png")
 dirs = natsorted(dirs, key=lambda y: y.lower())
 flnm = pathani + prenm + "_Anima.mp4"

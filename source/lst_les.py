@@ -61,8 +61,8 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 12
-numsize = 10
+tsize = 13
+nsize = 10
 
 # %%############################################################################
 """
@@ -134,7 +134,7 @@ else:
 xloc = xrg # [-0.1875, 0.203125, 0.59375]
 curve= ['k-', 'b-', 'g-', 'r-']
 fig3, ax3 = plt.subplots(figsize=(6.0, 2.8))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 for i in range(np.size(xloc)):
     filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'  
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
@@ -143,15 +143,15 @@ for i in range(np.size(xloc)):
     # val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
     ax3.plot(var['time'], val, curve[i], linewidth=1.2)
 
-ax3.set_ylabel(ylab, fontsize=textsize)
-ax3.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=textsize)
+ax3.set_ylabel(ylab, fontsize=tsize)
+ax3.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=tsize)
 # ax3.set_xlim([0.0, 25.0])
 # ax3.set_ylim([-1.5e-4, 2.5e-4]) # ([-8.0e-4, 6.0e-4])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
-ax3.yaxis.offsetText.set_fontsize(numsize)
-plt.tick_params(labelsize=numsize)
+ax3.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_time.svg", dpi=300)
 plt.show()
@@ -160,7 +160,7 @@ plt.show()
 n_ord = 4
 Wn = 0.05 / 2  # cutoff frequency / (0.5 * f_sample)
 fig2, ax2 = plt.subplots(figsize=(6.0, 2.8))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 curve_f= ['k:', 'b:', 'g:']
 i = 2
 filenm = pathP + 'timeline_' + str(xloc[i]) + yloc + '.dat'  
@@ -171,12 +171,12 @@ b, a = signal.butter(n_ord, Wn, 'low')  # Wn =
 filter_sig = signal.filtfilt(b, a, val)
 ax2.plot(var['time'], val, curve_f[i], linewidth=1.5)
 ax2.plot(var['time'], filter_sig, curve[i], linewidth=1.2)
-ax2.set_ylabel(ylab, fontsize=textsize)
-ax2.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=textsize)
+ax2.set_ylabel(ylab, fontsize=tsize)
+ax2.set_xlabel(r"$t u_\infty / \delta_0$", fontsize=tsize)
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax2.grid(b=True, which="both", linestyle=":")
-ax2.yaxis.offsetText.set_fontsize(numsize)
-plt.tick_params(labelsize=numsize)
+ax2.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_time_filter.svg", dpi=300)
 plt.show()
@@ -184,7 +184,7 @@ plt.show()
 # %% FWPSD for time-sequential data
 dt = 0.25
 fig4, ax4 = plt.subplots(figsize=(6.0, 2.8))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 for i in range(np.size(xloc)):
     filenm = pathP + 'timeline_' + str(xloc[i]) + '.dat'  
     var = pd.read_csv(filenm, sep=' ', skiprows=0,
@@ -195,15 +195,15 @@ for i in range(np.size(xloc)):
     ax4.semilogx(fre, fpsd, curve[i], linewidth=1.2)
     ax3.plot(var['time'], val, curve[i], linewidth=1.5)
 
-ax4.set_ylabel("Weighted PSD, unitless", fontsize=textsize)
-ax4.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=textsize)
+ax4.set_ylabel("Weighted PSD, unitless", fontsize=tsize)
+ax4.set_xlabel(r"$f\delta_0/u_\infty$", fontsize=tsize)
 # ax3.set_xlim([0.0, 25.0])
 # ax3.set_ylim([-1.5e-4, 2.5e-4]) # ([-8.0e-4, 6.0e-4])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax4.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax4.grid(b=True, which="both", linestyle=":")
-ax4.yaxis.offsetText.set_fontsize(numsize)
-plt.tick_params(labelsize=numsize)
+ax4.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_PSD1.svg", dpi=300)
 plt.show()
@@ -222,7 +222,7 @@ freq_samp = 4.0
 num_samp = np.size(stime)
 freq = np.linspace(0.0, freq_samp / 2, math.ceil(num_samp/2), endpoint=False)
 fig = plt.figure(figsize=(6.4, 3.0))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax = fig.add_subplot(121)
 ax1 = fig.add_subplot(122)
 for i in range(3):
@@ -241,20 +241,20 @@ for i in range(3):
     ax1.plot(freq, phase, curve[i], linewidth=1.2)
 
 ax.set_xscale("log")
-ax.set_xlabel(r"$f \delta_0 / u_\infty$", fontsize=textsize)
-ax.set_ylabel(r"$A$" + ylab_sub, fontsize=textsize)
+ax.set_xlabel(r"$f \delta_0 / u_\infty$", fontsize=tsize)
+ax.set_ylabel(r"$A$" + ylab_sub, fontsize=tsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.tick_params(labelsize=numsize)
-ax.yaxis.offsetText.set_fontsize(numsize)
+ax.tick_params(labelsize=nsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
 ax.grid(b=True, which="both", linestyle=":")
 
 ax1.set_xscale("log")
-ax1.set_xlabel(r"$f \delta_0 / u_\infty$", fontsize=textsize)
-ax1.set_ylabel(r"$\theta$" + ylab_sub + r"[rad]", fontsize=textsize)
+ax1.set_xlabel(r"$f \delta_0 / u_\infty$", fontsize=tsize)
+ax1.set_ylabel(r"$\theta$" + ylab_sub + r"[rad]", fontsize=tsize)
 # ax1.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax1.yaxis.offsetText.set_fontsize(numsize)
+ax1.yaxis.offsetText.set_fontsize(nsize)
 ax1.grid(b=True, which="both", linestyle=":")
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_fft" + ".svg", dpi=300)
 plt.show()
@@ -305,7 +305,7 @@ alpha_r = -va.sec_ord_fdd(var['x'], var['phase'])
 alpha_i = alpha_i / var['amplt']
 fig = plt.figure(figsize=(6.4, 3.2))
 #fig, ax = plt.subplots(figsize=(3.2, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax1 = fig.add_subplot(121)
 ax1.plot(var['x'], alpha_r*2*np.pi, 'k-', linewidth=1.2)
 ax1.scatter(lst['x'], lst['alpha_r']/lst['bl'] * delta, s=12, marker='o',
@@ -314,15 +314,15 @@ ax1.set_xlim([-40.0, -6.0])
 ax1.set_ylim([0.0, 3.5])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax1.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax1.yaxis.offsetText.set_fontsize(numsize)
-ax1.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
-ax1.set_ylabel(r'$\alpha_r^* \delta_0$', fontsize=textsize)
-ax1.tick_params(labelsize=numsize)
+ax1.yaxis.offsetText.set_fontsize(nsize)
+ax1.set_xlabel(r'$x/\delta_0$', fontsize=tsize)
+ax1.set_ylabel(r'$\alpha_r^* \delta_0$', fontsize=tsize)
+ax1.tick_params(labelsize=nsize)
 ax1.grid(b=True, which="both", linestyle=":")
 ax1.annotate(r"$(a)$", xy=(-0.18, 1.00), xycoords='axes fraction',
-             fontsize=numsize)
+             fontsize=nsize)
 # alpha_i
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax = fig.add_subplot(122)
 ax.plot(var['x'], alpha_i*2*np.pi, 'k-', linewidth=1.2)
 ax.scatter(lst['x'], -lst['alpha_i']/lst['bl'] * delta, s=12, marker='o',
@@ -331,13 +331,13 @@ ax.set_xlim([-40.0, -6.0])
 ax.set_ylim([-0.5, 0.5])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-1, 1))
-ax.yaxis.offsetText.set_fontsize(numsize)
-ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
-ax.set_ylabel(r'$-\alpha_i^* \delta_0$', fontsize=textsize)
-ax.tick_params(labelsize=numsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
+ax.set_xlabel(r'$x/\delta_0$', fontsize=tsize)
+ax.set_ylabel(r'$-\alpha_i^* \delta_0$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.annotate(r"$(b)$", xy=(-0.18, 1.00), xycoords='axes fraction',
-             fontsize=numsize)
+             fontsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.7, h_pad=1)
 plt.savefig(pathF + varnm + "_alpha_x_by_t" + ".svg", dpi=300)
 plt.show()
@@ -392,7 +392,7 @@ else:
 xloc = [-39.0, -30.0, -20.0, -10.0]
 curve= ['k-', 'b--', 'k:', 'b-.']
 fig3, ax3 = plt.subplots(figsize=(6.0, 3.0))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 # ax3 = fig.add_subplot(122)
 for i in range(4):
     filenm = pathSW + 'spanwise_' + str(xloc[i]) + yloc + '.dat'  
@@ -402,15 +402,15 @@ for i in range(4):
     val = var[varnm] - base.loc[base['x']==xloc[i], [varnm]].values[0]
     ax3.plot(var['z'], val, curve[i], linewidth=1.5)
 
-ax3.set_ylabel(ylab, fontsize=textsize)
-ax3.set_xlabel(r"$z / \delta_0$", fontsize=textsize)
+ax3.set_ylabel(ylab, fontsize=tsize)
+ax3.set_xlabel(r"$z / \delta_0$", fontsize=tsize)
 # ax3.set_xlim([0.0, 25.0])
 # ax3.set_ylim([0.0, 1.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.grid(b=True, which="both", linestyle=":")
-ax3.yaxis.offsetText.set_fontsize(numsize)
-plt.tick_params(labelsize=numsize)
+ax3.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_z.svg", dpi=300)
 plt.show()
@@ -449,26 +449,26 @@ df.to_csv(pathSW + varnm + '_beta_by_z_' + yloc + '.dat', sep=' ',
 # %% Amplitude and phase by spanwise distance
 fig = plt.figure(figsize=(6.4, 3.0))
 ax = fig.add_subplot(121)
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax.plot(freq, amplt, 'k-')
 ax.set_xscale("log")
-ax.set_xlabel(r"$\beta \delta_0 / 2\pi$", fontsize=textsize)
-ax.set_ylabel(r"$A({}^\prime)$".format(varnm), fontsize=textsize)
+ax.set_xlabel(r"$\beta \delta_0 / 2\pi$", fontsize=tsize)
+ax.set_ylabel(r"$A({}^\prime)$".format(varnm), fontsize=tsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.tick_params(labelsize=numsize)
-ax.yaxis.offsetText.set_fontsize(numsize)
+ax.tick_params(labelsize=nsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
 ax.grid(b=True, which="both", linestyle=":")
 
 ax1 = fig.add_subplot(122)
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax1.plot(freq, phase, 'k-')
 ax1.set_xscale("log")
-ax1.set_xlabel(r"$\beta \delta_0 / 2\pi$", fontsize=textsize)
-ax1.set_ylabel(r"$\theta({}^\prime)$[rad]".format(varnm), fontsize=textsize)
+ax1.set_xlabel(r"$\beta \delta_0 / 2\pi$", fontsize=tsize)
+ax1.set_ylabel(r"$\theta({}^\prime)$[rad]".format(varnm), fontsize=tsize)
 # ax1.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax1.yaxis.offsetText.set_fontsize(numsize)
+ax1.yaxis.offsetText.set_fontsize(nsize)
 ax1.grid(b=True, which="both", linestyle=":")
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + varnm + "_fft_by_z" + str(x0[i]) + ".svg", dpi=300)
 plt.show()
@@ -486,7 +486,7 @@ alpha_r = -va.sec_ord_fdd(var['x'], var['phase'])
 alpha_i = alpha_i / var['amplt']
 fig = plt.figure(figsize=(6.4, 3.2))
 #fig, ax = plt.subplots(figsize=(3.2, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax1 = fig.add_subplot(121)
 ax1.scatter(lst['x'], lst['alpha_r']/lst['bl'] * delta, s=14, marker='o',
            facecolors='w', edgecolors='k', linewidths=0.8)
@@ -495,15 +495,15 @@ ax1.set_xlim([-40.0, -6.0])
 ax1.set_ylim([0.0, 3.0])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax1.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax1.yaxis.offsetText.set_fontsize(numsize)
-ax1.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
-ax1.set_ylabel(r'$\alpha_r^* \delta_0$', fontsize=textsize)
-ax1.tick_params(labelsize=numsize)
+ax1.yaxis.offsetText.set_fontsize(nsize)
+ax1.set_xlabel(r'$x/\delta_0$', fontsize=tsize)
+ax1.set_ylabel(r'$\alpha_r^* \delta_0$', fontsize=tsize)
+ax1.tick_params(labelsize=nsize)
 ax1.grid(b=True, which="both", linestyle=":")
 ax1.annotate(r"$(a)$", xy=(-0.18, 1.00), xycoords='axes fraction',
-             fontsize=numsize)
+             fontsize=nsize)
 
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax = fig.add_subplot(122)
 ax.scatter(lst['x'], -lst['alpha_i']/lst['bl'] * delta, s=14, marker='o',
            facecolors='w', edgecolors='k', linewidths=0.8)
@@ -512,13 +512,13 @@ ax.set_xlim([-40.0, -6.0])
 ax.set_ylim([-0.4, 0.4])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-1, 1))
-ax.yaxis.offsetText.set_fontsize(numsize)
-ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
-ax.set_ylabel(r'$-\alpha_i^* \delta_0$', fontsize=textsize)
-ax.tick_params(labelsize=numsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
+ax.set_xlabel(r'$x/\delta_0$', fontsize=tsize)
+ax.set_ylabel(r'$-\alpha_i^* \delta_0$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.annotate(r"$(b)$", xy=(-0.15, 1.00), xycoords='axes fraction',
-             fontsize=numsize)
+             fontsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.7, h_pad=1)
 plt.savefig(pathF + varnm + "_alpha_x_by_z" + ".svg", dpi=300)
 plt.show()
@@ -598,15 +598,15 @@ amp_fft = pd.read_csv(filenm, sep=' ', skiprows=0,
 amp_norm = amp_fft['amplit']/np.max(amp_fft['amplit'])
 # plot lines
 fig, ax = plt.subplots(figsize=(3.2, 3.2))
-matplotlib.rc('font', size=numsize)
+matplotlib.rc('font', size=nsize)
 ax.plot(amp_norm, amp_fft['y'], 'k', linewidth=1.2)
 ax.scatter(ts_profile[varnm], ts_profile.y, s=12, marker='o',
            facecolors='w', edgecolors='k', linewidths=0.8)
 ax.set_ylim([0, 5])
-ax.set_xlabel(ylab, fontsize=textsize)
-ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
+ax.set_xlabel(ylab, fontsize=tsize)
+ax.set_ylabel(r'$y/\delta_0$', fontsize=tsize)
 ax.grid(b=True, which="both", linestyle=":")
-plt.tick_params(labelsize=numsize)
+plt.tick_params(labelsize=nsize)
 plt.show()
 plt.savefig(
     pathF + "BLAmplit_" + varnm + by_var + '.svg', 
@@ -631,7 +631,7 @@ bf = pd.read_hdf(pathB + 'BaseFlow.h5')
 varnm = 'p'
 fig, ax = plt.subplots(1, 7, figsize=(6.4, 2.2))
 fig.subplots_adjust(hspace=0.5, wspace=0.15)
-matplotlib.rc('font', size=numsize)
+matplotlib.rc('font', size=nsize)
 title = [r'$(a)$', r'$(b)$', r'$(c)$', r'$(d)$', r'$(e)$']
 matplotlib.rcParams['xtick.direction'] = 'in'
 matplotlib.rcParams['ytick.direction'] = 'in'
@@ -649,11 +649,11 @@ for i in range(np.size(xcoord)):
     if i != 0:
         ax[i].set_yticklabels('')
     # ax[i].set_xticks([0, 0.5, 1], minor=True)
-    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=numsize - 2)
+    ax[i].set_title(r'$x/\delta_0={}$'.format(xcoord[i]), fontsize=nsize - 2)
     ax[i].grid(b=True, which="both", linestyle=":")
-ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=textsize)
-ax[3].set_xlabel(r'$u/u_\infty$', fontsize=textsize)
-plt.tick_params(labelsize=numsize)
+ax[0].set_ylabel(r"$\Delta y/\delta_0$", fontsize=tsize)
+ax[3].set_xlabel(r'$u/u_\infty$', fontsize=tsize)
+plt.tick_params(labelsize=nsize)
 plt.show()
 plt.savefig(
     pathF + "BLPerturb.svg", bbox_inches="tight", pad_inches=0.1
