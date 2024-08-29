@@ -114,6 +114,16 @@ y3 = np.zeros(np.size(x3))
 xx = np.concatenate((x1[:-1], x2, x3[1:]))
 yy = np.concatenate((y1[:-1], y2, y3[1:]))
 arr = np.vstack((xx, yy)).T
+
+# %%  ramp 
+x1 = np.linspace(-200, 0, 801, endpoint=True)
+x2 = np.linspace(0, 90, 361, endpoint=True)
+angle = 15
+y1 = np.zeros(np.size(x1))
+y2 = x2 * np.tan(15/180*np.pi)
+xx = np.concatenate((x1[:-1], x2))
+yy = np.concatenate((y1[:-1], y2))
+arr = np.vstack((xx, yy)).T
 np.savetxt(
     pathM + "wavy.dat",
     arr,
