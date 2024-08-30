@@ -1075,7 +1075,7 @@ def shock_loc(
 
 
 # Save shock isoline
-def shock_line(dataframe, path, var="|gradp|", val=0.06):
+def shock_line_old(dataframe, path, var="|gradp|", val=0.06):
     grouped = dataframe.groupby(["x", "y"])
     dataframe = grouped.mean().reset_index()
     x0 = np.unique(dataframe["x"])
@@ -1108,6 +1108,76 @@ def shock_line(dataframe, path, var="|gradp|", val=0.06):
     xycor = np.empty(shape=[0, 2])
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
+        xycor = np.vstack((xycor, xy))
+        # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
+    tck, yval = splprep(xycor.T, s=1.0, per=1)
+    x_new, y_new = splev(yval, tck, der=0)
+    xy_fit = np.vstack((x_new, y_new))
+    np.savetxt(
+        path + "ShockLine.dat",
+        xycor,
+        fmt="%.8e",
+        delimiter=", ",
+        comments="",
+        header=header,
+    )
+    np.savetxt(
+        path + "ShockLineFit.dat",
+        xy_fit.T,
+        fmt="%.8e",
+        delimiter=", ",
+        comments="",
+        header=header,
+    )
+
+# Save shock isoline
+def shock_line(dataframe, path, var="|gradp|", val=0.06, mask=False):
+    grouped = dataframe.groupby(["x", "y"])
+    dataframe = grouped.mean().reset_index()
+    x0 = np.unique(dataframe["x"])
+    y0 = np.unique(dataframe["y"])
+    xini, yini = np.meshgrid(x0, y0)
+    if var == "|gradp|":
+        gradp = griddata(
+            (dataframe["x"],
+             dataframe["y"]),
+            dataframe["|gradp|"],
+            (xini, yini)
+        )
+    else:
+        gradp = griddata(
+            (dataframe["x"],
+             dataframe["y"]),
+            dataframe[var],
+            (xini, yini)
+        )
+    if mask is True:
+        walldist = griddata(
+            (dataframe["x"],
+             dataframe["y"]),
+            dataframe["walldist"],
+            (xini, yini)
+        )
+        corner = (walldist < 0.0)
+        gradp[corner] = np.nan
+    fig, ax = plt.subplots(figsize=(10, 4))
+    cs = ax.contour(xini, yini, gradp, levels=[
+                    val], linewidths=1.2, colors="gray")
+    plt.show()
+    header = "x, y"
+    xycor = np.empty(shape=[0, 2])
+    ii = 0
+    for isoline in cs.collections[0].get_paths():
+        xy = isoline.vertices
+        np.savetxt(
+            path + "ShockLine{:03d}.dat".format(ii),
+            xy,
+            fmt="%.8e",
+            delimiter=", ",
+            comments="",
+            header=header,
+        )
+        ii = ii + 1
         xycor = np.vstack((xycor, xy))
         # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
     tck, yval = splprep(xycor.T, s=1.0, per=1)
@@ -1270,7 +1340,7 @@ def wall_line(dataframe, path, mask=None, val=0.0):
     return(onelev.values)
 
 
-def dividing_line(dataframe, path=None, loc=-0.015625, show=False, mask=None):
+def dividing_line(dataframe, path=None, show=False, mask=None):
     """Obtain dividing line
 
        Args:
@@ -1298,34 +1368,26 @@ def dividing_line(dataframe, path=None, loc=-0.015625, show=False, mask=None):
                      0.0], linewidths=1.5, linestyles="--", colors="k")
     if show == False:
         plt.close()
-    header = "x, y"
+    header = "x, y, zone"
     xycor = np.empty(shape=[0, 2])
     xylist = []
     nolist = []
+    ind = 0
     for i, isoline in enumerate(cs1.collections[0].get_paths()):
         xy = isoline.vertices
-        nolist.append(np.shape(xy)[0])
-        if np.any(xy[:, 1] == loc):  # pick the bubble line
-            if loc == -0.015625:
-                if (np.min(xy[:, 1]) < -2.0) & (np.min(xy[:, 0]) < 1.0):
-                    ind = i
-            else:
-                ind = i
+        nrows = np.shape(xy)[0]
+        nolist.append(nrows)
         xylist.append(xy)
         xycor = np.vstack((xycor, xy))
         key_id = "zone_" + "%03d" % i
         df = pd.DataFrame(data=xy, columns=["x", "y"])
+        df['zone'] = key_id
         if i == 0:
-            df.to_hdf(path + "DividingLine.h5", mode="w",
-                      key=key_id, format="fixed")
+            save_df = df
         else:
-            df.to_hdf(path + "DividingLine.h5", mode="a",
-                      key=key_id, format="fixed")
-    try:
-        ind
-    except:
-        print("find no bubble line!!!")
-        ind = np.argmax(nolist)
+            save_df = pd.concat([save_df, df])
+    save_df.to_hdf(path + "DividingLine.h5", key='data', mode="w", format="fixed")
+    ind = np.argmax(nolist)    
     xy = xylist[ind]
     fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     ax1.scatter(xy[:, 0], xy[:, 1])
@@ -1925,7 +1987,7 @@ def temp_span(infile, xloc, vname):
     df2 = df1[vname]
     return df2
 
-
+# %%
 if __name__ == "__main__":
     """
     InFolder = "/media/weibo/Data1/BFS_M1.7L_0505/Snapshots/Snapshots1/"
