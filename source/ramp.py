@@ -31,7 +31,7 @@ from IPython import get_ipython
 get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% set path and basic parameters
-path = "F:/ramp_st14_2nd/"
+path = "/media/weibo/VID21/ramp_st14/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -90,12 +90,12 @@ va.dividing_line(
 va.sonic_line(MeanFlow.PlanarData, pathM,
               option="velocity", Ma_inf=6.0, mask=corner)
 # %% enthalpy boundary layer
-va.enthalpy_boundary_edge(MeanFlow.PlanarData, pathM, Ma_inf=6.0, crit=0.99)
+va.enthalpy_boundary_edge(MeanFlow.PlanarData, pathM, Ma_inf=6.0, crit=0.989)
 # %% thermal boundary layer
 va.thermal_boundary_edge(MeanFlow.PlanarData, pathM, T_wall=3.35)
 # %% Save shock line
 va.shock_line(MeanFlow.PlanarData, pathM, var="|gradp|", val=0.005, mask=True)
-# %% boundary layer 
+# %% boundary layer
 va.boundary_edge(MeanFlow.PlanarData, pathM, shock=False, mask=False)
 
 # %% check mesh
@@ -177,7 +177,7 @@ ax.plot(Enthalpy.x / lh, Enthalpy.y / lh, "k--", linewidth=1.5)
 sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
 ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
 # Add shock line
-shock = pd.read_csv(pathM + "ShockLine158.dat", skipinitialspace=True)
+shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
 ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
 # Add dividing line(separation line)
 # dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
@@ -258,7 +258,7 @@ ax.plot(boundary.x / lh, boundary.y / lh, "k--", linewidth=1.0)
 bubble = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
 ax.plot(bubble.x / lh, bubble.y / lh, "k:", linewidth=1.0)
 # Add shock line
-shock = pd.read_csv(pathM + "ShockLine158.dat", skipinitialspace=True)
+shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
 ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
 # Add sonic line
 sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
@@ -410,16 +410,20 @@ Cf2 = va.skinfriction(mu, ramp2_u, firstval*np.cos(angle), factor=1)
 ind = np.argmin(np.abs(Cf1[:-20]))
 xline1 = xwall1[ind]
 xline2 = np.round(np.interp(0.0, Cf2, xwall2), 2)
-yline = np.max(Cf2) * 0.92
+yline = np.max(Cf2) * 0.88
 # xwall, Cf = va.skinfric_wavy(pathM, wavy, Re, T_inf, firstval)
 # %% skin friction
-tck, yval = splprep(np.vstack((xwall1, Cf1)), k=5, s=1.0, per=0)
-xw1_fit, Cf1_fit = splev(yval, tck, der=0)
+# xw1_fit, Cf1_fit = va.curve_fit(xwall1, Cf1, [-72.0, -46.0, -2.5], deg=[3, 4, 5, 4])
+# xw2_fit, Cf2_fit = va.curve_fit(xwall2, Cf2, [20.0, 60.0], deg=[3, 4, 5])
+b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.25)
+Cf1_fit = signal.filtfilt(b, a, Cf1)
+Cf2_fit = signal.filtfilt(b, a, Cf2)
 fig2, ax2 = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=500)
 matplotlib.rc("font", size=nsize)
-ax2.plot(xwall1, Cf1, "b-", linewidth=1.5)
-ax2.plot(xw1_fit[:-1], Cf1_fit[:-1], "k--", linewidth=1.5)
-ax2.plot(xwall2, Cf2, "b-", linewidth=1.5)
+# ax2.plot(xwall1, Cf1, "b--", linewidth=1.5)
+ax2.plot(xwall1, Cf1_fit, "k", linewidth=1.5)
+# ax2.plot(xwall2, Cf2, "b--", linewidth=1.5)
+ax2.plot(xwall2, Cf2_fit, "k", linewidth=1.5)
 ax2.set_xlabel(r"$x/l_r$", fontsize=tsize)
 ax2.set_ylabel(r"$\langle C_f \rangle$", fontsize=tsize)
 ax2.set_xlim([-200.0, 80.0])
@@ -439,12 +443,12 @@ plt.show()
 # %% Cp
 Ma = 6.0
 fa = 1.0  # Ma * Ma * 1.4
-b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.125)
-p_fit = signal.filtfilt(b, a, ramp_wall["p"] * fa)
+b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.25)
+Cp_fit = signal.filtfilt(b, a, ramp_wall["p"] * fa)
 fig3, ax3 = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=500)
 # ax3 = fig.add_subplot(212)
-ax3.plot(ramp_wall['x'], ramp_wall["p"] * fa, "b-", linewidth=1.5)
-# ax3.plot(wavy["x"], p_fit, "k", linewidth=1.5)
+# ax3.plot(ramp_wall['x'], ramp_wall["p"] * fa, "b--", linewidth=1.5)
+ax3.plot(ramp_wall["x"], Cp_fit * fa, "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/l_r$", fontsize=tsize)
 # ylab = r"$\langle p_w \rangle/\rho_{\infty} u_{\infty}^2$"
 ax3.set_ylabel(r"$\langle C_p \rangle$", fontsize=tsize)
@@ -466,20 +470,20 @@ T_wall = 3.35
 mu = va.viscosity(Re, ramp_wall["T"], T_inf=T_inf, law="Suther")
 kt = va.thermal(mu, 0.72)
 Tt = va.stat2tot(Ma=6.0, Ts=1.0, opt="t")
-Cs = va.Stanton(ramp_wall["T"], T_wall, firstval, 
+Cs = va.Stanton(ramp_wall["T"], T_wall, firstval,
                 Re, Ma, T_inf=1.0, factor=1)
 
 # %% low-pass filter
 xwall = ramp_wall['x']
-b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.125)
+b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.25)
 Cs_fit = signal.filtfilt(b, a, Cs)
 # ind = np.where(Cf[:] < 0.008)
 fig2, ax2 = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=500)
 # fig = plt.figure(figsize=(8, 5), dpi=500)
 # ax2 = fig.add_subplot(211)
 matplotlib.rc("font", size=nsize)
-ax2.plot(xwall, np.abs(Cs), "b-", linewidth=1.5)
-# ax2.plot(xwall, Cs_fit, "k", linewidth=1.5)
+ax2.plot(xwall, np.abs(Cs), "b--", linewidth=1.5)
+ax2.plot(xwall, np.abs(Cs_fit), "k", linewidth=1.5)
 ax2.set_xlabel(r"$x/l_r$", fontsize=tsize)
 ax2.set_ylabel(r"$\langle C_s \rangle$", fontsize=tsize)
 ax2.set_xlim([-200, 80])
