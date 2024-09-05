@@ -136,7 +136,8 @@ def ReadINCAResults(FoldPath, VarList, SubZone=None, FileName=None, Equ=None,
                     Var_index = varval
                     VarCol = np.column_stack((VarCol, Var_index))
             df1 = pd.DataFrame(data=VarCol, columns=VarList)
-            df = df.append(df1, ignore_index=True)
+            df = pd.concat((df, df1), ignore_index=True)
+            # df = df.append(df1, ignore_index=True)
     del dataset, varval
     # df = df.drop_duplicates(keep='last')  # if on,spanwise-average may wrong
     if SpanAve == True:
