@@ -156,25 +156,28 @@ def add_variable(df, wavy, nms=None):
             (df.x, df.y), df[nms[i]],
             (wavy.x, wavy.y),
             method="linear",
-        )     
-    return(wavy)
+        )
+    return (wavy)
 
 
-def intermittency(sigma, Pressure0, WallPre, TimeZone):
+def intermittency(pressure0, WallPre, TimeZone):
     """Obtain intermittency factor from pressure
 
        Args:
-        sigma: standard deviation of undisturbed wall pressure
-        pressure0: undisturbed wall pressure
-        wallpres: wall pressure
+        sigma: standard deviation of undisturbed wall pressure with time
+        pressure0: undisturbed wall pressure with time at inlet
+        wallpres: wall pressure with time
         timezone: time periods
 
        Return:
         intermittency factor
     """
-    # AvePre    = np.mean(WallPre)
-    AvePre = np.mean(Pressure0)
+    if np.size(WallPre) != np.size(TimeZone):
+        sys.exit("the input value and time do not match!")
+
+    AvePre = np.mean(pressure0)
     # wall pressure standard deviation of undisturbed BL
+    sigma = np.std(pressure0)
     threshold = AvePre + 3 * sigma
     # Alternative approximate method
     # DynamicP = 0.5*0.371304*469.852**2, ratio = 0.006/(1+0.13*1.7**2)**0.64
@@ -183,6 +186,7 @@ def intermittency(sigma, Pressure0, WallPre, TimeZone):
     sign = np.zeros(np.size(WallPre))
     ind = np.where(WallPre > threshold)[0]
     sign[ind] = 1.0
+
     # sign = (WallPre-threshold)/abs(WallPre-threshold)
     # sign      = np.maximum(0, sign[:])
     gamma = np.trapz(sign, TimeZone) / (TimeZone[-1] - TimeZone[0])
@@ -1315,7 +1319,7 @@ def sonic_line(dataframe, path, option="Mach", Ma_inf=1.7, mask=None):
         fmt="%.8e",
         delimiter=", ",
         comments="",
-        header=header,
+        header=header
     )
 
 
