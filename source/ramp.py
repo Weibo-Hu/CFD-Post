@@ -8,6 +8,7 @@ Created on Thu July 27 10:39:40 2023
 """
 
 # %% load necessary modules
+import os
 from natsort import natsorted
 import imageio as iio
 import tecplot as tp
@@ -28,10 +29,10 @@ from scipy import signal
 from line_field import LineField as lf
 from IPython import get_ipython
 
-get_ipython().run_line_magic("matplotlib", "qt")
+# get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% set path and basic parameters
-path = "/media/weibo/VID21/ramp_st14/"
+path = "/media/weibo/VID2/ramp_st14/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -42,6 +43,7 @@ pathT = path + "TimeAve/"
 pathI = path + "Instant/"
 pathV = path + "Vortex/"
 pathSL = path + "Slice/"
+pathSN = path + "snapshots/"
 tsize = 13
 nsize = 10
 matplotlib.rcParams["xtick.direction"] = "out"
@@ -77,7 +79,7 @@ corner2 = (x > 110) & (y < 0.0)
 corner = (walldist < 0.0)  # corner1 | corner2
 
 # %% wall buondary
-va.wall_line(MeanFlow.PlanarData, pathM, mask=None) # corner)
+va.wall_line(MeanFlow.PlanarData, pathM, mask=None)  # corner)
 # %%
 walldist = griddata((MeanFlow.x, MeanFlow.y),
                     MeanFlow.walldist, (x, y), method="cubic")
@@ -482,7 +484,7 @@ fig2, ax2 = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=500)
 # fig = plt.figure(figsize=(8, 5), dpi=500)
 # ax2 = fig.add_subplot(211)
 matplotlib.rc("font", size=nsize)
-ax2.plot(xwall, np.abs(Cs), "b--", linewidth=1.5)
+# ax2.plot(xwall, np.abs(Cs), "b--", linewidth=1.5)
 ax2.plot(xwall, np.abs(Cs_fit), "k", linewidth=1.5)
 ax2.set_xlabel(r"$x/l_r$", fontsize=tsize)
 ax2.set_ylabel(r"$\langle C_s \rangle$", fontsize=tsize)
@@ -559,7 +561,7 @@ MeanFlow = pf()
 MeanFlow.merge_stat(pathI)
 # %% Streamwise evolution of a specific variable
 fa = 1.0  # 1.7 * 1.7 * 1.4
-var = "u`"
+var = "p`"
 df = pd.read_hdf(pathI + "TP_fluc_2d.h5")
 ramp_wall = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
 ramp_wall = va.add_variable(df, ramp_wall)
@@ -587,7 +589,7 @@ plt.savefig(
 
 # %% Streamwise evolution of a specific variable
 fa = 1.0  # 1.7 * 1.7 * 1.4
-var = "p`"
+var = "u`"
 ramp_wall[var] = griddata((df.x, df.y), df[var],
                           (ramp_wall.x, ramp_wall.y),
                           method="linear")
@@ -610,7 +612,7 @@ plt.savefig(
     pathF + var + "_streamwise.svg", bbox_inches="tight", pad_inches=0.1
 )
 
-# %% the locations with most energetic fluctuations 
+# %% the locations with most energetic fluctuations
 """
     streamwise evolution of the most energetic signals
 """
@@ -619,7 +621,7 @@ varn = '<p`p`>'
 if varn == '<u`u`>':
     savenm = "MaxRMS_u"
     ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
-elif varn =='<p`p`>':
+elif varn == '<p`p`>':
     savenm = "MaxRMS_p"
     ylab = r"$\sqrt{p^{\prime 2}_\mathrm{max}}/\rho_{\infty} u_{\infty}^2$"
 xnew = np.arange(-200.0, 80.0, 0.25)
@@ -627,7 +629,7 @@ znew = np.zeros(np.size(xnew))
 varv = np.zeros(np.size(xnew))
 ynew = np.zeros(np.size(xnew))
 for i in range(np.size(xnew)):
-    df = va.max_pert_along_y(FlucFlow, '<u`u`>', [xnew[i], znew[i]])
+    df = va.max_pert_along_y(FlucFlow, varn, [xnew[i], znew[i]])
     varv[i] = df[varn]
     ynew[i] = df['y']
 data = np.vstack((xnew, ynew, varv))
@@ -644,9 +646,9 @@ ax.set_ylabel(r"$y/l_r$", fontsize=tsize)
 ax.plot(xnew, ynew, 'k', label=r'$q^\prime_\mathrm{max}$')
 ax.set_xticks(np.linspace(-200.0, 80.0, 8))
 # ax.plot(xx, yy, 'k--', label='bubble')
-legend = ax.legend(loc='upper right', shadow=False, fontsize=nsize)
+legend = ax.legend(loc='upper left', shadow=False, fontsize=nsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.grid(b=True, which="both", linestyle=":")
+ax.grid(visible=True, which="both", linestyle=":")
 plt.show()
 plt.savefig(
     pathF + "MaxPertLoc" + savenm + ".svg", bbox_inches="tight", pad_inches=0.1
@@ -699,7 +701,6 @@ plt.savefig(
 
 
 # %% Draw impose mode
-
 inmode = pd.read_csv(path+"UnstableMode.inp", skiprows=5,
                      sep=' ', index_col=False)
 fig, ax = plt.subplots(figsize=(7*cm2in, 6.5*cm2in))
@@ -723,6 +724,109 @@ plt.show()
 plt.savefig(
     pathF + "ModeProf.svg", bbox_inches="tight", pad_inches=0.1
 )
+
+# %% szplt to h5
+dirs = sorted(os.listdir(pathSN))
+var_list = ['x', 'y', 'z', 'rho', 'u', 'v', 'w', 'p', 'T',
+            'walldist', '|grad(rho)|', 'Q-criterion']
+stype = 'TP_2D_Z_001'
+pathZ = path + stype + '/'
+for i in range(np.size(dirs)):
+    finm = pathSN + dirs[i] + '/' + stype + '.szplt'
+    df, s_time = pytec.ReadSinglePlt(finm, var_list)
+    # df, s_time = p2p.ReadINCAResults(pathSN,  var_list, FileName=finm)
+    outfile = stype + "_%07.2f" % s_time
+    df.to_hdf(pathZ + outfile + ".h5", "w", format='fixed')
+
+# %% collect snapshots: method1 (bad results)
+dirs = sorted(os.listdir(pathZ))
+# preprocess
+data = pd.read_hdf(pathZ + dirs[0])
+data.reset_index(drop=True, inplace=True)
+data['ind'] = data.index
+xx = np.arange(-200.0, 80.0, 0.25) + 0.125
+data1 = data[data["x"].isin(xx)]
+data2 = data1.groupby("x", as_index=False, sort=True).nth(0)
+data2.sort_values(by='x', inplace=True)
+ind = data2.index
+xval = data.iloc[ind]['x'].values
+yval = data.iloc[ind]['y'].values
+snapshots = data.iloc[ind]['p']
+for i in range(np.size(dirs)):
+    df = pd.read_hdf(pathZ + dirs[i])
+    df.reset_index(drop=True, inplace=True)
+    df_temp = df.iloc[ind]['p']
+    if i != 0:
+        snapshots = np.vstack((snapshots, df_temp))
+# %% collect snapshots: method2 (best results, low performance)
+timez = np.arange(600.0, 900.0 + 0.25, 0.25)
+dirs = sorted(os.listdir(pathZ))
+xx = np.arange(-200.0, 80.0, 0.25)
+firstval = 0.015625
+ramp_wall = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
+xval = ramp_wall.x
+data = pd.read_hdf(pathZ + dirs[0])[['x', 'y', 'p', 'walldist']]
+data = data.query("walldist < 1.0")
+snapshots = va.add_variable(data, ramp_wall, nms=['p'])['p']
+for i in range(np.size(dirs)):
+    df = pd.read_hdf(pathZ + dirs[i])[['x', 'y', 'p', 'walldist']]
+    df = df.query("walldist < 1.0")
+    df_temp = va.add_variable(df, ramp_wall, nms=['p'])['p']
+    if i != 0:
+        snapshots = np.vstack((snapshots, df_temp))
+np.save(path + 'snapshots_p2', snapshots)
+# %% collect snapshots: method3
+data = pd.read_hdf(pathZ + dirs[0])[['x', 'y', 'p', 'walldist']]
+ind0 = (data.y == 0.0)
+data['walldist'][ind0] = 0.0
+data.reset_index(drop=True, inplace=True)
+data0 = data.query("walldist < 0.5 & walldist >= 0")
+data1 = data0.sort_values(by=['x', 'walldist'], inplace=False)
+data2 = data1.groupby(["x"], as_index=False, sort=True).nth(0)
+ind = data2.index
+xval = data.iloc[ind]['x'].values
+yval = data.iloc[ind]['y'].values
+snapshots = data2['p']  # va.add_variable(data, ramp_wall, nms=['p'])['p']
+for i in range(np.size(dirs)):
+    df = pd.read_hdf(pathZ + dirs[i])['p']
+    df.reset_index(drop=True, inplace=True)
+    df_temp = df.iloc[ind]
+    if i != 0:
+        snapshots = np.vstack((snapshots, df_temp))
+np.save(path + 'snapshots_p', snapshots)
+# %%
+timez = np.linspace(600.0, 900.0, 1201)
+press_in = snapshots[:, 0]
+# xval = ramp_wall.x
+# yval = ramp_wall.y
+intermit = np.zeros(np.size(xval))
+for i in range(np.size(xval)):
+    press_wa = snapshots[:, i]
+    intermit[i] = va.intermittency(press_in, press_wa, timez)
+b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.25)
+inter_fit = signal.filtfilt(b, a, intermit)
+# %%
+b, a = signal.butter(2, Wn=1/6, fs=1/0.25)
+inter_fit = signal.filtfilt(b, a, intermit)
+fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=300)
+matplotlib.rc("font", size=nsize)
+# ax.plot(xval, yval, "b--", linewidth=1.5)
+ax.plot(xval, intermit, "b:", linewidth=1.5)
+# ax.plot(xval, inter_fit, "k--", linewidth=1.5)
+ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_ylabel(r"$\gamma$", fontsize=tsize)
+ax.set_xlim([-200, 80])
+ax.set_xticks(np.arange(-200.0, 80.0, 40))
+ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+ax.grid(visible=True, which="both", linestyle=":")
+ax.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
+plt.savefig(pathF + "gamma.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %%
 
 # %% animation for vortex structure
 pathF = path + "Figures/"
