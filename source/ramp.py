@@ -758,6 +758,9 @@ for i in range(np.size(dirs)):
     df_temp = df.iloc[ind]['p']
     if i != 0:
         snapshots = np.vstack((snapshots, df_temp))
+xyval = pd.DataFrame(data=np.vstack((xval, yval)).T, columns=["x", "y"])
+xyval.to_csv(pathM + "snapshots_p1xy.dat", index=False, float_format="%9.6f")
+np.save(path + 'snapshots_p1', snapshots)
 # %% collect snapshots: method2 (best results, low performance)
 timez = np.arange(600.0, 900.0 + 0.25, 0.25)
 dirs = sorted(os.listdir(pathZ))
@@ -793,8 +796,13 @@ for i in range(np.size(dirs)):
     df_temp = df.iloc[ind]
     if i != 0:
         snapshots = np.vstack((snapshots, df_temp))
-np.save(path + 'snapshots_p', snapshots)
+xyval = pd.DataFrame(data=np.vstack((xval, yval)).T, columns=["x", "y"])
+xyval.to_csv(pathM + "snapshots_p3xy.dat", index=False, float_format="%9.6f")
+np.save(path + 'snapshots_p3', snapshots)
 # %%
+xyval = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
+xval = xyval.x
+snapshots = np.load(path + 'snapshots_p2.npy')
 timez = np.linspace(600.0, 900.0, 1201)
 press_in = snapshots[:, 0]
 # xval = ramp_wall.x
@@ -826,7 +834,49 @@ plt.tick_params(labelsize=nsize)
 plt.savefig(pathF + "gamma.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
-# %%
+# %% Fourier transform of variables
+from scipy import fft
+t_samp = 0.25
+Nt = 1201
+i1 = np.where(np.round(xval, 2)==-180)[0][0]  # 20.0
+i2 = np.where(np.round(xval, 2)==-80.0)[0][0]  # 40.25
+i3 = np.where(np.round(xval, 2)==-40.0)[0][0]  # 60.0
+i4 = np.where(np.round(xval, 2)==0.0)[0][0]    # 79.75
+
+p_fft1 = fft.fft(snapshots[:, i1]-np.mean(snapshots[:, i1]))
+p_fft2 = fft.fft(snapshots[:, i2]-np.mean(snapshots[:, i2]))
+p_fft3 = fft.fft(snapshots[:, i3]-np.mean(snapshots[:, i3]))
+p_fft4 = fft.fft(snapshots[:, i4]-np.mean(snapshots[:, i4]))
+
+# p_freq = fft.fftfreq(Nt, t_samp)
+p_freq = np.linspace(1/t_samp/Nt, 1/t_samp/2, Nt//2)
+fig, ax = plt.subplots(figsize=(14*cm2in, 4.5*cm2in), dpi=300)
+matplotlib.rc("font", size=nsize)
+# ax.vlines(p_fre[1:Nt//2], [0], np.abs(p_fft)[1:Nt//2])
+ax.plot(p_freq[:Nt//2], np.abs(p_fft1)[1:Nt//2+1], "k--", linewidth=1.2)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft2)[1:Nt//2+1], "r--", linewidth=1.2)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft3)[1:Nt//2+1], "g--", linewidth=1.2)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b--", linewidth=1.2)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.legend([r'$-180$', r'$-80$', r'$-40$', r'$0$'],
+          loc='upper right', fontsize=nsize-2,
+          ncols=2, columnspacing=0.6, framealpha=0.4)
+# ax.scatter(p_fre[1:Nt//2], np.abs(p_fft)[1:Nt//2], marker='o', facecolor=None, edgecolors='gray', s=15)
+# ax.plot(xval, inter_fit, "k--", linewidth=1.5)
+ax.set_xlabel(r"$f$", fontsize=tsize)
+ax.set_ylabel(r"$A_p$", fontsize=tsize)
+ax.set_xlim([3e-3, 3])
+# ax.set_xticks(np.arange(-200.0, 80.0, 40))
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+ax.grid(visible=True, which="both", linestyle=":")
+ax.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
+plt.savefig(pathF + "p_fft_upstream.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 
 # %% animation for vortex structure
 pathF = path + "Figures/"
