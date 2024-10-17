@@ -74,8 +74,8 @@ import pandas as pd
 import variable_analysis as fv
 from scipy import interpolate  # scipy.optimize
 from scipy.interpolate import griddata  # interp1d
+from scipy.interpolate import splprep, splev, interp1d, UnivariateSpline
 from scipy.integrate import trapz, dblquad  # simps,
-from scipy.interpolate import splprep, splev, interp1d
 import sys
 from timer import timer
 import os
@@ -156,26 +156,29 @@ def add_variable(df, wavy, nms=None):
             (df.x, df.y), df[nms[i]],
             (wavy.x, wavy.y),
             method="linear",
-        )     
-    return(wavy)
+        )
+    return (wavy)
 
 
-def intermittency(sigma, Pressure0, WallPre, TimeZone):
+def intermittency(pressure0, WallPre, TimeZone, crit=3.0):
     """Obtain intermittency factor from pressure
 
        Args:
-        sigma: standard deviation of undisturbed wall pressure
-        pressure0: undisturbed wall pressure
-        wallpres: wall pressure
+        sigma: standard deviation of undisturbed wall pressure with time
+        pressure0: undisturbed wall pressure with time at inlet
+        wallpres: wall pressure with time
         timezone: time periods
 
        Return:
         intermittency factor
     """
-    # AvePre    = np.mean(WallPre)
-    AvePre = np.mean(Pressure0)
+    if np.size(WallPre) != np.size(TimeZone):
+        sys.exit("the input value and time do not match!")
+
+    AvePre = np.mean(pressure0)
     # wall pressure standard deviation of undisturbed BL
-    threshold = AvePre + 3 * sigma
+    sigma = np.std(pressure0)
+    threshold = AvePre + crit * sigma
     # Alternative approximate method
     # DynamicP = 0.5*0.371304*469.852**2, ratio = 0.006/(1+0.13*1.7**2)**0.64
     # sigma1 = DynamicP*ratio
@@ -183,6 +186,7 @@ def intermittency(sigma, Pressure0, WallPre, TimeZone):
     sign = np.zeros(np.size(WallPre))
     ind = np.where(WallPre > threshold)[0]
     sign[ind] = 1.0
+
     # sign = (WallPre-threshold)/abs(WallPre-threshold)
     # sign      = np.maximum(0, sign[:])
     gamma = np.trapz(sign, TimeZone) / (TimeZone[-1] - TimeZone[0])
@@ -1167,10 +1171,15 @@ def shock_line(dataframe, path, var="|gradp|", val=0.06, mask=False):
     header = "x, y"
     xycor = np.empty(shape=[0, 2])
     ii = 0
+    nolist = []
+    if not os.path.exists(path + 'Shock'):
+        os.mkdir(path + 'Shock')
     for isoline in cs.collections[0].get_paths():
         xy = isoline.vertices
+        lnsize = np.shape(xy)[0]
+        nolist.append(lnsize)
         np.savetxt(
-            path + "ShockLine{:03d}.dat".format(ii),
+            path + "Shock/ShockLine{:03d}.dat".format(ii),
             xy,
             fmt="%.8e",
             delimiter=", ",
@@ -1179,18 +1188,25 @@ def shock_line(dataframe, path, var="|gradp|", val=0.06, mask=False):
         )
         ii = ii + 1
         xycor = np.vstack((xycor, xy))
-        # ax1.scatter(xy[:, 0], xy[:, 1], "r:")
-    tck, yval = splprep(xycor.T, s=1.0, per=1)
-    x_new, y_new = splev(yval, tck, der=0)
-    xy_fit = np.vstack((x_new, y_new))
+        
+    ind = np.argmax(nolist)
+    print("pick the line with id of " + str(ind))
+    xypick = pd.read_csv(
+        path + "Shock/ShockLine{:03d}.dat".format(ind),
+        skipinitialspace=True
+        )
+    ax.scatter(xypick.x, xypick.y, s=0.5, c='r')
     np.savetxt(
-        path + "ShockLine.dat",
+        path + "ShockLineAll.dat",
         xycor,
         fmt="%.8e",
         delimiter=", ",
         comments="",
         header=header,
     )
+    tck, yval = splprep(xycor.T, s=1.0, per=1)
+    x_new, y_new = splev(yval, tck, der=0)
+    xy_fit = np.vstack((x_new, y_new))
     np.savetxt(
         path + "ShockLineFit.dat",
         xy_fit.T,
@@ -1303,7 +1319,7 @@ def sonic_line(dataframe, path, option="Mach", Ma_inf=1.7, mask=None):
         fmt="%.8e",
         delimiter=", ",
         comments="",
-        header=header,
+        header=header
     )
 
 
@@ -1386,13 +1402,20 @@ def dividing_line(dataframe, path=None, show=False, mask=None):
             save_df = df
         else:
             save_df = pd.concat([save_df, df])
-    save_df.to_hdf(path + "DividingLine.h5", key='data', mode="w", format="fixed")
-    ind = np.argmax(nolist)    
+    save_df.to_hdf(
+        path + "DividingLine.h5",
+        key='data', mode="w",
+        format="fixed"
+        )
+    ind = np.argmax(nolist)
+    print("pick the line with id of " + str(ind))
     xy = xylist[ind]
     fig1, ax1 = plt.subplots(figsize=(10, 4))  # plot only bubble
     ax1.scatter(xy[:, 0], xy[:, 1])
-    if show == False:
+    if show is False:
         plt.close()
+    else:
+        plt.show()
     if path is not None:
         np.savetxt(
             path + "DividingLine.dat",
@@ -1986,6 +2009,46 @@ def temp_span(infile, xloc, vname):
     vname = ["x", "z", "u", "v", "w", "p", "T"]
     df2 = df1[vname]
     return df2
+
+
+def curve_fit(xval, yval, xsegs, deg=None):
+    """fitting a curve smoothly
+
+       Args:
+        opt: xval, yval for the curves;
+        xsegs: the number of segments to fit the curve
+        deg: the degree of splines 
+
+       Return:
+        the fitting curves with x and y values
+    """
+    if np.size(xsegs) < 2:
+        sys.exit("the number of segments is too small!")
+    for i in range(np.size(xsegs) + 1):
+        if i == 0:
+            rg = (xval <= xsegs[i])
+        elif i == np.size(xsegs):
+            rg = (xval >= xsegs[i-1])
+        else:
+            rg = (xval >= xsegs[i-1]) & (xval <= xsegs[i])
+        xrg = xval[rg]
+        yrg = yval[rg]
+        if deg is None:
+            spl = UnivariateSpline(xrg, yrg, k=3, ext='extrapolate')
+        else:
+            if np.size(xsegs) + 1 != np.size(deg):
+                sys.exit("the number of segments doesn't match!")
+            spl = UnivariateSpline(xrg, yrg, k=deg[i], ext='extrapolate')
+        ytem = spl(xrg)
+        
+        if i == 0:
+            xfit = xrg
+            yfit = ytem
+        else:
+            xfit = np.hstack((xfit, xrg[1:]))
+            yfit = np.hstack((yfit, ytem[1:]))
+            
+    return(xfit, yfit)
 
 # %%
 if __name__ == "__main__":
