@@ -155,8 +155,8 @@ class LineField(object):
 
     def load_probe(self, path, loc, per=None, varname=None, uniq=None):
         if varname is None:
-            varname = ['itstep', 'time', 'u', 'v', 'w',
-                       'p', 'E', 'rho']
+            varname = ['itstep', 'time', 'u', 'v', 'w', 'rho',
+                       'E', 'p', 'T']
         filename = self.probe_file(path + '../', loc)
         print('Probe file name:', filename)
         data = pd.read_csv(path + filename, sep=' ',
