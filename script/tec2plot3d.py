@@ -29,7 +29,7 @@ def csv2plot3d(path, filenm, vars, option='2d', input_nm=None, skip=1):
                                header=None, names=input_nm)
         if ext_nm == '.h5':
             data = pd.read_hdf(path + filenm, index_col=False,
-                               header=None, names=input_nm)            
+                               header=None, names=input_nm)
     grid = 'grid.xyz'
     solu = 'uvw3D.q'
     xa = np.unique(data['x'])[::skip]
@@ -37,14 +37,20 @@ def csv2plot3d(path, filenm, vars, option='2d', input_nm=None, skip=1):
     xmat, ymat = np.meshgrid(xa, ya)
     # organize grid
     df_grid = np.vstack((
-        xmat.flatten(order='C'), 
+        xmat.flatten(order='C'),
         ymat.flatten(order='C')
-        ))   
+        ), dtype=np.float64)
     dim = np.array([np.size(xa), np.size(ya)], dtype=np.int32)
-    if option=='3d':
+    if option == '3d':
+        # xmat, ymat, zmat = np.meshgrid(xa, ya ,za)
+        # df_grid = np.vstack((xmat.flatten(order='C'),
+        #   ymat.flatten(order='C'),zmat.flatten(order='C')
+        #    ))
         zmat = griddata((data['x'], data['y']), data['z'], (xmat, ymat))
         df_grid = np.vstack((df_grid, zmat.flatten(order='C')))
         dim = np.append(dim, 1)
+    # else:
+    #    dim = np.append(dim, 1)
     # output grid
     file = FortranFile(path + grid, 'w')
     file.write_record(np.array([1], dtype=np.int32))
@@ -54,11 +60,12 @@ def csv2plot3d(path, filenm, vars, option='2d', input_nm=None, skip=1):
     # organize solution
     for j in range(np.size(vars)):
         umat = griddata((data['x'], data['y']), data[vars[j]],
-                        (xmat, ymat))
+                        (xmat, ymat), fill_value=0.0)
         if j == 0:
             df_data = umat.flatten(order='C')
         else:
-            df_data = np.vstack((df_data, umat.flatten(order='C')))
+            df_data = np.vstack((df_data, umat.flatten(order='C')),
+                                dtype=np.float64)
     nvar = np.size(vars)
     dim_var = np.append(dim, nvar)
     file = FortranFile(path + solu, 'w')
@@ -67,7 +74,7 @@ def csv2plot3d(path, filenm, vars, option='2d', input_nm=None, skip=1):
     file.write_record(df_data)
     file.close()
 
-    return(data)
+    return(data, df_grid, df_data)
 
 def interp2d(x, y, z):
     xa = np.unique(x)
@@ -93,8 +100,8 @@ def create_meanval(path, filenm):
 if __name__ == "__main__":
     # path = 'E:/cases/'
     # filenm = 'slice_3d.dat'
-    path = 'D:/cases/flat_plate_last/'
-    meanflow = False
+    path = "/media/weibo/VID2/ramp_st18/"
+    meanflow = True
     if meanflow is True:  
         create_meanval(path + 'MeanFlow/', 'MeanFlow.h5')
         filenm = 'MeanFlow/MeanFlow.h5'
@@ -103,4 +110,4 @@ if __name__ == "__main__":
     nms = ['x', 'y', 'z', 'u', 'v', 'w', 'rho', 'p', 'T']
     vars = ['rho', 'u', 'v', 'w', 'T', 'p']
     # csv2plot3d(path, filenm, vars, option='2d', input_nm=nms, skip=4)
-    csv2plot3d(path, filenm, vars, option='2d', skip=4)
+    data, grid, df = csv2plot3d(path, filenm, vars, option='2d', skip=4)
