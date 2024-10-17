@@ -160,7 +160,7 @@ def add_variable(df, wavy, nms=None):
     return (wavy)
 
 
-def intermittency(pressure0, WallPre, TimeZone):
+def intermittency(pressure0, WallPre, TimeZone, crit=3.0):
     """Obtain intermittency factor from pressure
 
        Args:
@@ -178,7 +178,7 @@ def intermittency(pressure0, WallPre, TimeZone):
     AvePre = np.mean(pressure0)
     # wall pressure standard deviation of undisturbed BL
     sigma = np.std(pressure0)
-    threshold = AvePre + 3 * sigma
+    threshold = AvePre + crit * sigma
     # Alternative approximate method
     # DynamicP = 0.5*0.371304*469.852**2, ratio = 0.006/(1+0.13*1.7**2)**0.64
     # sigma1 = DynamicP*ratio
