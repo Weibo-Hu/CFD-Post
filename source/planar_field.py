@@ -94,24 +94,24 @@ class PlanarField(LineField):
     def R23(self):
         return(self._data_field['<v`w`>'].values)
 
-    def load_data(self, path, FileList=None, NameList=None):
+    def load_data(self, path, FileList=None, ExtName=None):
         # nfiles = np.size(os.listdir(path))
         if FileList is None:
             infile = glob(path + '*plt')
         else:
-            infile = FileList
+            infile = path + FileList
 
-        if NameList is None:
+        if ExtName is None:
             # ext_name = os.path.splitext(infile)
             df = p2p.ReadAllINCAResults(path,
                                         FileName=infile)
-        elif NameList == 'h5':
+        elif ExtName == 'h5':
             df = pd.read_hdf(infile)
-        elif NameList == 'tecio':
+        elif ExtName == 'tecio':
             df, SolTime = pytec.ReadSinglePlt(infile)
         else:
             df = p2p.ReadINCAResults(path,
-                                     VarList=NameList,
+                                     VarList=ExtName,
                                      FileName=infile)
         df = df.drop_duplicates(keep='last')
         grouped = df.groupby(['x', 'y', 'z'])

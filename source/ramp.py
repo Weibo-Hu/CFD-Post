@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu July 27 10:39:40 2023
-    post-process data for cooling/heating cases
+    post-process data for ramp cases
 
 @author: weibo
 """
@@ -32,7 +32,7 @@ from scipy import fft
 # get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% set path and basic parameters
-path = "/media/weibo/VID2/ramp_st20/"
+path = "F:/AAS/ramp_st14_2nd/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -64,8 +64,10 @@ MeanFlow.load_meanflow(path)
 MeanFlow.copy_meanval()
 ind0 = (MeanFlow.PlanarData.y == 0.0)
 MeanFlow.PlanarData['walldist'][ind0] = 0.0
+
 # %% merge mean flow
 MeanFlow.merge_stat(pathM)
+
 # %% rescaled if necessary
 lh = 1.0
 MeanFlow.rescale(lh)
@@ -741,32 +743,6 @@ ax2.set_ylabel(r"$H$", fontsize=tsize)
 plt.show()
 plt.savefig(
     pathF + "MaxRMS_x.svg", bbox_inches="tight", pad_inches=0.1
-)
-
-
-# %% Draw impose mode
-inmode = pd.read_csv(path+"UnstableMode.inp", skiprows=5,
-                     sep=' ', index_col=False)
-fig, ax = plt.subplots(figsize=(7*cm2in, 6.5*cm2in))
-matplotlib.rc('font', size=nsize)
-xlab = r"$|q^{\prime}|/|u^\prime|_{\max}$"
-ax.set_xlabel(xlab, fontsize=tsize)
-ax.set_ylabel(r"$y/l_f$", fontsize=tsize)
-ax.plot(np.sqrt(inmode['u_r']**2+inmode['u_i']**2), inmode['y'], 'k')
-ax.plot(np.sqrt(inmode['v_r']**2+inmode['v_i']**2), inmode['y'], 'r')
-ax.plot(np.sqrt(inmode['w_r']**2+inmode['w_i']**2), inmode['y'], 'g')
-ax.plot(np.sqrt(inmode['p_r']**2+inmode['p_i']**2), inmode['y'], 'b')
-ax.plot(np.sqrt(inmode['t_r']**2+inmode['t_i']**2), inmode['y'], 'c')
-# ax.set_xlim([-100, 20])
-ax.set_ylim([0.0, 8.0])
-# ax.ticklabel_format(axis="y", style="sci", scilimits=(-1, 1))
-ax.legend(['u', 'v', 'w', 'p', 'T'])
-ax.grid(visible=True, which="both", linestyle=":")
-ax.tick_params(labelsize=nsize)
-
-plt.show()
-plt.savefig(
-    pathF + "ModeProf.svg", bbox_inches="tight", pad_inches=0.1
 )
 
 # %% szplt to h5

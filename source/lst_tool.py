@@ -153,21 +153,24 @@ col = [
        'y', 'u_r', 'u_i', 'v_r', 'v_i', 'w_r', 'w_i',
        't_r', 't_i', 'p_r', 'p_i', 'rho_r', 'rho_i'
        ]
-ts_profile = pd.read_csv(path + 'profiles.dat', sep=' ',
+loc = 'N100'
+ts_profile = pd.read_csv(path + 'profiles' + loc +'.plt', sep=' ',
                          names=col, header=0,
-                         index_col=False, skiprows=0, 
+                         index_col=False, skiprows=2, 
                          skipinitialspace=True)
-myfile = path + 'UnstableMode.dat'
+myfile = path + 'UnstableMode' + loc + '.inp'
 omega_r = 0.95
 omega_i = 0.008020
 alpha = 1.036704 
 beta = 0.0
+amplit = 0.001
 with open(myfile, 'w') as file:
     # file.write(col[:11]+'\t')
     file.write('alpha = ' + str(alpha) + '\n')
     file.write('beta = ' + str(beta) + '\n')
     file.write('omega_r = ' + str(omega_r) + '\n')
     file.write('omega_i = ' + str(omega_i) + '\n')
+    file.write('amplit = ' + str(amplit) + '\n')
     file.write(" ".join(col[:11]) + '\n')
 
 input_mode = ts_profile[col[:11]]
