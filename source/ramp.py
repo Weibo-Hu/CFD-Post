@@ -28,11 +28,11 @@ import matplotlib
 from scipy import signal
 from line_field import LineField as lf
 from IPython import get_ipython
-
+from scipy import fft
 # get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% set path and basic parameters
-path = "/media/weibo/VID2/ramp_st14/"
+path = "/media/weibo/VID2/ramp_st20/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -95,8 +95,11 @@ va.sonic_line(MeanFlow.PlanarData, pathM,
 va.enthalpy_boundary_edge(MeanFlow.PlanarData, pathM, Ma_inf=6.0, crit=0.989)
 # %% thermal boundary layer
 va.thermal_boundary_edge(MeanFlow.PlanarData, pathM, T_wall=3.35)
-# %% Save shock line
+# %% Save shock line 1
 va.shock_line(MeanFlow.PlanarData, pathM, var="|gradp|", val=0.005, mask=True)
+# %% Save shock line 2
+va.shock_line(MeanFlow.PlanarData, pathM,
+              var="||grad(<velocity>)||", val=0.006, mask=True)
 # %% boundary layer
 va.boundary_edge(MeanFlow.PlanarData, pathM, shock=False, mask=False)
 
@@ -173,14 +176,14 @@ lab = r"$\langle \rho \rangle/\rho_{\infty}$"
 cbar.set_label(lab, rotation=0, fontsize=tsize)
 # Add boundary layer
 Enthalpy = pd.read_csv(
-    pathM + "EnthalpyBoundaryEdge99.dat", skipinitialspace=True)
+    pathM + "EnthalpyBoundaryEdge.dat", skipinitialspace=True)
 ax.plot(Enthalpy.x / lh, Enthalpy.y / lh, "k--", linewidth=1.5)
 # Add sonic
 sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
 ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
 # Add shock line
-shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
-ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
+# shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
+# ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
 # Add dividing line(separation line)
 # dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
 # ax.plot(dividing.x / lh, dividing.y / lh, "k:", linewidth=1.5)
@@ -507,20 +510,21 @@ plt.show()
 probe = lf()
 lh = 1.0
 fa = 1.0
-var = "u"
+var = "p"
 ylab = r"$u^\prime/u_\infty$"
 if var == "p":
     fa = 6.0 * 6.0 * 1.4
     ylab = r"$p^\prime/p_\infty$"
-timezone = np.arange(600.0, 900.0 + 0.125, 0.125)
-xloc = [-160.0, -80.0, -40.0, -20.0, 0.0]  # [-50.0, -30.0, -20.0, -10.0, 4.0]
-yloc = [0, 0, 0, 0, 0]
+timezone = np.arange(0, 1800.0 + 0.125, 0.125)
+xloc = [-160.0, -80.0, 25.250, -20.0, 0.0]  # [-50.0, -30.0, -20.0, -10.0, 4.0]
+yloc = [0, 0, 6.781, 0, 0]
 zloc = 0.0
 fig, ax = plt.subplots(np.size(xloc), 1, figsize=(15*cm2in, 10*cm2in))
 fig.subplots_adjust(hspace=0.6, wspace=0.15)
 matplotlib.rc("font", size=nsize)
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
+valarr = np.zeros((np.size(timezone), np.size(xloc)))
 for i in range(np.size(xloc)):
     probe.load_probe(pathP, (xloc[i], yloc[i], zloc))
     probe.rescale(lh)
@@ -531,6 +535,7 @@ for i in range(np.size(xloc)):
         axis="y", style="sci", useOffset=False, scilimits=(-2, 2)
     )
     ax[i].set_xlim([timezone[0], timezone[-1]])
+    valarr[:, i] = np.interp(timezone, probe.time, getattr(probe, var))
     # ax[i].set_ylim([-0.001, 0.001])
     if i != np.size(xloc) - 1:
         ax[i].set_xticklabels("")
@@ -544,6 +549,45 @@ plt.savefig(
 )
 plt.show()
 
+# %% Fourier transform of signals
+t_samp = 0.125
+Nt = 2401
+
+p_fft1 = fft.fft(valarr[:, 0]-np.mean(valarr[:, 0]))
+p_fft2 = fft.fft(valarr[:, 1]-np.mean(valarr[:, 1]))
+p_fft3 = fft.fft(valarr[:, 2]-np.mean(valarr[:, 2]))
+p_fft4 = fft.fft(valarr[:, 3]-np.mean(valarr[:, 3]))
+p_fft5 = fft.fft(valarr[:, 4]-np.mean(valarr[:, 4]))
+# p_freq = fft.fftfreq(Nt, t_samp)
+p_freq = np.linspace(1/t_samp/Nt, 1/t_samp/2, Nt//2)
+fig, ax = plt.subplots(figsize=(14*cm2in, 4.5*cm2in), dpi=300)
+matplotlib.rc("font", size=nsize)
+# ax.vlines(p_fre[1:Nt//2], [0], np.abs(p_fft)[1:Nt//2])
+ax.plot(p_freq[:Nt//2], np.abs(p_fft1)[1:Nt//2+1], "k-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft2)[1:Nt//2+1], "r-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft3)[1:Nt//2+1], "g-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft5)[1:Nt//2+1], "c-", linewidth=1.0)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.legend([r'$-160$', r'$-80$', r'$-40$', r'$-20$', r'$0$'],
+          loc='upper right', fontsize=nsize-2,
+          ncols=2, columnspacing=0.6, framealpha=0.4)
+# ax.scatter(p_fre[1:Nt//2], np.abs(p_fft)[1:Nt//2], marker='o', facecolor=None, edgecolors='gray', s=15)
+# ax.plot(xval, inter_fit, "k--", linewidth=1.5)
+ax.set_xlabel(r"$f$", fontsize=tsize)
+ax.set_ylabel(r"$A_p$", fontsize=tsize)
+ax.set_xlim([2e-3, 5])
+# ax.set_xticks(np.arange(-200.0, 80.0, 40))
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+ax.grid(visible=True, which="both", linestyle=":")
+ax.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
+plt.savefig(pathF + "p_fft_upstream.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
 # %%############################################################################
 
 
@@ -800,48 +844,49 @@ xyval = pd.DataFrame(data=np.vstack((xval, yval)).T, columns=["x", "y"])
 xyval.to_csv(pathM + "snapshots_p3xy.dat", index=False, float_format="%9.6f")
 np.save(path + 'snapshots_p3', snapshots)
 # %%
-xyval = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
+xyval = pd.read_csv(pathM + "snapshots_p3xy.dat", skipinitialspace=True)
 xval = xyval.x
-snapshots = np.load(path + 'snapshots_p2.npy')
+snapshots = np.load(path + 'snapshots_p3.npy')
 timez = np.linspace(600.0, 900.0, 1201)
-press_in = snapshots[:, 0]
+ii = 0
+press_in = snapshots[:, ii]
+print("the location is at x = " + str(xval[ii]))
 # xval = ramp_wall.x
 # yval = ramp_wall.y
-intermit = np.zeros(np.size(xval))
-for i in range(np.size(xval)):
-    press_wa = snapshots[:, i]
-    intermit[i] = va.intermittency(press_in, press_wa, timez)
+intermit = np.zeros(np.size(xval[ii:]))
+for i in range(np.size(xval[ii:])):
+    press_wa = snapshots[:, i+ii]
+    intermit[i] = va.intermittency(press_in, press_wa, timez, crit=3)
 b, a = signal.butter(6, Wn=1 / 12, fs=1 / 0.25)
 inter_fit = signal.filtfilt(b, a, intermit)
-# %%
+# 
 b, a = signal.butter(2, Wn=1/6, fs=1/0.25)
 inter_fit = signal.filtfilt(b, a, intermit)
 fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in), dpi=300)
 matplotlib.rc("font", size=nsize)
 # ax.plot(xval, yval, "b--", linewidth=1.5)
-ax.plot(xval, intermit, "b:", linewidth=1.5)
+ax.plot(xval[ii:], intermit, "b:", linewidth=1.5)
 # ax.plot(xval, inter_fit, "k--", linewidth=1.5)
 ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
 ax.set_ylabel(r"$\gamma$", fontsize=tsize)
-ax.set_xlim([-200, 80])
-ax.set_xticks(np.arange(-200.0, 80.0, 40))
+ax.set_xlim([-120, 80])
+ax.set_xticks(np.linspace(-120.0, 80.0, 6))
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 # ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
 # ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
 ax.grid(visible=True, which="both", linestyle=":")
 ax.yaxis.offsetText.set_fontsize(nsize)
 plt.tick_params(labelsize=nsize)
-plt.savefig(pathF + "gamma.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "gamma2-200-3.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% Fourier transform of variables
-from scipy import fft
 t_samp = 0.25
 Nt = 1201
-i1 = np.where(np.round(xval, 2)==-180)[0][0]  # 20.0
-i2 = np.where(np.round(xval, 2)==-80.0)[0][0]  # 40.25
-i3 = np.where(np.round(xval, 2)==-40.0)[0][0]  # 60.0
-i4 = np.where(np.round(xval, 2)==0.0)[0][0]    # 79.75
+i1 = np.where(np.round(xval, 3) == -199.875)[0][0]  # 20.0
+i2 = np.where(np.round(xval, 3) == -79.875)[0][0]   # 40.25
+i3 = np.where(np.round(xval, 3) == -58.125)[0][0]  # 60.0
+i4 = np.where(np.round(xval, 3) == 0.008)[0][0]    # 79.75
 
 p_fft1 = fft.fft(snapshots[:, i1]-np.mean(snapshots[:, i1]))
 p_fft2 = fft.fft(snapshots[:, i2]-np.mean(snapshots[:, i2]))
@@ -853,14 +898,14 @@ p_freq = np.linspace(1/t_samp/Nt, 1/t_samp/2, Nt//2)
 fig, ax = plt.subplots(figsize=(14*cm2in, 4.5*cm2in), dpi=300)
 matplotlib.rc("font", size=nsize)
 # ax.vlines(p_fre[1:Nt//2], [0], np.abs(p_fft)[1:Nt//2])
-ax.plot(p_freq[:Nt//2], np.abs(p_fft1)[1:Nt//2+1], "k--", linewidth=1.2)
-ax.plot(p_freq[:Nt//2], np.abs(p_fft2)[1:Nt//2+1], "r--", linewidth=1.2)
-ax.plot(p_freq[:Nt//2], np.abs(p_fft3)[1:Nt//2+1], "g--", linewidth=1.2)
-ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b--", linewidth=1.2)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft1)[1:Nt//2+1], "k-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft2)[1:Nt//2+1], "r-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft3)[1:Nt//2+1], "g-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b-", linewidth=1.0)
 
 ax.set_xscale("log")
 ax.set_yscale("log")
-ax.legend([r'$-180$', r'$-80$', r'$-40$', r'$0$'],
+ax.legend([r'$-200$', r'$-80$', r'$-58$', r'$0$'],
           loc='upper right', fontsize=nsize-2,
           ncols=2, columnspacing=0.6, framealpha=0.4)
 # ax.scatter(p_fre[1:Nt//2], np.abs(p_fft)[1:Nt//2], marker='o', facecolor=None, edgecolors='gray', s=15)
