@@ -32,7 +32,7 @@ from scipy import fft
 # get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% set path and basic parameters
-path = "F:/AAS/ramp_st14_2nd/"
+path = "/media/weibo/VID2/AAS/ramp_st14_2nd/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -137,7 +137,6 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=1)
 plt.savefig(pathF + "Grid.svg", bbox_inches="tight")
 plt.show()
 
-
 # %% Plot rho contour of the mean flow field
 """
     mean flow field contouring by density
@@ -157,8 +156,8 @@ cval2 = 3.6  # 7.0  #
 fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 21)
-cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend="both")
-ax.contour(x, y, u, levels=[0.0], linestyles="dotted")  # rainbow_r
+cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend="both") # rainbow
+# ax.contour(x, y, u, levels=[0.0], linestyles="dotted")  # rainbow_r
 ax.set_xlim(-200, 80)
 ax.set_ylim(np.min(y), 36.0)
 ax.set_xticks(np.linspace(-200, 80.0, 8))
@@ -179,16 +178,19 @@ cbar.set_label(lab, rotation=0, fontsize=tsize)
 # Add boundary layer
 Enthalpy = pd.read_csv(
     pathM + "EnthalpyBoundaryEdge.dat", skipinitialspace=True)
-ax.plot(Enthalpy.x / lh, Enthalpy.y / lh, "k--", linewidth=1.5)
+# ax.plot(Enthalpy.x / lh, Enthalpy.y / lh, "k--", linewidth=1.5)
 # Add sonic
 sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
 ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
 # Add shock line
-# shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
-# ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
+shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
+ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
 # Add dividing line(separation line)
-# dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
-# ax.plot(dividing.x / lh, dividing.y / lh, "k:", linewidth=1.5)
+dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
+ax.plot(dividing.x / lh, dividing.y / lh, "k:", linewidth=1.5)
+# x_sep = np.array([dividing.x.values[0], dividing.x.values[-1]]) / lh
+# y_sep = np.array([dividing.y.values[0], dividing.y.values[-1]]) / lh
+# ax.scatter(x_sep, y_sep, c='k', s=20)
 plt.savefig(pathF + "MeanFlow_rho.svg", bbox_inches="tight")
 plt.show()
 
@@ -197,7 +199,7 @@ plt.show()
     Root Mean Square of velocity from the statistical flow
 """
 x, y = np.meshgrid(np.unique(MeanFlow.x), np.unique(MeanFlow.y))
-var = "<w`w`>"
+var = "<u`u`>"
 if var == "<u`u`>":
     lab = r"$\sqrt{\langle u^\prime u^\prime \rangle}$"
     nm = 'RMSUU'
@@ -217,7 +219,7 @@ print("uu_min=", np.min(np.sqrt(np.abs(var_val))))
 fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in))
 matplotlib.rc("font", size=tsize)
 cb1 = 0.0
-cb2 = 0.05
+cb2 = 0.2
 rg1 = np.linspace(cb1, cb2, 21)  # 21)
 cbar = ax.contourf(
     x / lh, y / lh, np.sqrt(np.abs(uu)), cmap="coolwarm",
@@ -259,8 +261,8 @@ cbar.set_label(
 )
 # Add boundary layer
 boundary = pd.read_csv(
-    pathM + "EnthalpyBoundaryEdge99.dat", skipinitialspace=True)
-ax.plot(boundary.x / lh, boundary.y / lh, "k--", linewidth=1.0)
+    pathM + "EnthalpyBoundaryEdge.dat", skipinitialspace=True)
+# ax.plot(boundary.x / lh, boundary.y / lh, "k--", linewidth=1.0)
 # Add bubble line
 bubble = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
 ax.plot(bubble.x / lh, bubble.y / lh, "k:", linewidth=1.0)
@@ -663,7 +665,7 @@ plt.savefig(
     streamwise evolution of the most energetic signals
 """
 FlucFlow = pd.read_hdf(pathM + "MeanFlow.h5")
-varn = '<p`p`>'
+varn = '<u`u`>'
 if varn == '<u`u`>':
     savenm = "MaxRMS_u"
     ylab = r"$\sqrt{u^{\prime 2}_\mathrm{max}}/u_{\infty}$"
@@ -700,7 +702,7 @@ plt.savefig(
     pathF + "MaxPertLoc" + savenm + ".svg", bbox_inches="tight", pad_inches=0.1
 )
 
-# %% draw maximum value curve
+# %% draw the growth rate
 ramp_max = pd.read_csv(pathM + savenm + ".dat", sep=' ', skipinitialspace=True)
 fig, ax = plt.subplots(figsize=(15*cm2in, 5.0*cm2in))
 matplotlib.rc('font', size=nsize)
@@ -760,6 +762,7 @@ for i in range(np.size(dirs)):
 
 # %% collect snapshots: method1 (bad results)
 dirs = sorted(os.listdir(pathZ))
+var = 'u'
 # preprocess
 data = pd.read_hdf(pathZ + dirs[0])
 data.reset_index(drop=True, inplace=True)
@@ -771,16 +774,16 @@ data2.sort_values(by='x', inplace=True)
 ind = data2.index
 xval = data.iloc[ind]['x'].values
 yval = data.iloc[ind]['y'].values
-snapshots = data.iloc[ind]['p']
+snapshots = data.iloc[ind][var]
 for i in range(np.size(dirs)):
     df = pd.read_hdf(pathZ + dirs[i])
     df.reset_index(drop=True, inplace=True)
-    df_temp = df.iloc[ind]['p']
+    df_temp = df.iloc[ind][var]
     if i != 0:
         snapshots = np.vstack((snapshots, df_temp))
 xyval = pd.DataFrame(data=np.vstack((xval, yval)).T, columns=["x", "y"])
-xyval.to_csv(pathM + "snapshots_p1xy.dat", index=False, float_format="%9.6f")
-np.save(path + 'snapshots_p1', snapshots)
+xyval.to_csv(path + "snapshots_" + var + "1xy.dat", index=False, float_format="%9.6f")
+np.save(path + "snapshots_" + var + "1", snapshots)
 # %% collect snapshots: method2 (best results, low performance)
 timez = np.arange(600.0, 900.0 + 0.25, 0.25)
 dirs = sorted(os.listdir(pathZ))
@@ -788,18 +791,18 @@ xx = np.arange(-200.0, 80.0, 0.25)
 firstval = 0.015625
 ramp_wall = pd.read_csv(pathM + "FirstLev.dat", skipinitialspace=True)
 xval = ramp_wall.x
-data = pd.read_hdf(pathZ + dirs[0])[['x', 'y', 'p', 'walldist']]
+data = pd.read_hdf(pathZ + dirs[0])[['x', 'y', 'u', 'p', 'walldist']]
 data = data.query("walldist < 1.0")
-snapshots = va.add_variable(data, ramp_wall, nms=['p'])['p']
+snapshots = va.add_variable(data, ramp_wall, nms=[var])[var]
 for i in range(np.size(dirs)):
-    df = pd.read_hdf(pathZ + dirs[i])[['x', 'y', 'p', 'walldist']]
+    df = pd.read_hdf(pathZ + dirs[i])[['x', 'y', 'u', 'p', 'walldist']]
     df = df.query("walldist < 1.0")
-    df_temp = va.add_variable(df, ramp_wall, nms=['p'])['p']
+    df_temp = va.add_variable(df, ramp_wall, nms=[var])[var]
     if i != 0:
         snapshots = np.vstack((snapshots, df_temp))
-np.save(path + 'snapshots_p2', snapshots)
+np.save(path + 'snapshots_' + var + '2', snapshots)
 # %% collect snapshots: method3
-data = pd.read_hdf(pathZ + dirs[0])[['x', 'y', 'p', 'walldist']]
+data = pd.read_hdf(pathZ + dirs[0])[['x', 'y', 'u', 'p', 'walldist']]
 ind0 = (data.y == 0.0)
 data['walldist'][ind0] = 0.0
 data.reset_index(drop=True, inplace=True)
@@ -809,16 +812,16 @@ data2 = data1.groupby(["x"], as_index=False, sort=True).nth(0)
 ind = data2.index
 xval = data.iloc[ind]['x'].values
 yval = data.iloc[ind]['y'].values
-snapshots = data2['p']  # va.add_variable(data, ramp_wall, nms=['p'])['p']
+snapshots = data2[var]  # va.add_variable(data, ramp_wall, nms=['p'])['p']
 for i in range(np.size(dirs)):
-    df = pd.read_hdf(pathZ + dirs[i])['p']
+    df = pd.read_hdf(pathZ + dirs[i])[var]
     df.reset_index(drop=True, inplace=True)
     df_temp = df.iloc[ind]
     if i != 0:
         snapshots = np.vstack((snapshots, df_temp))
 xyval = pd.DataFrame(data=np.vstack((xval, yval)).T, columns=["x", "y"])
-xyval.to_csv(pathM + "snapshots_p3xy.dat", index=False, float_format="%9.6f")
-np.save(path + 'snapshots_p3', snapshots)
+xyval.to_csv(pathM + "snapshots_" + var + "3xy.dat", index=False, float_format="%9.6f")
+np.save(path + "snapshots_" + var + "3", snapshots)
 # %%
 xyval = pd.read_csv(pathM + "snapshots_p3xy.dat", skipinitialspace=True)
 xval = xyval.x
@@ -859,10 +862,10 @@ plt.show()
 # %% Fourier transform of variables
 t_samp = 0.25
 Nt = 1201
-i1 = np.where(np.round(xval, 3) == -199.875)[0][0]  # 20.0
-i2 = np.where(np.round(xval, 3) == -79.875)[0][0]   # 40.25
-i3 = np.where(np.round(xval, 3) == -58.125)[0][0]  # 60.0
-i4 = np.where(np.round(xval, 3) == 0.008)[0][0]    # 79.75
+i1 = np.where(np.round(xval, 3) == -160.125)[0][0]  # 20.0 , -199.875
+i2 = np.where(np.round(xval, 3) == -58.375)[0][0]   # 40.25, 79.875
+i3 = np.where(np.round(xval, 3) == 25.516)[0][0]  # 60.0, 58.125
+i4 = np.where(np.round(xval, 3) == 70.078)[0][0]    # 79.75, 0.008
 
 p_fft1 = fft.fft(snapshots[:, i1]-np.mean(snapshots[:, i1]))
 p_fft2 = fft.fft(snapshots[:, i2]-np.mean(snapshots[:, i2]))
@@ -874,14 +877,14 @@ p_freq = np.linspace(1/t_samp/Nt, 1/t_samp/2, Nt//2)
 fig, ax = plt.subplots(figsize=(14*cm2in, 4.5*cm2in), dpi=300)
 matplotlib.rc("font", size=nsize)
 # ax.vlines(p_fre[1:Nt//2], [0], np.abs(p_fft)[1:Nt//2])
-ax.plot(p_freq[:Nt//2], np.abs(p_fft1)[1:Nt//2+1], "k-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft1)[1:Nt//2+1], "k--", linewidth=1.0)
 ax.plot(p_freq[:Nt//2], np.abs(p_fft2)[1:Nt//2+1], "r-", linewidth=1.0)
 ax.plot(p_freq[:Nt//2], np.abs(p_fft3)[1:Nt//2+1], "g-", linewidth=1.0)
-ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b-", linewidth=1.0)
+ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b--", linewidth=1.0)
 
 ax.set_xscale("log")
 ax.set_yscale("log")
-ax.legend([r'$-200$', r'$-80$', r'$-58$', r'$0$'],
+ax.legend([r'$-160$', r'$-58.3$', r'$25.4$', r'$70$'],
           loc='upper right', fontsize=nsize-2,
           ncols=2, columnspacing=0.6, framealpha=0.4)
 # ax.scatter(p_fre[1:Nt//2], np.abs(p_fft)[1:Nt//2], marker='o', facecolor=None, edgecolors='gray', s=15)
@@ -896,7 +899,162 @@ ax.set_xlim([3e-3, 3])
 ax.grid(visible=True, which="both", linestyle=":")
 ax.yaxis.offsetText.set_fontsize(nsize)
 plt.tick_params(labelsize=nsize)
-plt.savefig(pathF + "p_fft_upstream.svg", bbox_inches="tight", pad_inches=0.1)
+plt.savefig(pathF + "p_fft_downstream.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %%############################################################################
+"""
+    frequency-weighted PSD along a line
+"""
+# %% compute
+var = 'p'
+sp = 'Z_001'
+dt = 0.25
+Nt = 1201
+xval, yval = np.load(path + 'snapshots_p3xy.npy')
+qval = np.load(path + 'snapshots_p3.npy')
+# timez = np.linspace(600.0, 900.0, 1201)
+skip = 4
+samples = int(Nt / 2 + 1)
+xpick = xval[::skip]
+qpick = qval[:, ::skip]
+qPSD = np.zeros((samples, np.size(xpick)))
+for i in range(np.size(xpick)):
+    freq, qPSD[:, i] = va.psd(qpick[:, i], dt, 1/dt)
+np.savetxt(path + 'PSD_freq_' + sp + '.dat', freq, delimiter=' ')
+np.savetxt(path + 'PSD_x.dat', xpick, delimiter=' ')
+np.savetxt(path + var + '_PSD_psd_' + sp + '.dat', qPSD, delimiter=' ')
+
+# %%
+freq = np.loadtxt(path + 'PSD_freq_' + sp + '.dat', delimiter=' ')
+xpick = np.loadtxt(path + 'PSD_x.dat', delimiter=' ') 
+qPSD = np.loadtxt(path + var + '_PSD_psd_' + sp + '.dat', delimiter=' ')
+freq = freq[1:]
+qPSD = qPSD[1:, :]
+
+# %% Plot frequency-weighted PSD map along a line
+SumFPSD = 1.0  # np.max(qPSD, axis=0)  # np.sum(FPSD, axis=0)
+qPSD1 = np.log(qPSD/SumFPSD)  # np.log(FPSD) # 
+max_id = np.argmax(qPSD1, axis=0)
+max_freq = [freq[i] for i in max_id]
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+# ax.yaxis.major.formatter.set_powerlimits((-2, 3))
+ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_ylabel(r"$f l_r/u_\infty$", fontsize=tsize)
+print(np.max(qPSD1))
+print(np.min(qPSD1))
+cb1 = -20
+cb2 = -6
+lev = np.linspace(cb1, cb2, 41)
+cbar = ax.contourf(xpick, freq, qPSD1, extend='both',
+                   cmap='bwr', levels=lev)  # seismic # bwr # coolwarm
+# ax.plot(xpick, max_freq, 'C7:', linewidth=1.2)
+# every stage of the transition\
+# ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
+ax.set_yscale('log')
+ax.set_xlim([-160, 80.0])
+ax.set_xticks(np.linspace(-160, 80.0, 7))
+rg = np.linspace(cb1, cb2, 3)
+cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
+cbar.ax.xaxis.offsetText.set_fontsize(nsize)
+cbar.ax.tick_params(labelsize=nsize)
+cbar.update_ticks()
+barlabel = r'$\log_{10} [\mathcal{P}(f)]$'
+# barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
+ax.set_title(barlabel, pad=3, fontsize=nsize-1)
+ax.axvline(x=-58.3, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=25.4, linewidth=1.0, linestyle='--', color='k')
+# cbar.set_label(barlabel, rotation=90, fontsize=numsize)
+plt.tick_params(labelsize=nsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(pathF + var + "_PSDMap_max" + sp + ".svg",
+            bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %% plot fft map along a line
+t_samp = 0.25
+Nt = 1201
+# timez = np.linspace(600.0, 900.0, 1201)
+p_freq = np.linspace(1/t_samp/Nt, 1/t_samp/2, Nt//2)
+skip = 4
+samples = int(Nt / 2 + 1)
+xpick = xval[::skip]
+qpick = qval[:, ::skip]
+q_fft = np.zeros((Nt, np.size(xpick)), dtype=complex)
+for i in range(np.size(xpick)):
+    q_fft[:, i] = fft.fft(qpick[:, i] - np.mean(qpick[:, i]))
+freq = p_freq[:Nt//2]
+Afft = np.log(np.abs(q_fft)[1:Nt//2+1, :])
+# ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b-", linewidth=1.0)
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+# ax.yaxis.major.formatter.set_powerlimits((-2, 3))
+ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_ylabel(r"$fl_r/u_\infty$", fontsize=tsize)
+print(np.max(Afft))
+print(np.min(Afft))
+max_id = np.argmax(Afft, axis=0)
+max_freq = [freq[i] for i in max_id]
+cb1 = -5
+cb2 = 1
+lev = np.linspace(cb1, cb2, 41)
+cbar = ax.contourf(xpick, freq, Afft, extend='both',
+                   cmap='bwr', levels=lev)  # seismic # bwr # coolwarm
+# ax.plot(xpick, max_freq, 'C7:', linewidth=1.2)
+# every stage of the transition
+ax.axvline(x=-58.3, linewidth=1.0, linestyle='--', color='gray')
+ax.axvline(x=25.4, linewidth=1.0, linestyle='--', color='gray')
+# ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
+ax.set_yscale('log')
+ax.set_xlim([-160, 80.0])
+ax.set_xticks(np.linspace(-160, 80, 7))
+rg = np.linspace(cb1, cb2, 3)
+cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
+cbar.ax.xaxis.offsetText.set_fontsize(nsize)
+cbar.ax.tick_params(labelsize=nsize)
+cbar.update_ticks()
+barlabel = r'$\log_{10} (\left \|p^{\prime}\right \|)$'
+ax.set_title(barlabel, pad=3, fontsize=nsize-1)
+# cbar.set_label(barlabel, rotation=90, fontsize=numsize)
+plt.tick_params(labelsize=nsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(pathF + var + "_FFTMap_max" + sp + ".svg",
+            bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %% evolution of modes with specific frequencies
+fig, ax = plt.subplots(figsize=(14*cm2in, 4.5*cm2in), dpi=300)
+matplotlib.rc("font", size=nsize)
+
+ind1 = np.abs(freq - 0.97333).argmin()
+ind2 = np.abs(freq - 0.30333).argmin()
+ind3 = np.abs(freq - 0.14999).argmin()
+ind4 = np.abs(freq - 0.00333).argmin()
+
+ax.plot(xpick, np.power(10, Afft[ind1, :]), "k--", linewidth=1.0)
+ax.plot(xpick, np.power(10, Afft[ind2, :]), "r-", linewidth=1.0)
+ax.plot(xpick, np.power(10, Afft[ind3, :]), "g-", linewidth=1.0)
+ax.plot(xpick, np.power(10, Afft[ind4, :]), "b--", linewidth=1.0)
+
+# ax.set_xscale("log")
+ax.set_yscale("log")
+ax.legend([r'$0.97$', r'$0.30$', r'$0.15$', r'$0.003$'],
+          loc='upper left', fontsize=nsize-2, frameon=False,
+          ncols=2, columnspacing=0.6, framealpha=0.4)
+ax.set_xlabel(r"$f$", fontsize=tsize)
+ax.set_ylabel(r"$A_p$", fontsize=tsize)
+ax.set_xlim([-200, 80.0])
+ax.set_xticks(np.linspace(-200, 80, 8))
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+ax.axvline(x=-58.3, linewidth=1.0, linestyle='--', color='gray')
+ax.axvline(x=25.4, linewidth=1.0, linestyle='--', color='gray')
+ax.grid(visible=True, which="both", linestyle=":")
+ax.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
+plt.savefig(pathF + "A_fft_streamwise.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% animation for vortex structure
