@@ -67,7 +67,7 @@ def pod_eigspectrum(Percent, eigval):
     EnergyFrac       = eigval/np.sum(eigval)*100
     EnergyCumulation = np.cumsum(EnergyFrac)
     index = np.where(EnergyCumulation >= Percent)
-    num = np.size(eigval) - np.size(index[0]) + 1
+    num = np.size(index[0]) + 1
     #NewFlow = inner1d(coeff[:,:num], phi[:,:num])
     return EnergyFrac, EnergyCumulation, num#NewFlow
 
