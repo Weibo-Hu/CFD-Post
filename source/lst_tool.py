@@ -43,8 +43,8 @@ font = {
 }
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-textsize = 13
-numsize = 10
+tsize = 13
+nsize = 10
 
 # %%
 # path = "/media/weibo/VID2/BFS_M1.7SFD/"
@@ -90,7 +90,7 @@ print("growth_max=", np.max(growth))
 print("growth_min=", np.min(growth))
 
 fig, ax = plt.subplots(figsize=(6.4, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(-0.0028, 0.0013, 42)
 x_b = x * rescale
 y_b = y * rescale
@@ -98,17 +98,17 @@ growth_b = growth * rescale
 cbar = ax.contourf(x_b, y_b, growth_b, cmap='rainbow_r', levels=rg1)  # rainbow_r
 cs = ax.contour(x_b, y_b, growth_b, levels=[-0.0025, -0.0023, -0.0019, -0.0015],
                 linewidths=1.0, colors='w')
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax.clabel(cs, cs.levels, inline=False, fmt=r'$%5.4f$', inline_spacing=0, 
-          rightside_up=True, fontsize=numsize-1, colors='k')
+          rightside_up=True, fontsize=nsize-1, colors='k')
 ax.set_xlim(0.03, 0.12)
 ax.set_ylim(0.008, 0.024)
 ax.set_yticks(np.arange(0.008, 0.024 + 0.004, 0.004))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.offsetText.set_fontsize(numsize)
-ax.tick_params(labelsize=numsize)
-ax.set_xlabel(r"$\beta l$", fontsize=textsize)
-ax.set_ylabel(r"$\omega \l / u_\infty$", fontsize=textsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
+ax.tick_params(labelsize=nsize)
+ax.set_xlabel(r"$\beta l$", fontsize=tsize)
+ax.set_ylabel(r"$\omega \l / u_\infty$", fontsize=tsize)
 ax.axvline(x=0.393, ymin=0, ymax=0.5,
            color="gray", linestyle="--", linewidth=1.0)
 ax.axhline(y=0.101, xmin=0, xmax=0.32,
@@ -116,16 +116,16 @@ ax.axhline(y=0.101, xmin=0, xmax=0.32,
 # Add colorbar
 rg2 = np.linspace(-0.0028, 0.0013, 3)
 cbaxes = fig.add_axes([0.65, 0.80, 0.22, 0.06])  # x, y, width, height
-cbaxes.tick_params(labelsize=numsize)
+cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(cbar, cax=cbaxes, orientation="horizontal", ticks=rg2)
 cbar.formatter.set_powerlimits((-2, 2))
-cbar.ax.xaxis.offsetText.set_fontsize(numsize)
+cbar.ax.xaxis.offsetText.set_fontsize(nsize)
 cbar.update_ticks()
 cbar.set_label(
     r"$\alpha_i \l$", rotation=0, x=-0.15,
-    labelpad=-25, fontsize=textsize
+    labelpad=-25, fontsize=tsize
 )
-cbaxes.tick_params(labelsize=numsize)
+cbaxes.tick_params(labelsize=nsize)
 plt.savefig(pathF + "TS_mode_contour.pdf", bbox_inches="tight")
 plt.show()
 
@@ -135,15 +135,15 @@ spectrum = pd.read_csv(path + 'SpatEigVal-40.0.dat', sep=' ',
                        skipinitialspace=True, keep_default_na=False)
 spectrum.dropna()
 fig, ax = plt.subplots(figsize=(3.2, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 # plot lines
 ax.scatter(spectrum['alpha_r'], spectrum['alpha_i'], s=15, marker='o',
            facecolors='k', edgecolors='k', linewidths=0.5)
 ax.set_xlim([-2, 2])
 ax.set_ylim([-0.1, 0.3])
-ax.set_xlabel(r'$\alpha_r \delta_0$', fontsize=textsize)
-ax.set_ylabel(r'$\alpha_i \delta_0$', fontsize=textsize)
-ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r'$\alpha_r \delta_0$', fontsize=tsize)
+ax.set_ylabel(r'$\alpha_i \delta_0$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "TS_mode_spectrum.svg", bbox_inches="tight")
 plt.show()
@@ -178,9 +178,9 @@ input_mode.iloc[0][:7] = 0
 input_mode.to_csv(myfile, sep=' ', index=False, header=0, na_rep='0',
                   columns=col[:11], mode='a', float_format='%1.8e')
 # %% Plot LST perturbations profiles
-path = '/mnt/work/cases/flat_202302/export/'
-ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep='\t',
-                         index_col=False, skiprows=4,
+# path = '/mnt/work/cases/flat_202302/export/'
+ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep=' ',
+                         index_col=False, skiprows=5,
                          skipinitialspace=True)
 ts_profile['u'] = np.sqrt(ts_profile['u_r']**2+ts_profile['u_i']**2)
 ts_profile['v'] = np.sqrt(ts_profile['v_r']**2+ts_profile['v_i']**2)
@@ -194,9 +194,9 @@ ts_profile['u'] = ts_profile['u'] / var_ref
 ts_profile['v'] = ts_profile['v'] / var_ref
 ts_profile['w'] = ts_profile['w'] / var_ref
 ts_profile['p'] = ts_profile['p'] / var_ref
-ts_profile['t'] = ts_profile['t'] / var_ref / fct
-fig, ax = plt.subplots(figsize=(3.2, 3.2))
-matplotlib.rc("font", size=textsize)
+ts_profile['t'] = ts_profile['t'] / var_ref
+fig, ax = plt.subplots(figsize=(3.2, 3.0))
+matplotlib.rc("font", size=tsize)
 # plot lines
 ax.plot(ts_profile.u, ts_profile.y, 'k', linewidth=1.2)
 ax.plot(ts_profile.v, ts_profile.y, 'r', linewidth=1.2)
@@ -206,17 +206,18 @@ ax.plot(ts_profile.t, ts_profile.y, 'c', linewidth=1.2)
 # plot scatter
 #ax.scatter(ts_profile.u[0::4], ts_profile.y[0::4], s=15, marker='x',
 #           facecolors='k', edgecolors='k', linewidths=0.5, label=r'$u$')
-ax.set_xlim(0.0, 4.0)
+# ax.set_xlim(0.0, 4.0)
 ax.tick_params(axis='x', which='major', pad=5)
-ax.set_ylim(0.0, 10.0)
-ax.set_xlabel(r'$|\tilde{q}|/|\tilde{u}|_\mathrm{max}$', fontsize=textsize)
-ax.set_ylabel(r'$y\mathrm{(mm)}$', fontsize=textsize)
-# ax.set_ylabel(r'$y/\delta_0$', fontsize=textsize)
-ax.tick_params(labelsize=numsize)
+ax.set_ylim(0.0, 8.0)
+ax.set_yticks(np.linspace(0, 8.0, 5))
+ax.set_xlabel(r'$|\tilde{q}|/|\tilde{u}|_\mathrm{max}$', fontsize=tsize)
+ax.set_ylabel(r'$y/l_r$', fontsize=tsize)
+# ax.set_ylabel(r'$y/\delta_0$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(visible=True, which="both", linestyle=":")
-plt.legend( (r'$u$', r'$v$', r'$w$', r'$p$', r'$T/4$'),
-            fontsize=numsize, framealpha=0.5 )
-plt.savefig(path + "2nd_mode_profile.png", dpi=300, bbox_inches="tight")
+plt.legend( (r'$u$', r'$v$', r'$w$', r'$p$', r'$T$'),
+            fontsize=nsize, framealpha=0.5 )
+plt.savefig(path + "optimal_mode_profile.png", dpi=300, bbox_inches="tight")
 plt.show()
 
 # %% omega-Rex
@@ -272,7 +273,7 @@ ReBeta2 = np.hstack((beta2['beta1'], beta2['beta2'][::-1]))
 Re3 = np.hstack((beta3['Re'], beta3['Re'][::-1]))
 ReBeta3 = np.hstack((beta3['beta1'], beta3['beta2'][::-1]))
 fig, ax = plt.subplots(figsize=(3.2, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 # plot lines
 y_s1 = np.linspace(ReBeta1[1:-1].min(), ReBeta1[1:-1].max(), 200)
 tck = splrep(ReBeta1[1:-1], Re1[1:-1], s=0)
@@ -301,12 +302,12 @@ ax.plot(beta3['Re'][1:], beta3['beta3'][1:], 'k-.', linewidth=1.2)
 # ax.set_yscale('logit')
 ax.set_xlim([2160, 2280])
 ax.set_ylim([0.02, 0.13])
-ax.set_xlabel(r'$Re_l$', fontsize=textsize)
-ax.set_ylabel(r'$\beta l$', fontsize=textsize)
+ax.set_xlabel(r'$Re_l$', fontsize=tsize)
+ax.set_ylabel(r'$\beta l$', fontsize=tsize)
 ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-1, 1))
-ax.yaxis.offsetText.set_fontsize(numsize)
-ax.tick_params(labelsize=numsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "Re_beta.svg", bbox_inches="tight")
 plt.show()
@@ -325,7 +326,7 @@ ReBeta2 = np.hstack((beta2['omega1'], beta2['omega2'][::-1]))
 Re3 = np.hstack((beta3['Re'], beta3['Re'][::-1]))
 ReBeta3 = np.hstack((beta3['omega1'], beta3['omega2'][::-1]))
 fig, ax = plt.subplots(figsize=(3.2, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 # plot lines
 y_s1 = np.linspace(ReBeta1[1:-1].min(), ReBeta1[1:-1].max(), 200)
 tck = splrep(np.sort(ReBeta1[1:-1]), Re1[1:-1], s=0)
@@ -362,10 +363,10 @@ ax.set_xlim([2160, 2280])
 ax.set_ylim([0.006, 0.024])
 ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.offsetText.set_fontsize(numsize)
-ax.set_xlabel(r'$Re_l$', fontsize=textsize)
-ax.set_ylabel(r'$\omega l/u_\infty$', fontsize=textsize)
-ax.tick_params(labelsize=numsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
+ax.set_xlabel(r'$Re_l$', fontsize=tsize)
+ax.set_ylabel(r'$\omega l/u_\infty$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(pathF + "Re_omega.pdf", bbox_inches="tight")
 plt.show()
@@ -407,20 +408,20 @@ xloc = np.arange(-40.0, -1.0 + 1.0, 1.0)
 beta1 = pd.read_csv(pathL + 'LST_TS.dat', sep=' ',
                     index_col=False, skipinitialspace=True)
 fig = plt.figure(figsize=(6.4, 3.2))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 ax = fig.add_subplot(121)
 ax.plot(xloc, beta1['alpha_r'], 'k--', linewidth=1.2)
 ax.set_xlim([-40.0, 0.0])
 ax.set_ylim([0.16, 0.26])
 # ax.set_xticks(np.linspace(2175, 2275, 3))
 ax.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax.yaxis.offsetText.set_fontsize(numsize)
-ax.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
-ax.set_ylabel(r'$\alpha_r^* \delta_0$', fontsize=textsize)
-ax.tick_params(labelsize=numsize)
+ax.yaxis.offsetText.set_fontsize(nsize)
+ax.set_xlabel(r'$x/\delta_0$', fontsize=tsize)
+ax.set_ylabel(r'$\alpha_r^* \delta_0$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(b=True, which="both", linestyle=":")
 ax.annotate("(a)", xy=(-0.23, 1.00), xycoords='axes fraction',
-             fontsize=numsize)
+             fontsize=nsize)
 
 ax1 = fig.add_subplot(122)
 ax1.plot(xloc, -beta1['alpha_i'], 'k--', linewidth=1.2)
@@ -428,13 +429,13 @@ ax1.set_xlim([-40.0, 0.0])
 ax1.set_ylim([0.0, 0.020])
 # ax1.set_xticks(np.linspace(2175, 2275, 3))
 ax1.ticklabel_format(axis='y', style='sci', useOffset=False, scilimits=(-2, 2))
-ax1.yaxis.offsetText.set_fontsize(numsize)
-ax1.set_xlabel(r'$x/\delta_0$', fontsize=textsize)
-ax1.set_ylabel(r'$-\alpha_i^* \delta_0$', fontsize=textsize)
-ax1.tick_params(labelsize=numsize)
+ax1.yaxis.offsetText.set_fontsize(nsize)
+ax1.set_xlabel(r'$x/\delta_0$', fontsize=tsize)
+ax1.set_ylabel(r'$-\alpha_i^* \delta_0$', fontsize=tsize)
+ax1.tick_params(labelsize=nsize)
 ax1.grid(b=True, which="both", linestyle=":")
 ax1.annotate("(b)", xy=(-0.21, 1.00), xycoords='axes fraction',
-             fontsize=numsize)
+             fontsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.6, h_pad=1)
 plt.savefig(pathF + "Re_alpha.svg")
 plt.show()
@@ -452,16 +453,16 @@ x1_profile = x_profile.iloc[540:941]
 a0 = 1
 fluc = a0*np.exp(x1_profile['alpha_i']*x1_profile['x'])
 fig, ax = plt.subplots(figsize=(6.4, 6.4))
-matplotlib.rc("font", size=textsize)
+matplotlib.rc("font", size=tsize)
 # plot lines
 ax.scatter(x1_profile['x'], fluc, s=15, marker='o',
            facecolors='k', edgecolors='k', linewidths=0.5)
 ax.plot(var_x['x']+270, np.sqrt(var_x['<T`T`>']), 'b-')
 ax.set_xlim([280, 480])
 # ax.set_ylim([-0.1, 0.3])
-ax.set_xlabel(r'$x$', fontsize=textsize)
-ax.set_ylabel(r'$q^\prime$', fontsize=textsize)
-ax.tick_params(labelsize=numsize)
+ax.set_xlabel(r'$x$', fontsize=tsize)
+ax.set_ylabel(r'$q^\prime$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
 ax.grid(b=True, which="both", linestyle=":")
 plt.savefig(path + "amplidue_x.svg", bbox_inches="tight")
 plt.show()
