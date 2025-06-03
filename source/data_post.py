@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 import scipy.optimize
-from numpy import NaN, Inf, arange, isscalar, asarray, array
+from numpy import arange, isscalar, asarray, array
 import time
 import sys
 import re
@@ -716,8 +716,8 @@ class DataPost(object):
         if delta <= 0:
             sys.exit('Input argument delta must be positive')
 
-        mn, mx = Inf, -Inf
-        mnpos, mxpos = NaN, NaN
+        mn, mx = np.inf, -np.inf
+        mnpos, mxpos = np.nan, np.nan
 
         lookformax = True
 

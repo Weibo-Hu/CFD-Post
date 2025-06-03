@@ -17,7 +17,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import scipy.optimize
-from numpy import NaN, Inf, arange, isscalar, asarray, array
+from numpy import arange, isscalar, asarray, array
 from numpy.core.umath_tests import inner1d
 import sys, os
 from timer import timer
