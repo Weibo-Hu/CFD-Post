@@ -340,15 +340,15 @@ class SparseAnswer(object):
         # number of non-zero amplitudes
         self.Nz = np.zeros(ng)
         # square of frobenius norm (before polishing)
-        self.Jsp = np.zeros(ng, dtype=np.complex)
+        self.Jsp = np.zeros(ng, dtype=np.complex128)
         # square of frobenius norm (after polishing)
-        self.Jpol = np.zeros(ng, dtype=np.complex)
+        self.Jpol = np.zeros(ng, dtype=np.complex128)
         # optimal performance loss (after polishing)
-        self.Ploss = np.zeros(ng, dtype=np.complex)
+        self.Ploss = np.zeros(ng, dtype=np.complex128)
         # vector of amplitudes (before polishing)
-        self.xsp = np.zeros((n, ng), dtype=np.complex)
+        self.xsp = np.zeros((n, ng), dtype=np.complex128)
         # vector of amplitudes (after polishing)
-        self.xpol = np.zeros((n, ng), dtype=np.complex)
+        self.xpol = np.zeros((n, ng), dtype=np.complex128)
 
     @property
     def nonzero(self):
