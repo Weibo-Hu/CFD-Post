@@ -104,8 +104,28 @@ def fre2omega(Ma, Ts, fre, l_ref):
     omega = 2 * np.pi * fre * l_ref / c
     return (omega)
 
+
+def freeinter(Cf0, Ma, Fx=6.0, opt=1):
+    """
+    compute pressure behind reattachment based on free interaction theory
+    pressure based on p0 (initial pressure)
+    """
+    if opt == 1:
+        v1 = np.sqrt(2*Cf0/np.sqrt(Ma**2-1))
+        v2 = 0.5 * 1.4 * Ma**2 * Fx * v1
+        Cpr = v2 + 1
+    elif opt == 2:
+        Cpr = 1 + 0.5 * Ma
+    else:
+        v1 = 1.88*Ma - 1
+        Cpr = np.power(v1, 0.64)
+    return (Cpr)
+
 # %%
 Ma = 6.0
+Cf0 = 5.4e-4
+p0 = 0.019869
+Cp = freeinter(Cf0, Ma, opt=1)
 Re_inf = 7.736*1e6
 Ts = 86.6
 
