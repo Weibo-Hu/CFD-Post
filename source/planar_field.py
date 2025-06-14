@@ -99,7 +99,7 @@ class PlanarField(LineField):
         if FileList is None:
             infile = glob(path + '*plt')
         else:
-            infile = path + FileList
+            infile = FileList
 
         if ExtName is None:
             # ext_name = os.path.splitext(infile)
