@@ -29,10 +29,11 @@ from scipy import signal
 from line_field import LineField as lf
 from IPython import get_ipython
 from scipy import fft
+matplotlib.use('ipympl')
 # get_ipython().run_line_magic("matplotlib", "qt")
 
 # %% set path and basic parameters
-path = "/media/weibo/VID2/AAS/ramp_st14_2nd/"
+path = "F:/ramp_st14_dx/"
 # path = 'E:/cases/wavy_1009/'
 p2p.create_folder(path)
 pathP = path + "probes/"
@@ -63,7 +64,8 @@ MeanFlow = pf()
 MeanFlow.load_meanflow(path)
 MeanFlow.copy_meanval()
 ind0 = (MeanFlow.PlanarData.y == 0.0)
-MeanFlow.PlanarData['walldist'][ind0] = 0.0
+MeanFlow.PlanarData.loc[ind0, 'walldist'] = 0.0
+# MeanFlow.PlanarData['walldist'][ind0] = 0.0
 
 # %% merge mean flow
 MeanFlow.merge_stat(pathM)
@@ -151,12 +153,12 @@ walldist = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.walldist, (x, y))
 corner = (walldist < 0.0)
 rho[corner] = np.nan
 u[corner] = np.nan
-cval1 = 0.4  # 1.0 #
-cval2 = 3.6  # 7.0  #
-fig, ax = plt.subplots(figsize=(15*cm2in, 5*cm2in))
+cval1 = 0.2  # 0.4 #
+cval2 = 3.2  # 3.6  #
+fig, ax = plt.subplots(figsize=(15*cm2in, 4*cm2in))
 matplotlib.rc("font", size=tsize)
 rg1 = np.linspace(cval1, cval2, 21)
-cbar = ax.contourf(x, y, rho, cmap="rainbow", levels=rg1, extend="both") # rainbow
+cbar = ax.contourf(x, y, rho, cmap="RdBu_r", levels=rg1, extend="both") # rainbow
 # ax.contour(x, y, u, levels=[0.0], linestyles="dotted")  # rainbow_r
 ax.set_xlim(-200, 80)
 ax.set_ylim(np.min(y), 36.0)
@@ -176,21 +178,21 @@ cbar = plt.colorbar(
 lab = r"$\langle \rho \rangle/\rho_{\infty}$"
 cbar.set_label(lab, rotation=0, fontsize=tsize)
 # Add boundary layer
-Enthalpy = pd.read_csv(
-    pathM + "EnthalpyBoundaryEdge.dat", skipinitialspace=True)
+# Enthalpy = pd.read_csv(
+#    pathM + "EnthalpyBoundaryEdge.dat", skipinitialspace=True)
 # ax.plot(Enthalpy.x / lh, Enthalpy.y / lh, "k--", linewidth=1.5)
 # Add sonic
-sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
-ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
+# sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
+# ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.5)
 # Add shock line
-shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
-ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
+# shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
+# ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
 # Add dividing line(separation line)
 dividing = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
 ax.plot(dividing.x / lh, dividing.y / lh, "k:", linewidth=1.5)
-# x_sep = np.array([dividing.x.values[0], dividing.x.values[-1]]) / lh
-# y_sep = np.array([dividing.y.values[0], dividing.y.values[-1]]) / lh
-# ax.scatter(x_sep, y_sep, c='k', s=20)
+x_sep = np.array([dividing.x.values[0], dividing.x.values[-1]]) / lh
+y_sep = np.array([dividing.y.values[0], dividing.y.values[-1]]) / lh
+ax.scatter(x_sep, y_sep, c='k', s=20)
 plt.savefig(pathF + "MeanFlow_rho.svg", bbox_inches="tight")
 plt.show()
 
@@ -209,6 +211,9 @@ elif var == "<v`v`>":
 elif var == "<w`w`>":
     lab = r"$\sqrt{\langle w^\prime w^\prime \rangle}$"
     nm = 'RMSWW'
+elif var == "<p`p`>":
+    lab = r"$\sqrt{\langle p^\prime p^\prime \rangle}$"
+    nm = 'RMSPP'
 var_val = getattr(MeanFlow.PlanarData, var)
 uu = griddata((MeanFlow.x, MeanFlow.y), var_val, (x, y))
 u = griddata((MeanFlow.x, MeanFlow.y), MeanFlow.u, (x, y))
@@ -225,9 +230,9 @@ cbar = ax.contourf(
     x / lh, y / lh, np.sqrt(np.abs(uu)), cmap="coolwarm",
     levels=rg1, extend="both"
 )  # rainbow_r # jet # Spectral_r
-ax.set_xlim(-200, 80.0)
+ax.set_xlim(-160, 80.0)
 ax.set_ylim(np.min(y), 36.0)
-ax.set_xticks(np.linspace(-200.0, 80.0, 8))
+ax.set_xticks(np.linspace(-160, 80.0, 7))
 ax.set_yticks(np.linspace(0.0, 36.0, 5))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x/l_r$", fontdict=font)
@@ -255,7 +260,6 @@ cbaxes.tick_params(labelsize=nsize)
 cbar = plt.colorbar(
     cbar, cax=cbaxes, orientation="horizontal", extendrect="False", ticks=rg2
 )
-
 cbar.set_label(
     lab, rotation=0, fontsize=tsize,
 )
@@ -267,24 +271,27 @@ boundary = pd.read_csv(
 bubble = pd.read_csv(pathM + "BubbleLine.dat", skipinitialspace=True)
 ax.plot(bubble.x / lh, bubble.y / lh, "k:", linewidth=1.0)
 # Add shock line
-shock = pd.read_csv(pathM + "ShockLine.dat", skipinitialspace=True)
+shock = pd.read_csv(pathM + "ShockLineFit.dat", skipinitialspace=True)
 ax.plot(shock.x / lh, shock.y / lh, "w-", linewidth=1.5)
 # Add sonic line
 sonic = pd.read_csv(pathM + "SonicLine.dat", skipinitialspace=True)
 ax.plot(sonic.x / lh, sonic.y / lh, "w--", linewidth=1.0)
+# Add max locations
+rms_loc = pd.read_csv(pathM + "MaxRMS_u.dat", sep=' ', skipinitialspace=True)
+ax.plot(rms_loc.x / lh, rms_loc.y / lh, "g:", linewidth=1.2)
 plt.savefig(pathF + "MeanFlow" + nm + ".svg", bbox_inches="tight")
 plt.show()
-
 
 # %% Numerical schiliren in X-Y plane
 """
     Numerical schiliren (gradient of density)
 """
 flow = pf()
-file = path + "snapshots/" + "TP_2D_Z_001.szplt"
-flow.load_data(path, FileList=file, NameList='tecio')
+file = path + "TP_2D_Z_003.szplt"
+flow.load_data(path, FileList=file, ExtName='tecio')
 plane = flow.PlanarData
 # plane.to_hdf(path+'snapshots/TP_2D_Z_03_1000.h5', 'w', format='fixed')
+# plane = pd.read_hdf(path+'snapshots/TP_2D_Z_03_1000.h5')
 x, y = np.meshgrid(np.unique(plane.x), np.unique(plane.y))
 var = "|grad(rho)|"
 schlieren = griddata((plane.x, plane.y), plane[var], (x, y))
@@ -305,9 +312,9 @@ schlieren[corner] = np.nan
 cbar = ax.contourf(
     x, y, schlieren, cmap="binary", levels=rg1, extend="both"
 )  # binary #rainbow_r# bwr
-ax.set_xlim(-200, 80.0)
+ax.set_xlim(-160, 80.0)
 ax.set_ylim(np.min(y), 36.0)
-ax.set_xticks(np.linspace(-200, 80.0, 8))
+ax.set_xticks(np.linspace(-160, 80.0, 7))
 ax.set_yticks(np.linspace(0.0, 36.0, 5))
 ax.tick_params(labelsize=nsize)
 ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
@@ -348,7 +355,7 @@ dividing = pd.read_csv(pathI + "BubbleLine.dat", skipinitialspace=True)
 # Add sonic line
 sonic = pd.read_csv(pathI + "SonicLine.dat", skipinitialspace=True)
 # ax.plot(sonic.x, sonic.y, "b--", linewidth=1.0)
-plt.savefig(pathF + "SchlierenXY.svg", bbox_inches="tight")
+plt.savefig(pathF + "SchlierenXY2.svg", bbox_inches="tight")
 plt.show()
 # %% BL profile along streamwise
 fig, ax = plt.subplots(1, 9, figsize=(13 * cm2in, 4 * cm2in), dpi=500)
@@ -592,7 +599,6 @@ ax.yaxis.offsetText.set_fontsize(nsize)
 plt.tick_params(labelsize=nsize)
 plt.savefig(pathF + "p_fft_upstream.svg", bbox_inches="tight", pad_inches=0.1)
 plt.show()
-# %%############################################################################
 
 
 # %% save and load data
@@ -604,7 +610,7 @@ df, SolTime = pytec.ReadINCAResults(path + 'TP_fluc_3d/',
                                     SpanAve=False,
                                     OutFile='TP_fluc_2d')
 
-# %%
+# %% merge data
 MeanFlow = pf()
 MeanFlow.merge_stat(pathI)
 # %% Streamwise evolution of a specific variable
@@ -804,11 +810,12 @@ np.save(path + 'snapshots_' + var + '2', snapshots)
 # %% collect snapshots: method3
 data = pd.read_hdf(pathZ + dirs[0])[['x', 'y', 'u', 'p', 'walldist']]
 ind0 = (data.y == 0.0)
-data['walldist'][ind0] = 0.0
+# data['walldist'][ind0] = 0.0
+data.loc[ind0, 'walldist'] = 0.0
 data.reset_index(drop=True, inplace=True)
 data0 = data.query("walldist < 0.5 & walldist >= 0")
 data1 = data0.sort_values(by=['x', 'walldist'], inplace=False)
-data2 = data1.groupby(["x"], as_index=False, sort=True).nth(0)
+data2 = data1.groupby(["x"], as_index=False, sort=True).nth(1)
 ind = data2.index
 xval = data.iloc[ind]['x'].values
 yval = data.iloc[ind]['y'].values
@@ -820,10 +827,10 @@ for i in range(np.size(dirs)):
     if i != 0:
         snapshots = np.vstack((snapshots, df_temp))
 xyval = pd.DataFrame(data=np.vstack((xval, yval)).T, columns=["x", "y"])
-xyval.to_csv(pathM + "snapshots_" + var + "3xy.dat", index=False, float_format="%9.6f")
+xyval.to_csv(path + "snapshots_" + var + "3xy.dat", index=False, float_format="%9.6f")
 np.save(path + "snapshots_" + var + "3", snapshots)
 # %%
-xyval = pd.read_csv(pathM + "snapshots_p3xy.dat", skipinitialspace=True)
+xyval = pd.read_csv(path + "snapshots_p3xy.dat", skipinitialspace=True)
 xval = xyval.x
 snapshots = np.load(path + 'snapshots_p3.npy')
 timez = np.linspace(600.0, 900.0, 1201)
@@ -912,6 +919,9 @@ sp = 'Z_001'
 dt = 0.25
 Nt = 1201
 xval, yval = np.load(path + 'snapshots_p3xy.npy')
+# df = pd.read_csv(path + 'snapshots_p3xy.dat', delimiter=',')
+# xval = df.x.values
+# yval = df.y.values
 qval = np.load(path + 'snapshots_p3.npy')
 # timez = np.linspace(600.0, 900.0, 1201)
 skip = 4
@@ -927,14 +937,15 @@ np.savetxt(path + var + '_PSD_psd_' + sp + '.dat', qPSD, delimiter=' ')
 
 # %%
 freq = np.loadtxt(path + 'PSD_freq_' + sp + '.dat', delimiter=' ')
-xpick = np.loadtxt(path + 'PSD_x.dat', delimiter=' ') 
+xpick = np.loadtxt(path + 'PSD_x.dat', delimiter=' ')
 qPSD = np.loadtxt(path + var + '_PSD_psd_' + sp + '.dat', delimiter=' ')
 freq = freq[1:]
 qPSD = qPSD[1:, :]
 
 # %% Plot frequency-weighted PSD map along a line
+smalle = 1e-9
 SumFPSD = 1.0  # np.max(qPSD, axis=0)  # np.sum(FPSD, axis=0)
-qPSD1 = np.log(qPSD/SumFPSD)  # np.log(FPSD) # 
+qPSD1 = np.log((qPSD+smalle)/SumFPSD)  # np.log(FPSD) # 
 max_id = np.argmax(qPSD1, axis=0)
 max_freq = [freq[i] for i in max_id]
 matplotlib.rcParams['xtick.direction'] = 'out'
@@ -943,10 +954,10 @@ fig, ax = plt.subplots(figsize=(6.4, 2.8))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
 ax.set_ylabel(r"$f l_r/u_\infty$", fontsize=tsize)
-print(np.max(qPSD1))
 print(np.min(qPSD1))
-cb1 = -20
-cb2 = -6
+print(np.max(qPSD1))
+cb1 = -16
+cb2 = -8
 lev = np.linspace(cb1, cb2, 41)
 cbar = ax.contourf(xpick, freq, qPSD1, extend='both',
                    cmap='bwr', levels=lev)  # seismic # bwr # coolwarm
@@ -964,12 +975,12 @@ cbar.update_ticks()
 barlabel = r'$\log_{10} [\mathcal{P}(f)]$'
 # barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
 ax.set_title(barlabel, pad=3, fontsize=nsize-1)
-ax.axvline(x=-58.3, linewidth=1.0, linestyle='--', color='k')
-ax.axvline(x=25.4, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=-50, linewidth=1.0, linestyle='--', color='k') # -50 # -58.4
+ax.axvline(x=34.4, linewidth=1.0, linestyle='--', color='k')  # 34.4 # 25.4
 # cbar.set_label(barlabel, rotation=90, fontsize=numsize)
 plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathF + var + "_PSDMap_max" + sp + ".svg",
+plt.savefig(pathF + var + "_PSDMap_max" + sp + "b.svg",
             bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
@@ -994,8 +1005,8 @@ fig, ax = plt.subplots(figsize=(6.4, 2.8))
 # ax.yaxis.major.formatter.set_powerlimits((-2, 3))
 ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
 ax.set_ylabel(r"$fl_r/u_\infty$", fontsize=tsize)
-print(np.max(Afft))
 print(np.min(Afft))
+print(np.max(Afft))
 max_id = np.argmax(Afft, axis=0)
 max_freq = [freq[i] for i in max_id]
 cb1 = -5
@@ -1005,8 +1016,8 @@ cbar = ax.contourf(xpick, freq, Afft, extend='both',
                    cmap='bwr', levels=lev)  # seismic # bwr # coolwarm
 # ax.plot(xpick, max_freq, 'C7:', linewidth=1.2)
 # every stage of the transition
-ax.axvline(x=-58.3, linewidth=1.0, linestyle='--', color='gray')
-ax.axvline(x=25.4, linewidth=1.0, linestyle='--', color='gray')
+ax.axvline(x=-50.0, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=34.4, linewidth=1.0, linestyle='--', color='k')
 # ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
 ax.set_yscale('log')
 ax.set_xlim([-160, 80.0])
@@ -1021,7 +1032,7 @@ ax.set_title(barlabel, pad=3, fontsize=nsize-1)
 # cbar.set_label(barlabel, rotation=90, fontsize=numsize)
 plt.tick_params(labelsize=nsize)
 plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
-plt.savefig(pathF + var + "_FFTMap_max" + sp + ".svg",
+plt.savefig(pathF + var + "_FFTMap_max" + sp + "2.svg",
             bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
@@ -1055,6 +1066,275 @@ ax.grid(visible=True, which="both", linestyle=":")
 ax.yaxis.offsetText.set_fontsize(nsize)
 plt.tick_params(labelsize=nsize)
 plt.savefig(pathF + "A_fft_streamwise.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %%
+# %% szplt to h5
+pathTP = path + 'TP_data_00370536/' #'TP_data_00370536/'  # 
+dirs = sorted(os.listdir(pathTP))
+var_list = ['x', 'y', 'z', 'rho', 'u', 'v', 'w', 'p', 'T',
+            'walldist']
+pathH5 = path + 'H5_data_00370536/'
+df_w = pd.DataFrame(columns=var_list)
+
+for i in range(np.size(dirs)):
+    finm = pathTP + dirs[i]
+    df, s_time = pytec.ReadSinglePlt(finm, var_list)
+    df_temp = df.query("walldist < 0.5 & walldist >= 0.0")
+    df_w = pd.concat((df_w, df_temp))
+    print("process " + dirs[i])
+    # df, s_time = p2p.ReadINCAResults(pathSN,  var_list, FileName=finm)
+    # outfile = os.path.splitext(dirs[i])[0]
+    # df.to_hdf(pathH5 + outfile + ".h5", "w", format='fixed')
+df_w.to_hdf(path + 'TP_data_00370536.h5', "w", format='fixed')
+# %% collect snapshots for spanwise wavenumber
+data = pd.read_hdf(path + 'TP_data_00370536.h5')[['x', 'y', 'z', 'u', 'p', 'walldist']]
+xval = np.arange(-200, 80 + 0.5, 0.5)
+yval = np.zeros(np.size(xval))
+ywdist = 0.375
+for i in range(np.size(xval)):
+    aa = data.loc[data['x']==xval[i]]
+    ind = np.abs(aa['y'].values - ywdist).argmin()
+    yval[i] = aa['y'].values[ind]
+    # aa = data[['x', 'walldist']]
+    # ind = np.linalg.norm(aa.values - [xval[i], ywdist], axis=1).argmin()
+    # yval[i] = data['y'].values[ind] 
+locs = pd.DataFrame({'x': xval, 'y': yval})
+locs.to_csv(path+'locs'+str(ywdist)+'.dat', float_format='%11.8f', index=False)
+
+# %%
+zrange = np.unique(data['z'])
+data_z = data[data['z'].isin(zrange)]
+var = 'p'
+ramp_wall = pd.read_csv(path + "locs0.375.dat", skipinitialspace=True)
+# ramp_wall = pd.read_csv(pathM + "FirstLevXP.dat", skipinitialspace=True)
+xrange = ramp_wall['x']
+snapshots = np.empty([1, np.size(zrange)])
+for i in range(np.size(xrange)):
+    aa = data_z.loc[data_z['x']==ramp_wall['x'][i]]
+    bb = aa.loc[aa['y']==ramp_wall['y'][i]]
+    bb = bb.drop_duplicates(subset=['z'])
+    if bb.empty or (np.shape(bb)[0] != np.size(zrange)):
+        yrange = np.ones(np.size(zrange))*ramp_wall['y'][i]
+        cc = griddata((aa.z, aa.y), aa[var], (zrange, yrange), method='cubic')
+    else:    
+        bb = bb.sort_values(by='z', ascending=True)
+        cc = bb[var].values
+    snapshots = np.vstack((snapshots, cc))
+# row: z-coordinates; column: x-coordinates
+snapshots = np.transpose(snapshots)
+np.save(path + "snapshots_" + var + "_XP375", snapshots)
+# %%  spanwise wavenumber along streamwise
+xval = ramp_wall.x
+snapshots = np.load(path + "snapshots_" + var+ "_XP375.npy")
+Nz = 81
+z_samp = 0.1515
+zrange = np.linspace(-6.06, 6.06, Nz)
+i1 = np.abs(xval - -160).argmin()  # 20.0 , -199.875, -160.125
+i3 = np.abs(xval - -58).argmin()  # 60.0, 58.125, 25.516
+i4 = np.abs(xval - 0).argmin()    # 79.75, 0.008, 70.078
+i5 = np.abs(xval - 25).argmin() # 40.25, 79.875, -58.375
+i6 = np.abs(xval - 60).argmin()
+i7 = np.abs(xval - 80).argmin()
+
+p_fft1 = fft.fft(snapshots[:, i1]-np.mean(snapshots[:, i1]))
+p_fft3 = fft.fft(snapshots[:, i3]-np.mean(snapshots[:, i3]))
+p_fft4 = fft.fft(snapshots[:, i4]-np.mean(snapshots[:, i4]))
+p_fft5 = fft.fft(snapshots[:, i5]-np.mean(snapshots[:, i5]))
+p_fft6 = fft.fft(snapshots[:, i6]-np.mean(snapshots[:, i6]))
+p_fft7 = fft.fft(snapshots[:, i7]-np.mean(snapshots[:, i7]))
+
+p_freq = fft.fftfreq(Nz, z_samp)[:Nz//2+1]*2*np.pi
+# p_freq = np.linspace(1/z_samp/Nz, 1/z_samp/2, Nz//2+1)*2*np.pi
+fig, ax = plt.subplots(figsize=(12*cm2in, 4.5*cm2in), dpi=300)
+matplotlib.rc("font", size=nsize)
+# ax.vlines(p_fre[1:Nt//2], [0], np.abs(p_fft)[1:Nt//2])
+ax.plot(p_freq, np.abs(p_fft1)[:Nz//2+1], "b--", linewidth=1.0)
+ax.plot(p_freq, np.abs(p_fft3)[:Nz//2+1], "b:", linewidth=1.0)
+ax.plot(p_freq, np.abs(p_fft4)[:Nz//2+1], "k--", linewidth=1.0)
+ax.plot(p_freq, np.abs(p_fft5)[:Nz//2+1], "k:", linewidth=1.0)
+ax.plot(p_freq, np.abs(p_fft6)[:Nz//2+1], "r--", linewidth=1.0)
+ax.plot(p_freq, np.abs(p_fft7)[:Nz//2+1], "r:", linewidth=1.0)
+
+# ax.set_xscale("log")
+
+ax.set_yscale("log")
+ax.legend([r'$-160$', r'$-58$', r'$0$', r'$25$', r'$60$', r'$80$'],
+          loc='lower right', fontsize=nsize-2,
+          ncols=3, columnspacing=0.6, framealpha=0.4)
+# ax.scatter(p_fre[1:Nt//2], np.abs(p_fft)[1:Nt//2], marker='o', facecolor=None, edgecolors='gray', s=15)
+# ax.plot(xval, inter_fit, "k--", linewidth=1.5)
+ax.set_xlabel(r"$\beta$", fontsize=tsize)
+ax.set_ylabel(r"$A_p$", fontsize=tsize)
+ax.set_xlim([0.0, 20])
+ax.set_ylim([1e-14, 1e1])
+# ax.set_yticks([1e-8, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1])
+# ax.set_xticks(np.arange(-200.0, 80.0, 40))
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+ax.grid(visible=True, which="both", linestyle=":")
+ax.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
+plt.savefig(pathF + var + "_fft_upstream_375a.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %% plot fft map along a line
+z_samp = 0.1515
+Nz = 81
+p_freq = np.linspace(1/z_samp/Nz, 1/z_samp/2, Nz//2)
+skip = 8
+samples = int(Nz / 2 + 1)
+xpick = xval[::skip]
+qpick = snapshots[:, ::skip]
+q_fft = np.zeros((Nz, np.size(xpick)), dtype=complex)
+for i in range(np.size(xpick)):
+    q_fft[:, i] = fft.fft(qpick[:, i] - np.mean(qpick[:, i]))
+# freq = np.linspace(1/z_samp/Nz, 1/z_samp/2, Nz//2)*2*np.pi
+freq = fft.fftfreq(Nz, z_samp)[:Nz//2+1]*2*np.pi
+Afft = np.log(np.abs(q_fft)[:Nz//2+1, :])
+# ax.plot(p_freq[:Nt//2], np.abs(p_fft4)[1:Nt//2+1], "b-", linewidth=1.0)
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+# ax.yaxis.major.formatter.set_powerlimits((-2, 3))
+ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_ylabel(r"$\beta$", fontsize=tsize)
+print(np.max(Afft))
+print(np.min(Afft))
+max_id = np.argmax(Afft, axis=0)
+max_freq = [freq[i] for i in max_id]
+cb1 = -7
+cb2 = -1
+lev = np.linspace(cb1, cb2, 81)
+cbar = ax.contourf(xpick, freq, Afft, extend='both',
+                   cmap='bwr', levels=lev)  # seismic # bwr # coolwarm
+ax.plot(xpick, max_freq, 'C7:', linewidth=1.2)
+# every stage of the transition
+ax.axvline(x=-58.1, linewidth=1.0, linestyle='--', color='k') # -51.4
+ax.axvline(x=25.4, linewidth=1.0, linestyle='--', color='k') # 34.4
+# ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
+ax.set_yscale('log')
+ax.set_xlim([-160, 80.0])
+# ax.set_ylim([0.4, 20.0])
+ax.set_xticks(np.linspace(-160, 80, 7))
+rg = np.linspace(cb1, cb2, 3)
+cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
+cbar.ax.xaxis.offsetText.set_fontsize(nsize)
+cbar.ax.tick_params(labelsize=nsize)
+cbar.update_ticks()
+barlabel = r'$\log_{10} (\left \|p^{\prime}\right \|)$'
+ax.set_title(barlabel, pad=3, fontsize=nsize-1)
+# cbar.set_label(barlabel, rotation=90, fontsize=numsize)
+plt.tick_params(labelsize=nsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(pathF + var + "_FFTMap_max" + "_XP375b.svg",
+            bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %% compute
+var = 'u'
+z_samp = 0.1515
+Nz = 81
+
+ramp_wall = pd.read_csv(pathM + "FirstLevXP.dat", skipinitialspace=True)
+xval = ramp_wall['x']
+qval = np.load(path + "snapshots_" + var+ "_XP.npy")
+# timez = np.linspace(600.0, 900.0, 1201)
+skip = 1
+samples = int(Nz / 2 + 1)
+xpick = xval[::skip]
+qpick = qval[:, ::skip]
+qPSD = np.zeros((samples, np.size(xpick)))
+for i in range(np.size(xpick)):
+    freq, qPSD[:, i] = va.psd(qpick[:, i], z_samp, 1/z_samp)
+np.savetxt(path + 'PSD_freq_' + '_XP.dat', freq*2*np.pi, delimiter=' ')
+np.savetxt(path + 'PSD_x_XP.dat', xpick, delimiter=' ')
+np.savetxt(path + var + '_PSD_psd_' + '_XP.dat', qPSD, delimiter=' ')
+
+# %%
+freq = np.loadtxt(path + 'PSD_freq_' + '_XP.dat', delimiter=' ')
+xpick = np.loadtxt(path + 'PSD_x_XP.dat', delimiter=' ') 
+qPSD = np.loadtxt(path + var + '_PSD_psd_' + '_XP.dat', delimiter=' ')
+freq = freq[1:]
+qPSD = qPSD[1:, :]
+# %%
+fig, ax = plt.subplots(figsize=(14*cm2in, 4.5*cm2in), dpi=300)
+matplotlib.rc("font", size=nsize)
+i1 = np.abs(xpick - -160).argmin()
+i2 = np.abs(xpick - -80).argmin()
+i3 = np.abs(xpick - -58).argmin()
+i4 = np.abs(xpick - 0).argmin()
+
+freq1, qPSD1 = va.psd((qpick[:, i1]-np.mean(qpick[:, i1])), z_samp, 1/z_samp, opt=1, seg=1, overlap=4)
+
+# ax.vlines(p_fre[1:Nt//2], [0], np.abs(p_fft)[1:Nt//2])
+ax.plot(freq1*2*np.pi, qPSD1, "k--", linewidth=1.0)
+ax.plot(freq, qPSD[:,i2], "r-", linewidth=1.0)
+ax.plot(freq, qPSD[:,i3], "g-", linewidth=1.0)
+ax.plot(freq, qPSD[:,i4], "b--", linewidth=1.0)
+
+ax.set_xscale("log")
+ax.set_yscale("log")
+ax.legend([r'$-160$', r'$-80$', r'$-58$', r'$0$'],
+          loc='upper right', fontsize=nsize-2,
+          ncols=2, columnspacing=0.6, framealpha=0.4)
+# ax.scatter(p_fre[1:Nt//2], np.abs(p_fft)[1:Nt//2], marker='o', facecolor=None, edgecolors='gray', s=15)
+# ax.plot(xval, inter_fit, "k--", linewidth=1.5)
+ax.set_xlabel(r"$\beta$", fontsize=tsize)
+ax.set_ylabel(r"$PSD$", fontsize=tsize)
+ax.set_xlim([5e-1, 20])
+# ax.set_xlim([1e-18, 1e-7])
+ax.set_ylim([1e-18, 1e-4])
+# ax.set_xticks(np.arange(-200.0, 80.0, 40))
+# ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
+# ax.axvline(x=xline1, color="gray", linestyle=":", linewidth=1.5)
+# ax.axvline(x=xline2, color="gray", linestyle=":", linewidth=1.5)
+ax.grid(visible=True, which="both", linestyle=":")
+ax.yaxis.offsetText.set_fontsize(nsize)
+plt.tick_params(labelsize=nsize)
+plt.savefig(pathF + var + "_PSD_upstream_XP.svg", bbox_inches="tight", pad_inches=0.1)
+plt.show()
+
+# %% Plot frequency-weighted PSD map along a line
+SumFPSD = 1.0  # np.max(qPSD, axis=0)  # np.sum(FPSD, axis=0)
+qPSD1 = np.log(qPSD/SumFPSD)  # np.log(FPSD) # 
+max_id = np.argmax(qPSD1, axis=0)
+max_freq = [freq[i] for i in max_id]
+matplotlib.rcParams['xtick.direction'] = 'out'
+matplotlib.rcParams['ytick.direction'] = 'out'
+fig, ax = plt.subplots(figsize=(6.4, 2.8))
+# ax.yaxis.major.formatter.set_powerlimits((-2, 3))
+ax.set_xlabel(r"$x/l_r$", fontsize=tsize)
+ax.set_ylabel(r"$\beta$", fontsize=tsize)
+print(np.max(qPSD1))
+print(np.min(qPSD1))
+cb1 = -18
+cb2 = -8
+lev = np.linspace(cb1, cb2, 41)
+cbar = ax.contourf(xpick, freq, qPSD1, extend='both',
+                   cmap='bwr', levels=lev)  # seismic # bwr # coolwarm
+ax.plot(xpick, max_freq, 'C7:', linewidth=1.2)
+# every stage of the transition\
+# ax.axvline(x=9.2, linewidth=1.0, linestyle='--', color='k')
+ax.set_yscale('log')
+ax.set_xlim([-160, 80.0])
+ax.set_xticks(np.linspace(-160, 80.0, 7))
+rg = np.linspace(cb1, cb2, 3)
+cbar = plt.colorbar(cbar, ticks=rg, extendrect=True)
+cbar.ax.xaxis.offsetText.set_fontsize(nsize)
+cbar.ax.tick_params(labelsize=nsize)
+cbar.update_ticks()
+barlabel = r'$\log_{10} (\left \|p^{\prime}\right \|)$'
+# barlabel = r'$\log_{10} [f\cdot\mathcal{P}(f)/\int \mathcal{P}(f) \mathrm{d}f]$'
+ax.set_title(barlabel, pad=3, fontsize=nsize-1)
+ax.axvline(x=-58.3, linewidth=1.0, linestyle='--', color='k')
+ax.axvline(x=25.4, linewidth=1.0, linestyle='--', color='k')
+# cbar.set_label(barlabel, rotation=90, fontsize=numsize)
+plt.tick_params(labelsize=nsize)
+plt.tight_layout(pad=0.5, w_pad=0.8, h_pad=1)
+plt.savefig(pathF + var + "_PSDMap_max" + "_XP.svg",
+            bbox_inches="tight", pad_inches=0.1)
 plt.show()
 
 # %% animation for vortex structure

@@ -25,7 +25,7 @@ get_ipython().run_line_magic("matplotlib", "qt")
 # host = "/run/user/1000/gvfs/sftp:host=cartesius.surfsara.nl,user="
 # path = host + "weibohu/nfs/home6/weibohu/weibo/FFS_M1.7TB/"
 # path = "E:/cases/wavy_1009/"
-path = "/media/weibo/VID21/ramp_st14/"
+path = "F:/zong/"
 p2p.create_folder(path)
 pathP = path + "probes/"
 pathF = path + "Figures/"
@@ -109,7 +109,7 @@ matplotlib.rc("font", size=numsize)
 title = [r"$(a)$", r"$(b)$", r"$(c)$", r"$(d)$", r"$(e)$"]
 matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
-xcoord = np.array([-160, -80, -40, -20, 0, 20, 40, 60, 80])
+xcoord = np.array([-40, -20, -10, 0, 10, 20, 40, 60, 80])
 for i in range(np.size(xcoord)):
     df = MeanFlow.yprofile("x", xcoord[i])
     y0 = df["walldist"]
@@ -117,11 +117,11 @@ for i in range(np.size(xcoord)):
     if xcoord[i] == 0.0:
         ind = np.where(y0 >= 0.0)[0]
         ax[i].plot(q0[ind], y0[ind], "k-")
-        ax[i].set_ylim([0, 6])
+        ax[i].set_ylim([0, 4])
     else:
         ind = np.where(y0 >= 0.0)[0]
         ax[i].plot(q0[ind], y0[ind], "k-")
-        ax[i].set_ylim([0, 6])
+        ax[i].set_ylim([0, 4])
     if i != 0:
         ax[i].set_yticklabels("")
         ax[i].set_title(r"${}$".format(xcoord[i]), fontsize=numsize - 2)
@@ -262,8 +262,8 @@ plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
 # plt.tick_params(labelsize=numsize)
 # plt.savefig(
 #    pathF + 'WallLaw' + str(x0) + '.svg', bbox_inches='tight', pad_inches=0.1)
-# plt.show()
-
+plt.show()
+# %%
 #  Reynolds stresses in Morkovin scaling
 # results from known DNS
 ExpUPlus, ExpUVPlus, ExpUrmsPlus, ExpVrmsPlus, ExpWrmsPlus, XI = va.ref_wall_law(
@@ -367,7 +367,7 @@ def yplus(MeanFlow, dy, wallval, opt):
         TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData["x"] < 0.0]
         TempFlow = TempFlow.loc[TempFlow["x"] >= -100.0]
     elif opt == 2:
-        TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData["x"] > 100.0]
+        TempFlow = MeanFlow.PlanarData.loc[MeanFlow.PlanarData["x"] > 0.0]
     frame = TempFlow.loc[np.round(TempFlow["y"], 6) == np.round(dy, 6)]
     frame1 = TempFlow.loc[np.round(TempFlow["y"], 6) == np.round(wallval, 6)]
     x = frame["x"].values
@@ -376,17 +376,18 @@ def yplus(MeanFlow, dy, wallval, opt):
     delta_u = (frame["<u>"].values - frame1["<u>"].values) / (dy - wallval)
     tau = mu * delta_u
     u_tau = np.sqrt(np.abs(tau / rho))
+    print("u_tau=", u_tau)
     y_plus = (dy - wallval) * u_tau * rho / mu
     frame.assign(yplus=y_plus)
     return (x, y_plus, frame)
 
 
 # 0.002300256 upsteam the step
-first_y = 0.0625
+first_y = 0.015625
 x1, yplus1, frame1 = yplus(MeanFlow, first_y, 0.0, opt=1)
-# x2, yplus2, frame2 = yplus(MeanFlow, first_y, 0.0, opt=2)  # 3.001953125 downstream
-# res = np.vstack((np.hstack((x1, x2)), np.hstack((yplus1, yplus2))))
-res = np.vstack((x1, yplus1))
+x2, yplus2, frame2 = yplus(MeanFlow, first_y - 10.0, -10.0, opt=2)  # 3.001953125 downstream
+res = np.vstack((np.hstack((x1, x2)), np.hstack((yplus1, yplus2))))
+# res = np.vstack((x1, yplus1))
 frame3 = pd.DataFrame(data=res.T, columns=["x", "yplus"])
 frame3.to_csv(pathM + "YPLUS.dat", index=False, float_format="%1.8e", sep=" ")
 
@@ -397,7 +398,7 @@ ax3.plot(yp["x"], yp["yplus"], "k", linewidth=1.5)
 ax3.set_xlabel(r"$x/\delta_0$", fontsize=textsize)
 ax3.set_ylabel(r"$\Delta y^{+}$", fontsize=textsize)
 # ax3.set_xlim([0.0, 360])
-ax3.set_ylim([0.0, 2.0])
+# ax3.set_ylim([0.0, 2.0])
 # ax3.set_yticks(np.arange(0.4, 1.3, 0.2))
 ax3.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
 ax3.axhline(y=1.0, color="gray", linestyle="--", linewidth=1.5)
@@ -1024,7 +1025,20 @@ MeanFlow2.copy_meanval()
 
 
 # %%
-x1 = -50.0
+x0 = -30.0
+x1 = -20.0
+BLProf = MeanFlow.yprofile("x", x0)  # -30.0
+BLProf.loc[0, 'walldist'] = 0.0
+CalUPlus = va.direst_transform(BLProf, option="mean")
+# BLProf = MeanFlow.yprofile("x", x1)
+u_tau = va.u_tau(BLProf, option="mean", grad=True)
+xi = np.sqrt(BLProf["<rho>"] / BLProf["<rho>"].values[1])
+uu = np.sqrt(BLProf["<u`u`>"]) / u_tau * xi
+vv = np.sqrt(BLProf["<v`v`>"]) / u_tau * xi
+ww = np.sqrt(BLProf["<w`w`>"]) / u_tau * xi
+uv = BLProf["<u`v`>"] / u_tau ** 2 * xi ** 2
+# %%
+x1 = -30.0
 BLProf1 = MeanFlow1.yprofile("x", x1)  # -30.0
 CalUPlus1 = va.direst_transform(BLProf1, option="mean")
 BLProf1 = MeanFlow1.yprofile("x", x1)
@@ -1045,11 +1059,12 @@ ww2 = np.sqrt(BLProf2["<w`w`>"]) / u_tau2 * xi2
 uv2 = BLProf2["<u`v`>"] / u_tau2 ** 2 * xi2 ** 2
 
 # %% velocity profile, computation
-x0 = -50.0
+x0 = 80.0
 incomp = True
 # results from LES
 MeanFlow.copy_meanval()
 BLProf = MeanFlow.yprofile("x", x0)
+BLProf.loc[0, 'walldist'] = 0.0
 u_tau = va.u_tau(BLProf, option="mean")
 mu_inf = BLProf["<mu>"].values[-1]
 delta, u_inf = va.bl_thickness(BLProf["walldist"], BLProf["<u>"])
@@ -1097,15 +1112,15 @@ ax.scatter(
 # ax.plot(CalUPlus[:, 0], uplus, 'k', linewidth=1.5)
 # ax.scatter(CalUPlus[:, 0], CalUPlus[:, 1], s=15)
 ax.plot(CalUPlus[:, 0], CalUPlus[:, 1], "k", linewidth=1.0)
-ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "k:", linewidth=1.0)
-ax.plot(CalUPlus2[:, 0], CalUPlus2[:, 1], "k--", linewidth=1.0)
+# ax.plot(CalUPlus1[:, 0], CalUPlus1[:, 1], "k:", linewidth=1.0)
+# ax.plot(CalUPlus2[:, 0], CalUPlus2[:, 1], "k--", linewidth=1.0)
 ax.set_xscale("log")
 ax.set_xlim([0.5, 2000])
 ax.set_ylim([0, 30])
 ax.set_ylabel(r"$\langle u_{VD}^+ \rangle$", fontsize=textsize)
 ax.set_xlabel(r"$y^+$", fontsize=textsize)
 ax.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax.grid(b=True, which="both", linestyle=":")
+ax.grid(which="both", linestyle=":")
 ax.annotate("(a)", xy=(-0.16, 0.98), xycoords="axes fraction", fontsize=numsize)
 plt.tick_params(labelsize="medium")
 plt.tight_layout(pad=0.5, w_pad=0.5, h_pad=0.3)
@@ -1132,7 +1147,6 @@ uv = BLProf["<u`v`>"] / u_tau ** 2 * xi ** 2
 # uu = splev(CalUPlus[:, 0], spl)
 # plot Reynolds stress
 # fig, ax = plt.subplots(figsize=(3.2, 3.2))
-Xi = 1.0
 ax2 = fig.add_subplot(122)
 ax2.scatter(
     ExpUrmsPlus[:, 0],
@@ -1170,14 +1184,14 @@ ax2.plot(CalUPlus[:, 0], uu[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], vv[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], ww[1:], "k", linewidth=1.0)
 ax2.plot(CalUPlus[:, 0], uv[1:], "k", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], uu1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], vv1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], ww1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus1[:, 0], uv1[1:], "k:", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], uu2[1:], "k--", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], vv2[1:], "k--", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], ww2[1:], "k--", linewidth=1.0)
-ax2.plot(CalUPlus2[:, 0], uv2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], uu1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], vv1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], ww1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus1[:, 0], uv1[1:], "k:", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], uu2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], vv2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], ww2[1:], "k--", linewidth=1.0)
+# ax2.plot(CalUPlus2[:, 0], uv2[1:], "k--", linewidth=1.0)
 ax2.set_xscale("log")
 ax2.set_ylim([-1.5, 3.5])
 ax2.set_xlim([1, 2000])
@@ -1195,7 +1209,7 @@ ax2.set_ylabel(
 )
 ax2.set_xlabel(r"$y^+$", fontsize=textsize)
 ax2.ticklabel_format(axis="y", style="sci", scilimits=(-2, 2))
-ax2.grid(b=True, which="both", linestyle=":")
+ax2.grid(which='both', linestyle=":")
 ax2.annotate("(b)", xy=(-0.18, 0.98), xycoords="axes fraction", fontsize=numsize)
 plt.subplots_adjust(wspace=0.8)
 plt.tick_params(labelsize="medium")

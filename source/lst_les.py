@@ -525,7 +525,7 @@ plt.show()
 
 # %%############################################################################
 """
-    Compare of boundary layer amplitude profile from LES and DNS
+    Compare of boundary layer amplitude profile from LST and DNS
 """
 # %% Save boundary layer profile at a X location by z
 for j in range(np.size(x0)):
@@ -609,7 +609,7 @@ ax.grid(b=True, which="both", linestyle=":")
 plt.tick_params(labelsize=nsize)
 plt.show()
 plt.savefig(
-    pathF + "BLAmplit_" + varnm + by_var + '.svg', 
+    pathF + "BLAmplit_" + varnm + by_var + '.svg',
     bbox_inches="tight", pad_inches=0.1
 )
 

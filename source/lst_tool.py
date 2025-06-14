@@ -12,26 +12,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-
 import matplotlib.ticker as ticker
-from scipy.interpolate import interp1d, splev, splrep #, spline
-from data_post import DataPost
+from scipy.interpolate import interp1d, splev, splrep  #, spline
+# from data_post import DataPost
 import variable_analysis as fv
 from timer import timer
 from scipy.interpolate import griddata
 import plt2pandas as p2p
 from glob import glob
-
-
-# %% data path settings
-path = "/media/weibo/Data2/BFS_M1.7TS/"
-pathP = path + "probes/"
-pathF = path + "Figures/"
-pathM = path + "MeanFlow/"
-pathS = path + "SpanAve/"
-pathT = path + "TimeAve/"
-pathI = path + "Instant/"
-pathL = path + "LST/"
+import tools
 
 # % figures properties settings
 plt.close("All")
@@ -45,6 +34,16 @@ matplotlib.rcParams["xtick.direction"] = "in"
 matplotlib.rcParams["ytick.direction"] = "in"
 tsize = 13
 nsize = 10
+
+# %% data path settings
+path = "/media/weibo/Data2/BFS_M1.7TS/"
+pathP = path + "probes/"
+pathF = path + "Figures/"
+pathM = path + "MeanFlow/"
+pathS = path + "SpanAve/"
+pathT = path + "TimeAve/"
+pathI = path + "Instant/"
+pathL = path + "LST/"
 
 # %%
 # path = "/media/weibo/VID2/BFS_M1.7SFD/"
@@ -179,7 +178,8 @@ input_mode.to_csv(myfile, sep=' ', index=False, header=0, na_rep='0',
                   columns=col[:11], mode='a', float_format='%1.8e')
 # %% Plot LST perturbations profiles
 # path = '/mnt/work/cases/flat_202302/export/'
-ts_profile = pd.read_csv(path + 'UnstableMode.inp', sep=' ',
+path = "F:/ramp_st14_optimal2/"
+ts_profile = pd.read_csv(path + 'UnstableMode1.inp', sep=' ',
                          index_col=False, skiprows=5,
                          skipinitialspace=True)
 ts_profile['u'] = np.sqrt(ts_profile['u_r']**2+ts_profile['u_i']**2)
@@ -189,7 +189,7 @@ ts_profile['t'] = np.sqrt(ts_profile['t_r']**2+ts_profile['t_i']**2)
 ts_profile['p'] = np.sqrt(ts_profile['p_r']**2+ts_profile['p_i']**2)
 # normalized
 fct = 4
-var_ref = np.max(ts_profile['u'])
+var_ref = 1.0  # np.max(ts_profile['u'])
 ts_profile['u'] = ts_profile['u'] / var_ref
 ts_profile['v'] = ts_profile['v'] / var_ref
 ts_profile['w'] = ts_profile['w'] / var_ref
@@ -217,9 +217,47 @@ ax.tick_params(labelsize=nsize)
 ax.grid(visible=True, which="both", linestyle=":")
 plt.legend( (r'$u$', r'$v$', r'$w$', r'$p$', r'$T$'),
             fontsize=nsize, framealpha=0.5 )
-plt.savefig(path + "optimal_mode_profile.png", dpi=300, bbox_inches="tight")
+plt.savefig(path + "optimal_mode_profile1.svg", dpi=300, bbox_inches="tight")
 plt.show()
 
+
+# %% plot amplitude along x
+path2 = 'F:/ramp_st14_optimal2/'
+amplif = pd.read_csv(path2 + 'optimal.csv', sep=',', skipinitialspace=True)
+delta = 0.001
+Re_inf = 7.74e6
+Lref = np.sqrt(0.05/Re_inf)
+fig, ax = plt.subplots(figsize=(6.4, 6.4))
+matplotlib.rc("font", size=tsize)
+# plot lines
+freq_F = np.float32(amplif.columns[1:]) * 1e-6
+omega_d = tools.F2omega(freq_F, Re_inf, 0.001, opt='delta')
+omega_l = tools.F2omega(freq_F, Re_inf, 0.05, opt='blasius')
+
+beta0 = amplif.query('beta == 0.04')
+beta1 = amplif.query('beta == 0.06')
+beta2 = amplif.query('beta == 0.08')
+beta3 = amplif.query('beta == 0.12')
+beta4 = amplif.query('beta == 0.18')
+# ax.plot(freq, beta1.iloc[0, 1:].values, 'b-')
+# ax.plot(freq, beta2.iloc[0, 1:].values, 'r-')
+# ax.plot(freq, beta3.iloc[0, 1:].values, 'k-')
+# ax.plot(freq, beta4.iloc[0, 1:].values, 'g-')
+0.06 / np.sqrt(0.05 / Re_inf) * 0.001
+ax.plot(omega_d, beta0.iloc[0, 1:].values, 'c-')
+ax.plot(omega_d, beta1.iloc[0, 1:].values, 'b-')
+ax.plot(omega_d, beta2.iloc[0, 1:].values, 'r-')
+ax.plot(omega_d, beta3.iloc[0, 1:].values, 'k-')
+ax.plot(omega_d, beta4.iloc[0, 1:].values, 'g-')
+
+# ax.set_xlim([280, 480])
+# ax.set_ylim([-0.1, 0.3])
+ax.set_xlabel(r'$F$', fontsize=tsize)
+ax.set_ylabel(r'$G$', fontsize=tsize)
+ax.tick_params(labelsize=nsize)
+ax.grid(visible="both", linestyle=":")
+plt.savefig(path2 + "amplication.svg", bbox_inches="tight")
+plt.show()
 # %% omega-Rex
 xloc = np.arange(-40.0, -6.0 + 1.0, 1.0)
 x_inlet = 0.382185449774020e3
@@ -446,8 +484,8 @@ var_x = pd.read_csv(path1 + 'var_x.dat', sep='\t', skipinitialspace=True)
 path = 'E:/cases/project/LST/export/'
 cols = ['x', 'omega_r', 'omega_i', 'alpha_r', 'alpha_i', 'beta_r', 'beta_i']
 x_profile = pd.read_csv(path + 'x-eigenvalue.dat', sep=' ', names=cols,
-                         index_col=False, skiprows=1,
-                         skipinitialspace=True)
+                        index_col=False, skiprows=1,
+                        skipinitialspace=True)
 x_profile = x_profile.sort_values(by=['x'])
 x1_profile = x_profile.iloc[540:941]
 a0 = 1
