@@ -11,9 +11,9 @@ import numpy as np
 from scipy.interpolate import griddata
 from scipy.io import FortranFile
 import os
-from source import pytecio as pt
 import sys
 import re
+from source import pytecio as pt
 
 # %%
 # convert tecplot grid to plot3d grid
@@ -81,9 +81,9 @@ def edit_block(inpath, outpath, znew, zold=None, xarr=None, opt=0):
     dirs = sorted(os.listdir(inpath))
     zstr = [str(j) for j in znew]
     if opt == 0:
-        lxrg = 13
-        lxno = 16
-        lzno = 18
+        lxrg = 13  # x range line
+        lxno = 16  # number of x points line
+        lzno = 18  # number of z points line
     elif opt == 1:
         lxrg = 3
         lxno = 7
@@ -98,6 +98,7 @@ def edit_block(inpath, outpath, znew, zold=None, xarr=None, opt=0):
         zpt_ln = re.split('[,\s]', lines[lzno])
         zpt_ln = list(filter(None, zpt_ln))
         nz_old = zpt_ln[2]
+        # modify the number of z points based on znew (z points)
         if zold is not None:
             if isinstance(zold[0], np.int64) is not True:
                 sys.exit("the type of zno is not int!!!")
@@ -111,6 +112,7 @@ def edit_block(inpath, outpath, znew, zold=None, xarr=None, opt=0):
                 lines[lzno] = lines[lzno].replace(nz_old, zstr[3])             
             else:
                 print('there is an error for ' + dirs[i])
+        # modify the number of x points based on xarr (x space)
         if xarr is not None:
             if isinstance(xarr[0], np.float64) is not True:
                 sys.exit("the type of xarr is not float!!!")
@@ -139,6 +141,57 @@ def edit_block(inpath, outpath, znew, zold=None, xarr=None, opt=0):
         with open(outpath+dirs[i], 'w') as fp:
             fp.write("".join(lines))
 
+def double_blocks(inpath, outpath, var, qarr, opt=0):
+    dirs = sorted(os.listdir(inpath))
+    if opt == 0:
+        lxrg = 13  # x range line
+        lxno = 16  # number of x points line
+    elif opt == 1:
+        lxrg = 3
+        lxno = 7
+    else:
+        sys.exit('option error')
+    # which axis to modify
+    if var == 'x':
+        qxrg = lxrg
+        lqno = lxno
+    elif var == 'y':
+        qxrg = lxrg + 1
+        lqno = lxno + 1
+    elif var == 'z':
+        qxrg = lxrg + 2
+        lqno = lxno + 2
+    else:
+        sys.exit('var error')
+    # read each block
+    for i in range(np.size(dirs)):
+        print('process the block of ', dirs[i])
+        with open(inpath + dirs[i]) as f:
+            lines = f.readlines()
+    
+        # modify the number of x points based on xarr (x space)
+
+        if isinstance(qarr[0], float) is not True:
+            sys.exit("the type of xarr is not float!!!")
+        qrg_ln = re.split('[,\s]', lines[qxrg])
+        qrg_ln = list(filter(None, qrg_ln))
+        qlc1 = float(qrg_ln[2])
+        qlc2 = float(qrg_ln[3])
+        qpt_ln = re.split('[,\s]', lines[lqno])
+        qpt_ln = list(filter(None, qpt_ln))
+        qpts = float(qpt_ln[2])
+        qspc = (qlc2 - qlc1) / qpts
+        print('the x-space of grid is ', qspc)
+        if qspc in qarr:
+            qstr = str(int(qpts) * 2)
+            lines[lqno] = lines[lqno].replace(str(int(qpts)), qstr)
+            print('modify the number of points successfully')
+        else:
+            print('there is no modification for ' + dirs[i])
+        # save the modified grid
+        with open(outpath+dirs[i], 'w') as fp:
+            fp.write("".join(lines))
+
 
 # %%
 if __name__ == "__main__":
@@ -164,33 +217,40 @@ if __name__ == "__main__":
     grid2plot3d(path+'TP_grid/', path+'grid/',  option='3d')
 
 # %%
-inpath = '/media/weibo/VID2/ramp_st17/grid/'
-outpath = '/media/weibo/VID2/ramp_st17/grid_new/'
-dirs = sorted(os.listdir(inpath))
-
-lxrg = 13
-lxno = 16
-lzrg = 15
-lzno = 18
-
-for i in range(np.size(dirs)):
-    print('process the block of ', dirs[i])
-    with open (inpath + dirs[i]) as f:
-        lines = f.readlines()
+    inpath = 'F:/ramp_st14_dx/grid/'
+    outpath = 'F:/ramp_st14_dx/grid_new/'
+    znew = np.array([60, 40, 20, 10])
+    xarr = np.array([1.0, 0.5, 0.25])
+    double_blocks(inpath, outpath, 'x', qarr=[0.25, 0.50, 1.0], opt=0)
+# %%
+    inpath = '/media/weibo/VID2/ramp_st17/grid/'
+    outpath = '/media/weibo/VID2/ramp_st17/grid_new/'
+    dirs = sorted(os.listdir(inpath))
     
-    zrg_ln = re.split('[,\s]', lines[lzrg])
-    zrg_ln = list(filter(None, zrg_ln))
-    if float(zrg_ln[2]) == 0.0:
-        print('there is a mismatch for ', dirs[i])
-    else:
-        if float(zrg_ln[3]) == 0.0:
-            zpt_ln = re.split('[,\s]', lines[lzno])
-            zpt_ln = list(filter(None, zpt_ln))
-            nz_old = zpt_ln[2]
-            if int(nz_old) == 20:
-                lines[lzno] = lines[lzno].replace(nz_old, '40')
-                print("replace ", dirs[i])
-            else:
-                print("there is no change for ", dirs[i])
-    with open(outpath+dirs[i], 'w') as fp:
-        fp.write("".join(lines))
+    lxrg = 13
+    lxno = 16
+    lzrg = 15
+    lzno = 18
+    
+    for i in range(np.size(dirs)):
+        print('process the block of ', dirs[i])
+        with open (inpath + dirs[i]) as f:
+            lines = f.readlines()
+        
+        zrg_ln = re.split('[,\s]', lines[lzrg])
+        zrg_ln = list(filter(None, zrg_ln))
+        if float(zrg_ln[2]) == 0.0:
+            print('there is a mismatch for ', dirs[i])
+        else:
+            if float(zrg_ln[3]) == 0.0:
+                zpt_ln = re.split('[,\s]', lines[lzno])
+                zpt_ln = list(filter(None, zpt_ln))
+                nz_old = zpt_ln[2]
+                if int(nz_old) == 20:
+                    lines[lzno] = lines[lzno].replace(nz_old, '40')
+                    print("replace ", dirs[i])
+                else:
+                    print("there is no change for ", dirs[i])
+        with open(outpath+dirs[i], 'w') as fp:
+            fp.write("".join(lines))
+    
