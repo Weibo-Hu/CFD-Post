@@ -990,7 +990,10 @@ def ReadSinglePlt(file_nm, var_list=None):
     for i in range(zone_num):
         zonename = file.nameZones[i]
         ZoneDict = file[zonename]
-        temp = pd.DataFrame(ZoneDict)
+        # print(ZoneDict)
+        # temp = pd.DataFrame.from_dict(ZoneDict, orient='index')
+        #　temp = pd.DataFrame(ZoneDict)
+        temp = pd.DataFrame.from_records(ZoneDict)
         df = pd.concat([df, temp])
     if var_list is None:
         df_select = df
