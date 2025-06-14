@@ -1,5 +1,5 @@
+# %%
 from collections import namedtuple
-
 import numpy as np
 import scipy.linalg as linalg
 import warnings
@@ -108,7 +108,7 @@ class DMD(object):
         X1 = snapshots[:, 1:]
 
         # economy size SVD of X0
-        U, S, Vh = linalg.svd(X0, full_matrices=False)
+        U, S, Vh = linalg.svd(X0, full_matrices=False, lapack_driver='gesvd')
         # n.b. differences with matlab svd:
         # 1. S is a 1d array of diagonal elements
         # 2. Vh == V': the matlab version returns V for X = U S V',

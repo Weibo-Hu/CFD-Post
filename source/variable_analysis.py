@@ -75,7 +75,7 @@ import variable_analysis as fv
 from scipy import interpolate  # scipy.optimize
 from scipy.interpolate import griddata  # interp1d
 from scipy.interpolate import splprep, splev, interp1d, UnivariateSpline
-from scipy.integrate import trapz, dblquad  # simps,
+from scipy.integrate import trapezoid, dblquad  # simps,
 import sys
 from timer import timer
 import os
@@ -189,7 +189,7 @@ def intermittency(pressure0, WallPre, TimeZone, crit=3.0):
 
     # sign = (WallPre-threshold)/abs(WallPre-threshold)
     # sign      = np.maximum(0, sign[:])
-    gamma = np.trapz(sign, TimeZone) / (TimeZone[-1] - TimeZone[0])
+    gamma = np.trapezoid(sign, TimeZone) / (TimeZone[-1] - TimeZone[0])
     return gamma
 
 
@@ -267,7 +267,7 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None, up=0.95):
         u_d = np.max(u1)  # u1[bl] #
         a1 = rho1 * u1 / rho_d / u_d
         var = 1 - a1
-        delta_star = np.trapz(var, y1)
+        delta_star = np.trapezoid(var, y1)
         return (delta_star, u_d, rho_d)
     elif opt == "momentum":
         rho1 = rho[:bc]
@@ -276,7 +276,7 @@ def bl_thickness(y, u, u_d=None, rho=None, opt=None, up=0.95):
         a1 = 1 - u1 / u_d
         a2 = rho1 * u1 / rho_d / u_d
         var = a1 * a2
-        theta = np.trapz(var, y1)
+        theta = np.trapezoid(var, y1)
         return (theta, u_d, rho_d)
 
 
@@ -772,8 +772,8 @@ def direst_transform(frame, option="mean", grad=False):
     dudy = sec_ord_fdd(walldist, u)
     rho_ratio = np.sqrt(rho / rho_wall)
     for i in range(m):
-        # u_van[i] = np.trapz(rho_ratio[: i + 1], u[: i + 1])
-        u_van[i] = np.trapz(rho_ratio[: i + 1] *
+        # u_van[i] = np.trapezoid(rho_ratio[: i + 1], u[: i + 1])
+        u_van[i] = np.trapezoid(rho_ratio[: i + 1] *
                             dudy[: i + 1], walldist[: i + 1])
     u_plus_van = u_van / shear_velocity
     y_plus = shear_velocity * walldist * rho_wall / mu_wall
@@ -793,7 +793,7 @@ def direst_wall_lawRR(walldist, u_tau, uu, rho):
     rho_wall = rho[0]
     uu_van = np.zeros(m)
     for i in range(m):
-        uu_van[i] = np.trapz(np.sqrt(rho[: i + 1] / rho_wall), uu[: i + 1])
+        uu_van[i] = np.trapezoid(np.sqrt(rho[: i + 1] / rho_wall), uu[: i + 1])
     uu_plus_van = uu_van / u_tau
     # y_plus = u_tau * walldist * rho_wall / mu_wall
     # return(y_plus, u_plus_van)
@@ -1564,7 +1564,7 @@ def thermal_boundary_edge(
 
     wall = pd.DataFrame(data=xycor, columns=["x", "y"])
     wall.drop_duplicates(subset='x', keep='first', inplace=True)
-    wall.to_csv(path + "ThermalpyBoundaryEdge.dat", index=False, float_format="%9.8e")
+    wall.to_csv(path + "ThermalBoundaryEdge.dat", index=False, float_format="%9.8e")
     return(wall.values)
 
 
@@ -1593,11 +1593,11 @@ def bubble_area(
                 if np.max(xy_org[:, 1]) < cutoff:
                     ind = np.argmax(xy_org[:, 1])
                     xy = xy_org[ind:, :]
-                    area[j] = trapz(xy[:, 1] + step, xy[:, 0])
+                    area[j] = trapezoid(xy[:, 1] + step, xy[:, 0])
                     area[j] = area[j] + 0.5 * xy[0, 0] * (0 - xy[0, 1])
                 else:
                     xy = xy_org
-                    area[j] = trapz(xy[:, 1] + step, xy[:, 0])
+                    area[j] = trapezoid(xy[:, 1] + step, xy[:, 0])
                 ax1.plot(xy[:, 0], xy[:, 1])
                 # ind = np.argmax(xy_new[:, 1])
                 # if xy[ind, 1] < cutoff:
@@ -1865,9 +1865,9 @@ def integral_db(x, y, val, range1=None, range2=None, opt=2):
         val_intp = griddata((x, y), val, (ms1, ms2))
         Iy = np.zeros(n2)
         for i in range(n2):
-            Iy[i] = np.trapz(val_intp[i, :], range1)
+            Iy[i] = np.trapezoid(val_intp[i, :], range1)
         # print("finish integral over x-axis")
-        results = np.trapz(Iy, range2)
+        results = np.trapezoid(Iy, range2)
     elif opt == 3:  # separate positive and negative values
         ms1, ms2 = np.meshgrid(range1, range2)
         val_intp = griddata((x, y), val, (ms1, ms2))
@@ -1875,11 +1875,11 @@ def integral_db(x, y, val, range1=None, range2=None, opt=2):
         val_intp_n = np.where(val_intp < 0.0, val_intp, 0.0)  # negative values
         Iy = np.zeros((n2, 2))
         for i in range(n2):
-            Iy[i, 0] = np.trapz(val_intp_p[i, :], range1)
-            Iy[i, 1] = np.trapz(val_intp_n[i, :], range1)
+            Iy[i, 0] = np.trapezoid(val_intp_p[i, :], range1)
+            Iy[i, 1] = np.trapezoid(val_intp_n[i, :], range1)
         # print("finish integral over x-axis")
-        res1 = np.trapz(Iy[:, 0], range2)
-        res2 = np.trapz(Iy[:, 1], range2)
+        res1 = np.trapezoid(Iy[:, 0], range2)
+        res2 = np.trapezoid(Iy[:, 1], range2)
         results = (res1, res2)
     else:
         pass
